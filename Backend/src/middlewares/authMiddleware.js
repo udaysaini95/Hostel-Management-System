@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 // ================= PROTECT ROUTES =================
-exports.protect = (req, res, next) => {
+export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer")) {
@@ -11,7 +11,7 @@ exports.protect = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_jwt_secret");
     req.user = decoded; // ✅ id, role, email available
     next();
   } catch (error) {
@@ -20,7 +20,7 @@ exports.protect = (req, res, next) => {
 };
 
 // ================= ADMIN ONLY =================
-exports.admin = (req, res, next) => {
+export const admin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ message: "Admin only" });
   }

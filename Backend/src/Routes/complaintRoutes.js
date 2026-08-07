@@ -1,29 +1,23 @@
-const express = require("express");
-const router = express.Router();
-const { 
+import express from "express";
+import { 
   createComplaint, 
   myComplaints, 
   deleteComplaint, 
   allComplaints, 
   updateStatus
-} = require("../Controllers/complaintController");
-const { protect, admin } = require("../middlewares/authMiddleware");
+} from "../Controllers/complaintController.js";
+import { protect, admin } from "../middlewares/authMiddleware.js";
+import upload from "../middlewares/upload.js";
+
+const router = express.Router();
 
 // ================= STUDENT ROUTES =================
-const upload = require("../middlewares/upload"); // make sure path correct ho
-
 router.post("/create", protect, upload.single("image"), createComplaint);
 router.get("/my", protect, myComplaints);
 router.delete("/:id", protect, deleteComplaint);
 
 // ================= ADMIN ROUTE ================
 router.get("/admin/complaints", protect, admin, allComplaints);
-router.put(
-  "/status/:id",
-  protect,
-  admin,
-  updateStatus
-)
+router.put("/status/:id", protect, admin, updateStatus);
 
-
-module.exports = router;
+export default router;

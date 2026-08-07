@@ -1,14 +1,15 @@
-const mongoose=require("mongoose");
-const connectDb=async()=>{
-try{
-    const conn=await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected ${conn.connection.host}`);
-}
-catch(error){
-console.error("MongoDB connected Failed ");
-console.error(error.message);
-process.exit(1);
-}
+import { db } from "../db/index.js";
+
+const connectDb = async () => {
+  try {
+    if (!process.env.DATABASE_URL) {
+      console.warn("⚠️ DATABASE_URL environment variable is missing!");
+      return;
+    }
+    console.log("⚡ Drizzle PostgreSQL Database Initialized!");
+  } catch (error) {
+    console.error("❌ Database connection failed:", error.message);
+  }
 };
 
-module.exports=connectDb;
+export default connectDb;

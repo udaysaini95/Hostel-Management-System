@@ -1,84 +1,141 @@
-const Complaint = require("../model/Complaint")
+import { db } from "../db/index.js";
+import { complaints, complaintTimelines, users } from "../db/schema.js";
+import { eq, desc } from "drizzle-orm";
 
-// ================= CREATE =================
-exports.createComplaint = async (req, res) => {
+
+// ================= CREATE COMPLAINT =================
+export const createComplaint = async (req, res) => {
   try {
-    const complaint = await Complaint.create({
-      user: req.user.id,
-      type: req.body.type,
-      room: req.body.room,
-      description: req.body.description,
-      image: req.file ? req.file.filename : null,
-       status: "Created",
-  timeline: [{ status: "Created" }]
-    })
+    const userId = Number(req.user.id);
+    const { type, room, description } = req.body;
 
-    res.status(201).json(complaint)
+    const [complaint] = await db
+      .insert(complaints)
+      .values({
+        userId,
+        type,
+        room,
+        description,
+        image: req.file ? req.file.filename : null,
+        status: "Created",
+      })
+      .returning();
+
+    // Insert timeline entry
+    await db.insert(complaintTimelines).values({
+      complaintId: complaint.id,
+      status: "Created",
+    });
+
+    res.status(201).json({ ...complaint, _id: complaint.id });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: "Create failed" })
+    console.error("Create Complaint Error:", error);
+    res.status(500).json({ message: "Create failed", error: error.message });
   }
-}
+};
 
 // ================= MY COMPLAINTS =================
-exports.myComplaints = async (req, res) => {
+export const myComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.find({ user: req.user.id })
-      .sort({ createdAt: -1 })
+    const userId = Number(req.user.id);
 
-    res.json(complaints)
+    const userComplaints = await db
+      .select()
+      .from(complaints)
+      .where(eq(complaints.userId, userId))
+      .orderBy(desc(complaints.createdAt));
+
+    // Map _id for frontend backwards compatibility
+    const formatted = userComplaints.map((c) => ({ ...c, _id: c.id }));
+    res.json(formatted);
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: "Fetch failed" })
+    console.error("Fetch My Complaints Error:", error);
+    res.status(500).json({ message: "Fetch failed", error: error.message });
   }
-}
+};
 
-// ================= DELETE =================
-exports.deleteComplaint = async (req, res) => {
+// ================= DELETE COMPLAINT =================
+export const deleteComplaint = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id)
+    const complaintId = Number(req.params.id);
+
+    const [complaint] = await db
+      .select()
+      .from(complaints)
+      .where(eq(complaints.id, complaintId));
 
     if (!complaint) {
-      return res.status(404).json({ message: "Complaint not found" })
+      return res.status(404).json({ message: "Complaint not found" });
     }
 
-    // only owner can delete
-    if (complaint.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: "Not authorized" })
+    // Only owner or admin can delete
+    if (complaint.userId !== Number(req.user.id) && req.user.role !== "admin") {
+      return res.status(401).json({ message: "Not authorized" });
     }
 
-    await complaint.deleteOne()
-    res.json({ message: "Deleted" })
-
+    await db.delete(complaints).where(eq(complaints.id, complaintId));
+    res.json({ message: "Deleted" });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: "Delete failed" })
+    console.error("Delete Complaint Error:", error);
+    res.status(500).json({ message: "Delete failed", error: error.message });
   }
-}
+};
 
 // ================= ADMIN: ALL COMPLAINTS =================
-exports.allComplaints = async (req, res) => {
+export const allComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.find()
-  .populate("user", "name email room")
-  .sort({ createdAt: -1 })
+    const results = await db
+      .select({
+        id: complaints.id,
+        _id: complaints.id,
+        type: complaints.type,
+        room: complaints.room,
+        description: complaints.description,
+        image: complaints.image,
+        status: complaints.status,
+        createdAt: complaints.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        },
+      })
+      .from(complaints)
+      .leftJoin(users, eq(complaints.userId, users.id))
+      .orderBy(desc(complaints.createdAt));
 
-    res.json(complaints)
+    res.json(results);
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: "Fetch failed" })
+    console.error("All Complaints Error:", error);
+    res.status(500).json({ message: "Fetch failed", error: error.message });
   }
-}
+};
 
-exports.updateStatus = async (req, res) => {
-  const { status } = req.body
+// ================= UPDATE COMPLAINT STATUS =================
+export const updateStatus = async (req, res) => {
+  try {
+    const complaintId = Number(req.params.id);
+    const { status } = req.body;
 
-  const complaint = await Complaint.findById(req.params.id)
+    const [updatedComplaint] = await db
+      .update(complaints)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(complaints.id, complaintId))
+      .returning();
 
-  complaint.status = status
-  complaint.timeline.push({ status })
+    if (!updatedComplaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
 
-  await complaint.save()
+    // Add timeline record
+    await db.insert(complaintTimelines).values({
+      complaintId,
+      status,
+    });
 
-  res.json({ message: "Status Updated" })
-}
+    res.json({ message: "Status Updated", complaint: updatedComplaint });
+  } catch (error) {
+    console.error("Update Status Error:", error);
+    res.status(500).json({ message: "Update status failed", error: error.message });
+  }
+};
