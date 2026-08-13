@@ -23,7 +23,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "pdfkit": "^0.17.2",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",

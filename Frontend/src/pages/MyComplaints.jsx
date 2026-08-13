@@ -8,7 +8,10 @@ import {
   Image as ImageIcon,
   ExternalLink,
   Filter,
-  Clock
+  Clock,
+  CheckCircle,
+  XCircle,
+  MessageSquare
 } from "lucide-react";
 
 const MyComplaints = () => {
@@ -39,6 +42,21 @@ const MyComplaints = () => {
       setComplaints(complaints.filter(c => (c.id || c._id) !== id));
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete complaint.");
+    }
+  };
+
+  const handleVerify = async (id, newStatus) => {
+    let note = "";
+    if (newStatus === "Created") {
+      note = window.prompt("Please provide a reason for reopening this ticket:");
+      if (note === null) return;
+    }
+
+    try {
+      await api.put(`/api/complaints/verify/${id}`, { status: newStatus, note });
+      setComplaints(complaints.map(c => (c.id || c._id) === id ? { ...c, status: newStatus } : c));
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to verify complaint.");
     }
   };
 
@@ -75,7 +93,7 @@ const MyComplaints = () => {
         <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 mr-2">
           <Filter className="w-3 h-3" /> Filter:
         </span>
-        {["All", "Created", "In Progress", "Resolved"].map((status) => (
+        {["All", "Created", "In Progress", "Resolved", "Closed"].map((status) => (
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
@@ -144,6 +162,33 @@ const MyComplaints = () => {
                       <span>View Attached Photo</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
+                  </div>
+                )}
+
+                {(c.status === "Resolved" || c.status === "Closed") && c.resolutionNote && (
+                  <div className="mt-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs">
+                    <div className="flex items-center gap-1.5 text-emerald-800 font-bold mb-1">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Admin Resolution Note:</span>
+                    </div>
+                    <p className="text-emerald-700">{c.resolutionNote}</p>
+                  </div>
+                )}
+
+                {c.status === "Resolved" && (
+                  <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      onClick={() => handleVerify(complaintId, "Closed")}
+                      className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" /> Confirm Fixed
+                    </button>
+                    <button
+                      onClick={() => handleVerify(complaintId, "Created")}
+                      className="flex-1 py-2 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[11px] font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> Reopen Ticket
+                    </button>
                   </div>
                 )}
 

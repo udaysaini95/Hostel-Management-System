@@ -7,7 +7,15 @@ import { eq, desc } from "drizzle-orm";
 export const createComplaint = async (req, res) => {
   try {
     const userId = Number(req.user.id);
-    const { type, room, description } = req.body;
+    const { type, room, description, priority = "P2 - Medium" } = req.body;
+
+    // Calculate SLA Deadline
+    const slaDeadline = new Date();
+    if (priority.startsWith("P0")) slaDeadline.setHours(slaDeadline.getHours() + 2);
+    else if (priority.startsWith("P1")) slaDeadline.setHours(slaDeadline.getHours() + 12);
+    else if (priority.startsWith("P2")) slaDeadline.setHours(slaDeadline.getHours() + 48);
+    else if (priority.startsWith("P3")) slaDeadline.setDate(slaDeadline.getDate() + 7);
+    else slaDeadline.setHours(slaDeadline.getHours() + 48);
 
     const [complaint] = await db
       .insert(complaints)
@@ -16,6 +24,8 @@ export const createComplaint = async (req, res) => {
         type,
         room,
         description,
+        priority,
+        slaDeadline,
         image: req.file ? req.file.filename : null,
         status: "Created",
       })
@@ -91,6 +101,9 @@ export const allComplaints = async (req, res) => {
         type: complaints.type,
         room: complaints.room,
         description: complaints.description,
+        priority: complaints.priority,
+        slaDeadline: complaints.slaDeadline,
+        resolutionNote: complaints.resolutionNote,
         image: complaints.image,
         status: complaints.status,
         createdAt: complaints.createdAt,
@@ -115,11 +128,15 @@ export const allComplaints = async (req, res) => {
 export const updateStatus = async (req, res) => {
   try {
     const complaintId = Number(req.params.id);
-    const { status } = req.body;
+    const { status, resolutionNote } = req.body;
 
     const [updatedComplaint] = await db
       .update(complaints)
-      .set({ status, updatedAt: new Date() })
+      .set({ 
+        status, 
+        resolutionNote: resolutionNote || null,
+        updatedAt: new Date() 
+      })
       .where(eq(complaints.id, complaintId))
       .returning();
 
@@ -131,11 +148,57 @@ export const updateStatus = async (req, res) => {
     await db.insert(complaintTimelines).values({
       complaintId,
       status,
+      note: resolutionNote || `Admin updated status to ${status}`,
     });
 
     res.json({ message: "Status Updated", complaint: updatedComplaint });
   } catch (error) {
     console.error("Update Status Error:", error);
     res.status(500).json({ message: "Update status failed", error: error.message });
+  }
+};
+
+// ================= STUDENT VERIFY COMPLAINT =================
+export const studentVerifyComplaint = async (req, res) => {
+  try {
+    const complaintId = Number(req.params.id);
+    const { status, note } = req.body; // status should be "Closed" or "In Progress"
+    const userId = Number(req.user.id);
+
+    // Verify ownership
+    const [complaint] = await db
+      .select()
+      .from(complaints)
+      .where(eq(complaints.id, complaintId));
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    if (complaint.userId !== userId) {
+      return res.status(403).json({ message: "Unauthorized to verify this complaint" });
+    }
+
+    const updateData = { status, updatedAt: new Date() };
+    if (status === "Created" && note) {
+      updateData.resolutionNote = `[Reopened by Student]: ${note}`;
+    }
+
+    const [updatedComplaint] = await db
+      .update(complaints)
+      .set(updateData)
+      .where(eq(complaints.id, complaintId))
+      .returning();
+
+    await db.insert(complaintTimelines).values({
+      complaintId,
+      status,
+      note: note || `Student verified and marked as ${status}`,
+    });
+
+    res.json({ message: "Verification logged", complaint: updatedComplaint });
+  } catch (error) {
+    console.error("Verify Complaint Error:", error);
+    res.status(500).json({ message: "Verification failed", error: error.message });
   }
 };

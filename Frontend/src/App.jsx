@@ -4,7 +4,7 @@ import Navbar from "./components/Navbar";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
-import StudentLogin from "./pages/StudentLogin";
+import LoginPage from "./pages/LoginPage";
 import StudentRegister from "./pages/StudentRegister";
 import StudentDashboard from "./pages/StudentDashboard";
 import RaiseComplaint from "./pages/RaiseComplaint";
@@ -13,12 +13,11 @@ import ApplyLeave from "./pages/ApplyLeave";
 import MyLeaves from "./pages/MyLeaves";
 import MessPage from "./pages/MessPage";
 
-import AdminLogin from "./pages/AdminLogin";
-import AdminRegister from "./pages/AdminRegister";
 import AdminDashboard from "./pages/AdminDashboard";
 import AllComplaintsAdmin from "./pages/AllComplaintsAdmin";
 import AdminLeaves from "./pages/AdminLeaves";
 import MessAdmin from "./pages/MessAdmin";
+import GuardTerminal from "./pages/GuardTerminal";
 
 function App() {
   return (
@@ -27,14 +26,18 @@ function App() {
 
       <div className="flex-1">
         <Routes>
-          {/* Public Landing & Auth Routes */}
+          {/* Public Landing & Unified Auth */}
           <Route path="/" element={<LandingPage />} />
-          
-          <Route path="/student/login" element={<StudentLogin />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<StudentRegister />} />
+
+          {/* Legacy Redirects */}
+          <Route path="/student/login" element={<LoginPage />} />
           <Route path="/student/register" element={<StudentRegister />} />
-          
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/register" element={<AdminRegister />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+
+          {/* Gate Guard Terminal Route */}
+          <Route path="/guard/terminal" element={<GuardTerminal />} />
 
           {/* Student Portal Routes */}
           <Route path="/student/dashboard" element={<StudentDashboard />} />

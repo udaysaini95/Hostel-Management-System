@@ -8,6 +8,7 @@ import authRoutes from "./Routes/authRoutes.js";
 import complaintRoutes from "./Routes/complaintRoutes.js";
 import leaveRoutes from "./Routes/leaveRoutes.js";
 import messRoutes from "./Routes/messRoutes.js";
+import gateRoutes from "./Routes/gateRoutes.js";
 import { protect } from "./middlewares/authMiddleware.js";
 import { getProfile } from "./Controllers/authController.js";
 
@@ -27,10 +28,11 @@ app.use("/api/student/profile", protect, getProfile);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/mess", messRoutes);
+app.use("/api/gate", gateRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
-  res.send("Hostel Complaint Backend Running 🚀");
+  res.send("Hostel Management System API Running 🚀");
 });
 
 // HTTP Server

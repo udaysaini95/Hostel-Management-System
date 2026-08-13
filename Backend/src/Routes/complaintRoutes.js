@@ -4,7 +4,8 @@ import {
   myComplaints, 
   deleteComplaint, 
   allComplaints, 
-  updateStatus
+  updateStatus,
+  studentVerifyComplaint
 } from "../Controllers/complaintController.js";
 import { protect, admin } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/upload.js";
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post("/create", protect, upload.single("image"), createComplaint);
 router.get("/my", protect, myComplaints);
 router.delete("/:id", protect, deleteComplaint);
+router.put("/verify/:id", protect, studentVerifyComplaint);
 
 // ================= ADMIN ROUTE ================
 router.get("/admin/complaints", protect, admin, allComplaints);

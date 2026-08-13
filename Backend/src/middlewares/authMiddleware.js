@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-// ================= PROTECT ROUTES =================
+// Protect Routes (Verify JWT)
 export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -12,17 +12,35 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_jwt_secret");
-    req.user = decoded; // ✅ id, role, email available
+    req.user = decoded; // id, role, email
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid token" });
   }
 };
 
-// ================= ADMIN ONLY =================
+// Admin Only
 export const admin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin only" });
+    return res.status(403).json({ message: "Admin access required" });
   }
   next();
+};
+
+// Role-Based Access Control (RBAC) Middleware
+export const requireRoles = (roles = []) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized: Please log in." });
+    }
+
+    // "admin" always has super access, plus check specific role
+    if (req.user.role === "admin" || roles.includes(req.user.role)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      message: `Access denied. Required roles: [${roles.join(", ")}]`,
+    });
+  };
 };

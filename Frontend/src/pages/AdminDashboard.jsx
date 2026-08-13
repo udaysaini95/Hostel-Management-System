@@ -7,7 +7,9 @@ import {
   FileText, 
   Utensils, 
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  QrCode
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -22,21 +24,24 @@ const AdminDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [outsideStudents, setOutsideStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [complaintsRes, leavesRes, feedbacksRes] = await Promise.allSettled([
+        const [complaintsRes, leavesRes, feedbacksRes, outsideRes] = await Promise.allSettled([
           api.get("/api/complaints/admin/complaints"),
           api.get("/api/leave/admin/all"),
           api.get("/api/mess/admin"),
+          api.get("/api/gate/active-outside"),
         ]);
 
         if (complaintsRes.status === "fulfilled") setComplaints(complaintsRes.value.data || []);
         if (leavesRes.status === "fulfilled") setLeaves(leavesRes.value.data || []);
         if (feedbacksRes.status === "fulfilled") setFeedbacks(feedbacksRes.value.data || []);
+        if (outsideRes.status === "fulfilled") setOutsideStudents(outsideRes.value.data || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -47,7 +52,13 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const pendingComplaints = complaints.filter(c => c.status !== "Resolved").length;
+  const pendingComplaints = complaints.filter(c => c.status !== "Resolved" && c.status !== "Closed").length;
+  
+  const slaBreachedComplaints = complaints.filter(c => {
+    if (!c.slaDeadline || c.status === "Resolved" || c.status === "Closed") return false;
+    return new Date(c.slaDeadline) < new Date();
+  }).length;
+
   const pendingLeaves = leaves.filter(l => l.status === "Pending").length;
   const avgFeedbackRating = feedbacks.length > 0
     ? (feedbacks.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedbacks.length).toFixed(1)
@@ -70,28 +81,37 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/leaves"
-          className="py-2 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>Review Leave Queue ({pendingLeaves})</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/guard/terminal"
+            className="py-2 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>Gate Terminal</span>
+          </Link>
+          <Link
+            to="/admin/leaves"
+            className="py-2 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Leaves Queue ({pendingLeaves})</span>
+          </Link>
+        </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Open Tickets</div>
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outside Campus</div>
           <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : pendingComplaints}
+            {loading ? "-" : outsideStudents.length}
           </div>
-          <span className="text-[11px] text-amber-700 mt-0.5 block font-mono font-medium">Unresolved issues</span>
+          <span className="text-[11px] text-amber-700 mt-0.5 block font-mono font-medium">Currently on leave</span>
         </div>
 
         <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Leaves</div>
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Passes</div>
           <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
             {loading ? "-" : pendingLeaves}
           </div>
@@ -99,11 +119,18 @@ const AdminDashboard = () => {
         </div>
 
         <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Complaints</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : complaints.length}
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Open Complaints</div>
+          <div className="flex items-end gap-2 mt-1">
+            <div className="text-2xl font-bold text-slate-900 font-mono">
+              {loading ? "-" : pendingComplaints}
+            </div>
+            {slaBreachedComplaints > 0 && (
+              <span className="text-xs font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 mb-1 animate-pulse">
+                {slaBreachedComplaints} Breached
+              </span>
+            )}
           </div>
-          <span className="text-[11px] text-slate-500 mt-0.5 block font-mono">All logged tickets</span>
+          <span className="text-[11px] text-slate-500 mt-0.5 block font-mono">Unresolved tickets</span>
         </div>
 
         <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
@@ -114,6 +141,54 @@ const AdminDashboard = () => {
           <span className="text-[11px] text-emerald-700 mt-0.5 block font-mono font-medium">Average score</span>
         </div>
 
+      </div>
+
+      {/* Real-time Outside Campus Roster */}
+      <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Users className="w-4 h-4 text-amber-600" />
+            <span>Live Gate Roster — Students Outside Campus ({outsideStudents.length})</span>
+          </h2>
+          <Link to="/guard/terminal" className="text-xs font-semibold text-indigo-600 hover:underline">
+            Open Terminal ➔
+          </Link>
+        </div>
+
+        {outsideStudents.length === 0 ? (
+          <div className="p-4 rounded-xl bg-slate-50 text-center text-xs text-slate-500 border border-slate-100">
+            No students are currently outside campus. All hostel residents are accounted for.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 text-slate-500 uppercase text-[10px]">
+                <tr>
+                  <th className="py-2">Student Name</th>
+                  <th className="py-2">Roll No</th>
+                  <th className="py-2">Room</th>
+                  <th className="py-2">Pass Code</th>
+                  <th className="py-2">Exited At</th>
+                  <th className="py-2">Valid Until</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {outsideStudents.map((s) => (
+                  <tr key={s.leaveId}>
+                    <td className="py-2.5 font-bold text-slate-900">{s.student?.name}</td>
+                    <td className="py-2.5 text-slate-600">{s.student?.rollNo || "N/A"}</td>
+                    <td className="py-2.5 text-slate-600">{s.student?.roomNo || "N/A"}</td>
+                    <td className="py-2.5 font-mono font-semibold text-indigo-700">{s.passCode}</td>
+                    <td className="py-2.5 text-amber-700 font-mono">
+                      {s.leftAt ? new Date(s.leftAt).toLocaleTimeString() : "Earlier"}
+                    </td>
+                    <td className="py-2.5 text-slate-600">{s.toDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Admin Shortcuts Grid */}
@@ -143,7 +218,7 @@ const AdminDashboard = () => {
           </div>
           <h3 className="text-base font-bold text-slate-900">Approve Outpass Passes</h3>
           <p className="text-slate-600 text-xs leading-relaxed">
-            Issue digital warden signatures and generate downloadable PDF passes.
+            Issue digital warden signatures and generate downloadable PDF passes with QR codes.
           </p>
         </Link>
 

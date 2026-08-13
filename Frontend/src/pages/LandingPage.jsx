@@ -8,7 +8,11 @@ import {
   FileCheck, 
   UtensilsCrossed, 
   ArrowRight, 
-  Check 
+  Check,
+  QrCode,
+  Lock,
+  Database,
+  Cpu
 } from "lucide-react";
 
 const LandingPage = () => {
@@ -16,151 +20,191 @@ const LandingPage = () => {
     <div className="min-h-[calc(100vh-3.75rem)] flex flex-col justify-between bg-[#f8fafc]">
       
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 w-full">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 w-full">
         
-        {/* Top Badge */}
+        {/* Top Architecture Pill */}
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-mono text-slate-700 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            Node.js • Drizzle ORM • PostgreSQL • React
+            PostgreSQL • Drizzle ORM • RBAC Security • Express • React
           </span>
         </div>
 
         {/* Headline */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            Hostel Management System
+            Hostel Operations & Gate Security Platform
           </h1>
           <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            A minimalist web application for managing room maintenance tickets, digital leave outpasses, and daily mess food menus.
+            A unified digital ecosystem for resident students, hostel wardens, and gate security officers.
           </p>
+
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link
+              to="/login"
+              className="py-2.5 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center gap-2"
+            >
+              <span>Sign In to Portal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              to="/register"
+              className="py-2.5 px-5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 shadow-xs transition-colors"
+            >
+              Register Student
+            </Link>
+          </div>
         </div>
 
-        {/* Portal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-16">
+        {/* 3 Core Pillar Modules Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-16">
           
-          {/* Student Portal */}
-          <div className="ui-card p-6 sm:p-8 rounded-2xl flex flex-col justify-between bg-white border-slate-200">
+          {/* Module 1: Resident Students */}
+          <div className="ui-card p-6 rounded-2xl bg-white border-slate-200 flex flex-col justify-between space-y-4">
             <div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mb-5">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mb-4">
                 <Users className="w-5 h-5" />
               </div>
 
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Student Portal</h2>
-              <p className="text-slate-600 text-xs leading-relaxed mb-6">
-                File maintenance requests, track issue timelines, and generate digital leave passes.
+              <h2 className="text-base font-bold text-slate-900 mb-1.5">Resident Student Portal</h2>
+              <p className="text-slate-600 text-xs leading-relaxed mb-4">
+                Self-service room maintenance, digital outpass generation, and mess feedback.
               </p>
 
-              <ul className="space-y-2.5 mb-8 text-xs text-slate-700">
+              <ul className="space-y-2 text-xs text-slate-700">
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>File complaints with photo attachments</span>
+                  <span>Raise tickets with photo proof</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Download approved PDF leave passes</span>
+                  <span>Download QR-embedded PDF passes</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>View & rate daily mess menus</span>
+                  <span>Daily meal menu & star ratings</span>
                 </li>
               </ul>
             </div>
 
-            <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-              <Link
-                to="/student/login"
-                className="flex-1 py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs text-center transition-colors flex items-center justify-center gap-2 shadow-xs"
-              >
-                <span>Student Login</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link
-                to="/student/register"
-                className="py-2.5 px-4 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
-              >
-                Register
-              </Link>
-            </div>
+            <Link
+              to="/login"
+              className="py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold text-center border border-slate-200 transition-colors block"
+            >
+              Access Student Portal ➔
+            </Link>
           </div>
 
-          {/* Warden Portal */}
-          <div className="ui-card p-6 sm:p-8 rounded-2xl flex flex-col justify-between bg-white border-slate-200">
+          {/* Module 2: Warden Administration */}
+          <div className="ui-card p-6 rounded-2xl bg-white border-slate-200 flex flex-col justify-between space-y-4">
             <div>
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-5">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
                 <ShieldCheck className="w-5 h-5" />
               </div>
 
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Warden Portal</h2>
-              <p className="text-slate-600 text-xs leading-relaxed mb-6">
-                Administrative dashboard for resolving complaints, approving leave passes, and managing mess menus.
+              <h2 className="text-base font-bold text-slate-900 mb-1.5">Warden Administration</h2>
+              <p className="text-slate-600 text-xs leading-relaxed mb-4">
+                Comprehensive hostel console for ticket queues, leave approvals, and dining.
               </p>
 
-              <ul className="space-y-2.5 mb-8 text-xs text-slate-700">
+              <ul className="space-y-2 text-xs text-slate-700">
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Warden dashboard with ticket queues</span>
+                  <span>Ticket resolution workflow</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Digital signature leave approvals</span>
+                  <span>Digital signature leave approval</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Mess menu editor & feedback stats</span>
+                  <span>Live outside-campus roster</span>
                 </li>
               </ul>
             </div>
 
-            <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-              <Link
-                to="/admin/login"
-                className="flex-1 py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs text-center transition-colors flex items-center justify-center gap-2 shadow-xs"
-              >
-                <span>Warden Login</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link
-                to="/admin/register"
-                className="py-2.5 px-4 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
-              >
-                Register
-              </Link>
+            <Link
+              to="/login"
+              className="py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold text-center border border-slate-200 transition-colors block"
+            >
+              Access Warden Console ➔
+            </Link>
+          </div>
+
+          {/* Module 3: Gate Security */}
+          <div className="ui-card p-6 rounded-2xl bg-white border-slate-200 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="w-10 h-10 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center mb-4">
+                <QrCode className="w-5 h-5" />
+              </div>
+
+              <h2 className="text-base font-bold text-slate-900 mb-1.5">Gate Security Terminal</h2>
+              <p className="text-slate-600 text-xs leading-relaxed mb-4">
+                High-throughput verification terminal for campus exit and entry logging.
+              </p>
+
+              <ul className="space-y-2 text-xs text-slate-700">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Roll No & Pass Code search</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>In-browser HTML5 camera scanner</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>1-click departure & entry logging</span>
+                </li>
+              </ul>
             </div>
+
+            <Link
+              to="/login"
+              className="py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold text-center border border-slate-200 transition-colors block"
+            >
+              Access Gate Terminal ➔
+            </Link>
           </div>
 
         </div>
 
-        {/* Feature Matrix */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <div className="ui-panel p-4 rounded-xl border border-slate-200 space-y-1">
-            <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-indigo-600" />
-              <span>Complaint Management</span>
-            </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Ticket tracking with category tags, room numbers, and proof attachments.
-            </p>
+        {/* Technical Architecture Highlights Bar */}
+        <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs max-w-5xl mx-auto space-y-4">
+          <div className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+            Key Technical Architecture
           </div>
 
-          <div className="ui-panel p-4 rounded-xl border border-slate-200 space-y-1">
-            <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-cyan-600" />
-              <span>Digital PDF Pass</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-600">
+            <div className="space-y-1">
+              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Relational Schema Design</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Normalized PostgreSQL tables with Drizzle ORM managing cascaded relations.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Outpass approval workflow generating digitally signed PDF passes.
-            </p>
-          </div>
 
-          <div className="ui-panel p-4 rounded-xl border border-slate-200 space-y-1">
-            <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-              <UtensilsCrossed className="w-4 h-4 text-emerald-600" />
-              <span>Mess Quality Control</span>
+            <div className="space-y-1">
+              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Role-Based Access Control</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Granular JWT token middleware enforcing route-level role permissions.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Daily menu schedule manager and student feedback metrics.
-            </p>
+
+            <div className="space-y-1">
+              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-amber-600" />
+                <span>Gate State Machine</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Prevents pass reuse via one-time state transitions (<code className="text-slate-900">Approved ➔ Exited ➔ Returned</code>).
+              </p>
+            </div>
           </div>
         </div>
 
@@ -168,7 +212,7 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white">
-        <p>HostelMate • Modern Relational Database Architecture</p>
+        <p>HostelMate • Production-Grade Web Architecture</p>
       </footer>
     </div>
   );

@@ -24,9 +24,17 @@ const CATEGORIES = [
   { id: "Other", label: "Other", icon: HelpCircle, color: "text-slate-700 bg-slate-100 border-slate-200" },
 ];
 
+const PRIORITIES = [
+  { id: "P0 - Critical", label: "P0 - Critical (2h SLA)", desc: "Emergencies like sparking wires, major leaks." },
+  { id: "P1 - High", label: "P1 - High (12h SLA)", desc: "Urgent issues impacting daily living (e.g., broken fan in summer)." },
+  { id: "P2 - Medium", label: "P2 - Medium (48h SLA)", desc: "Standard maintenance (e.g., flickering light, broken chair)." },
+  { id: "P3 - Low", label: "P3 - Low (7d SLA)", desc: "Non-urgent cosmetic issues." },
+];
+
 const RaiseComplaint = () => {
   const navigate = useNavigate();
   const [type, setType] = useState("Electrical");
+  const [priority, setPriority] = useState("P2 - Medium");
   const [room, setRoom] = useState("");
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -60,6 +68,7 @@ const RaiseComplaint = () => {
     try {
       const formData = new FormData();
       formData.append("type", type);
+      formData.append("priority", priority);
       formData.append("room", room);
       formData.append("description", description);
       if (imageFile) {
@@ -134,6 +143,48 @@ const RaiseComplaint = () => {
                       <IconComponent className="w-4 h-4" />
                     </div>
                     <span className="text-xs">{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Priority Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              Select Priority / SLA
+            </label>
+            <div className="space-y-2">
+              {PRIORITIES.map((p) => {
+                const isSelected = priority === p.id;
+                let colorClasses = "border-slate-200";
+                let bgClasses = "bg-white hover:bg-slate-50 text-slate-700";
+                
+                if (isSelected) {
+                  if (p.id.startsWith("P0")) {
+                    bgClasses = "bg-rose-50 text-rose-900";
+                    colorClasses = "border-rose-500 shadow-xs";
+                  } else if (p.id.startsWith("P1")) {
+                    bgClasses = "bg-amber-50 text-amber-900";
+                    colorClasses = "border-amber-500 shadow-xs";
+                  } else if (p.id.startsWith("P2")) {
+                    bgClasses = "bg-indigo-50 text-indigo-900";
+                    colorClasses = "border-indigo-500 shadow-xs";
+                  } else {
+                    bgClasses = "bg-emerald-50 text-emerald-900";
+                    colorClasses = "border-emerald-500 shadow-xs";
+                  }
+                }
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPriority(p.id)}
+                    className={`w-full p-3 rounded-xl border text-left flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 transition-all ${bgClasses} ${colorClasses}`}
+                  >
+                    <span className="font-bold text-xs">{p.label}</span>
+                    <span className={`text-[11px] ${isSelected ? 'opacity-80' : 'text-slate-500'}`}>{p.desc}</span>
                   </button>
                 );
               })}

@@ -10,7 +10,8 @@ import {
   LayoutDashboard, 
   AlertCircle, 
   FileText, 
-  Utensils 
+  Utensils,
+  QrCode
 } from "lucide-react";
 
 const Navbar = () => {
@@ -60,7 +61,7 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {token ? (
-              role === "admin" ? (
+              role === "admin" || role === "warden" ? (
                 <>
                   <Link
                     to="/admin/dashboard"
@@ -72,6 +73,18 @@ const Navbar = () => {
                   >
                     <LayoutDashboard className="w-3.5 h-3.5" />
                     Dashboard
+                  </Link>
+
+                  <Link
+                    to="/guard/terminal"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${
+                      isActive("/guard/terminal")
+                        ? "bg-slate-100 text-slate-900 border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+                    Gate Terminal
                   </Link>
 
                   <Link
@@ -108,6 +121,20 @@ const Navbar = () => {
                   >
                     <Utensils className="w-3.5 h-3.5" />
                     Mess Admin
+                  </Link>
+                </>
+              ) : role === "guard" ? (
+                <>
+                  <Link
+                    to="/guard/terminal"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${
+                      isActive("/guard/terminal")
+                        ? "bg-slate-100 text-slate-900 border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+                    Gate Terminal
                   </Link>
                 </>
               ) : (
@@ -191,16 +218,16 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  to="/student/login"
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  to="/login"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors"
                 >
-                  Student Portal
+                  Sign In
                 </Link>
                 <Link
-                  to="/admin/login"
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors"
+                  to="/register"
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors"
                 >
-                  Warden Portal
+                  Register
                 </Link>
               </div>
             )}
@@ -228,7 +255,7 @@ const Navbar = () => {
                 Logged in as <strong className="text-slate-900">{user?.name}</strong> ({role})
               </div>
               <Link
-                to={role === "admin" ? "/admin/dashboard" : "/student/dashboard"}
+                to={role === "admin" || role === "warden" ? "/admin/dashboard" : role === "guard" ? "/guard/terminal" : "/student/dashboard"}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
@@ -247,18 +274,18 @@ const Navbar = () => {
           ) : (
             <div className="space-y-2 pt-1">
               <Link
-                to="/student/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200"
-              >
-                Student Portal
-              </Link>
-              <Link
-                to="/admin/login"
+                to="/login"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-center px-3 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600"
               >
-                Warden Portal
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200"
+              >
+                Register
               </Link>
             </div>
           )}
