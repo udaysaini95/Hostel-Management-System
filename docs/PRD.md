@@ -122,7 +122,8 @@ Primary success condition: privileged access is controlled without public staff 
 
 ### 8.1 P0 — Required for Release 1
 
-- Authentication, session management, and role-based access control.
+- Approved-student activation, verified-email authentication, staff provisioning, session management, and role-based access control.
+- Multiple hostel buildings with explicit student and staff memberships.
 - Student profiles and hostel/room allocation data.
 - Complaint submission, assignment, SLA tracking, resolution, and verification.
 - Leave application, approval, QR pass, exit, return, expiry, and gate logs.
@@ -150,7 +151,7 @@ Primary success condition: privileged access is controlled without public staff 
 - Inventory links for maintenance work.
 - Hostel fee and payment modules.
 - Native mobile applications.
-- Multi-hostel institutional tenancy.
+- Multi-institution SaaS tenancy with separate customer organizations.
 
 ## 9. Role and permission matrix
 
@@ -190,7 +191,7 @@ Priority definitions:
 
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
-| AUTH-01 | P0 | Students may create accounts through public registration. | The server always creates the `STUDENT` role regardless of client-supplied fields. |
+| AUTH-01 | P0 | Students may activate an account only against an administrator-approved student record or invitation. | The submitted email and institutional student identifier must match an unused approved record, and the server always creates the `STUDENT` role. |
 | AUTH-02 | P0 | Staff accounts must be provisioned by an administrator or a single-use invitation. | Public requests cannot create `ADMIN`, `WARDEN`, `MAINTENANCE`, or `GUARD` accounts. |
 | AUTH-03 | P0 | Users may sign in with normalized email and password. | Invalid credentials return a generic error and do not reveal whether the email exists. |
 | AUTH-04 | P0 | Passwords must be securely hashed and subject to a documented minimum policy. | Plaintext passwords are never stored or logged. |
@@ -202,6 +203,8 @@ Priority definitions:
 | AUTH-10 | P0 | Authentication endpoints must be rate limited. | Repeated failed attempts receive a controlled throttling response. |
 | AUTH-11 | P1 | Users may request a password reset. | Reset tokens are single-use, expire, and do not expose account existence. |
 | AUTH-12 | P1 | Administrators may issue expiring staff invitations. | Invitations can be accepted once and create only the pre-authorized role. |
+| AUTH-13 | P0 | New users must verify ownership of their email address before account activation. | Verification tokens are hashed, single-use, expire, and successful verification records `email_verified_at`. |
+| AUTH-14 | P0 | All roles use one email-and-password sign-in flow. | The server derives role and hostel access from stored records; neither is selected or trusted from the login request. |
 
 ### 10.2 Student profiles and room management
 
@@ -215,6 +218,7 @@ Priority definitions:
 | RES-06 | P0 | Room data includes hostel, block, floor, room number, and capacity. | Duplicate room identifiers within the same block are rejected. |
 | RES-07 | P1 | Administrators may import residents from a validated CSV template. | Invalid rows are reported without partially corrupting valid existing data. |
 | RES-08 | P1 | Wardens may transfer students between rooms. | Transfer is transactional and preserves allocation history. |
+| RES-09 | P0 | One institution may manage multiple hostel buildings. | Every hostel has a unique name and short code such as `H1` or `H2`; users receive explicit hostel memberships. |
 
 ### 10.3 Complaints and maintenance
 
@@ -369,6 +373,7 @@ PENDING ──→ REJECTED
 
 - Every foreign-key relationship must define intentional delete behavior.
 - Workflow states and user roles must use database-level constraints.
+- Hostel-scoped access must derive from explicit memberships, never email domains or client-supplied hostel identifiers alone.
 - Ratings and capacity values must use bounds.
 - Frequently filtered foreign keys, states, dates, tokens, emails, and roll numbers must be indexed appropriately.
 - Date-only data must use date types; event times must use timezone-aware timestamps.
@@ -567,7 +572,8 @@ Release 1 is considered complete only when all of the following are true:
 ## 21. Assumptions and constraints
 
 - The existing React, Express, PostgreSQL, and Drizzle direction remains the base technology stack.
-- Release 1 is a single-institution deployment, though multiple hostel buildings/blocks may exist within it.
+- Release 1 is a single-institution deployment with multiple hostel buildings, each identified by a unique name and short code.
+- Students have one primary hostel membership; wardens and operational staff may be assigned to one or more hostels; institution administrators may operate globally.
 - There is no production data that prevents corrective schema changes during early development.
 - Email/SMS delivery is optional until the in-app notification system is stable.
 - Object storage and hosting provider selection will be finalized in the engineering plan.
@@ -577,12 +583,11 @@ Release 1 is considered complete only when all of the following are true:
 
 The implementation plan must resolve these before their affected milestone begins:
 
-1. Whether wardens manage all hostels or only explicitly assigned hostels.
-2. Whether maintenance staff are grouped by trade/category.
-3. The exact student identity fields required by the institution.
-4. The default SLA policy for each complaint category.
-5. Whether approved gate passes require a generated PDF in addition to the in-app QR.
-6. Notice retention and audit-log retention periods.
+1. Whether maintenance staff are grouped by trade/category.
+2. The exact student identity fields required by the institution.
+3. The default SLA policy for each complaint category.
+4. Whether approved gate passes require a generated PDF in addition to the in-app QR.
+5. Notice retention and audit-log retention periods.
 7. Whether email notifications are part of Release 1 launch or immediately post-launch.
 8. The deployment, object-storage, and error-monitoring providers.
 

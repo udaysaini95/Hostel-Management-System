@@ -109,12 +109,13 @@ Before each slice, current Git state remains authoritative because the user may 
 | Slice | Scope | PRD mapping | Verification | Recommended commit |
 | --- | --- | --- | --- | --- |
 | AUTH-01 | Restrict public registration to students and centralize role constants | AUTH-01, AUTH-02 | Regression test attempts `ADMIN`, `WARDEN`, and `GUARD` public registration | `fix(auth): restrict public registration to students` |
-| DB-01 | Reconcile Drizzle schema and create a complete non-destructive baseline migration | Data 12.1–12.2, quality gates | Apply migrations to an empty test database; compare resulting schema | `fix(db): reconcile schema and versioned migrations` |
+| DB-01 | Reconcile Drizzle migrations and add constrained account lifecycle, hostel, and hostel-membership foundations | AUTH-09, RES-09, Data 12.1–12.2 | Schema tests cover enums, unique hostel identity, and membership constraints; migration applies to an empty database | `feat(db): add multi-hostel account foundation` |
 | DB-02 | Add deterministic fictional seed data and documented reset/seed commands | Success 16.2, Assumptions 21 | Fresh database migrates and seeds demo roles and records | `feat(db): add deterministic demo seed data` |
 | AUTH-02 | Validate required runtime configuration and remove fallback secrets | AUTH-04–AUTH-05, NFR 14.1 | Startup fails clearly without DB/JWT configuration; configured startup succeeds | `fix(config): require secure runtime secrets` |
-| AUTH-03 | Add expiring authentication credentials and consistent session claims | AUTH-03–AUTH-05 | Valid, expired, malformed, and tampered credential tests pass | `fix(auth): add expiring authenticated sessions` |
+| AUTH-03 | Add one normalized-email login flow, expiring credentials, consistent session claims, and last-login tracking | AUTH-03–AUTH-05, AUTH-14 | Valid, expired, malformed, tampered, and role-injection credential tests pass | `fix(auth): add expiring authenticated sessions` |
 | AUTH-04 | Add authoritative role/permission middleware and resource ownership helpers | AUTH-06, role matrix | Permission matrix tests cover student, warden, maintenance, guard, admin | `feat(auth): enforce role and ownership policies` |
 | AUTH-05 | Add admin-only staff provisioning and account deactivation | AUTH-02, AUTH-09, AUTH-12 | Public staff creation fails; admin provisioning/deactivation succeeds and audits | `feat(auth): add controlled staff account provisioning` |
+| AUTH-06 | Add approved-student records plus expiring, single-use email verification and activation | AUTH-01, AUTH-13, RES-09 | Unknown/mismatched students fail; approved students activate once in their assigned hostel | `feat(auth): add verified student activation` |
 | API-01 | Add shared request validation and safe standardized API errors | API Section 11, AUTH-03, NFR 14.1 | Invalid payload, unknown route, conflict, and internal error tests pass | `feat(api): add validation and standardized errors` |
 | API-02 | Add authentication rate limiting and baseline security middleware | AUTH-10, NFR 14.1 | Rate-limit and security-header checks pass without blocking normal flow | `fix(security): harden authentication endpoints` |
 | AUD-01 | Add immutable audit-event infrastructure and actor context | AUD-01–AUD-05 | Representative privileged actions create searchable immutable events | `feat(audit): add immutable operational audit events` |
@@ -155,7 +156,7 @@ Phase 2 exit gate:
 
 | Slice | Scope | PRD mapping | Verification | Recommended commit |
 | --- | --- | --- | --- | --- |
-| RES-01 | Add normalized student/staff profile, hostel, block, room, and allocation schema | RES-01, RES-05–RES-06 | Migration and constraint tests cover unique roll/room and allocation history | `feat(residents): add hostel and room data model` |
+| RES-01 | Add normalized student/staff profiles, blocks, rooms, and allocation history on the hostel foundation | RES-01, RES-05–RES-06, RES-09 | Migration and constraint tests cover unique roll/room and allocation history | `feat(residents): add profile and room data model` |
 | RES-02 | Add student profile read/update APIs with ownership/privacy enforcement | RES-01–RES-02 | Student cross-profile access fails; own profile validation succeeds | `feat(residents): add secure student profiles` |
 | RES-03 | Add resident directory with server pagination/search/filter | RES-03, API Section 11 | Role and query tests cover hostel/block/room/status filters | `feat(residents): add paginated resident directory` |
 | RES-04 | Add transactional room allocation and capacity enforcement | RES-04–RES-05 | Concurrent over-capacity allocation tests fail safely | `feat(rooms): enforce room allocation capacity` |
@@ -267,8 +268,8 @@ Phase 7 exit gate:
 
 | PRD area | Primary slices |
 | --- | --- |
-| AUTH-01–AUTH-12 | AUTH-01 through AUTH-05, API-01, API-02, FE-05, TEST-01/03 |
-| RES-01–RES-08 | RES-01 through RES-06 |
+| AUTH-01–AUTH-14 | AUTH-01 through AUTH-06, API-01, API-02, FE-05, TEST-01/03 |
+| RES-01–RES-09 | DB-01, RES-01 through RES-06 |
 | CMP-01–CMP-13 | CMP-01 through CMP-08, FILE-01 |
 | LEV-01–LEV-13 | LEV-01 through LEV-05, PASS-01, GATE-01 through GATE-04 |
 | GATE-01–GATE-07 | GATE-01 through GATE-04, E2E-01 |

@@ -1,0 +1,64 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { getTableConfig } from "drizzle-orm/pg-core";
+import { ACCOUNT_STATUSES } from "../src/domain/accountStatuses.js";
+import { USER_ROLES } from "../src/domain/roles.js";
+import {
+  accountStatusEnum,
+  hostelMemberships,
+  hostels,
+  userRoleEnum,
+  users,
+} from "../src/db/schema.js";
+
+const findIndex = (table, name) =>
+  getTableConfig(table).indexes.find((entry) => entry.config.name === name);
+
+test("database enums constrain supported roles and account states", () => {
+  assert.deepEqual(userRoleEnum.enumValues, Object.values(USER_ROLES));
+  assert.deepEqual(
+    accountStatusEnum.enumValues,
+    Object.values(ACCOUNT_STATUSES)
+  );
+  assert.deepEqual(users.role.enumValues, Object.values(USER_ROLES));
+  assert.deepEqual(
+    users.accountStatus.enumValues,
+    Object.values(ACCOUNT_STATUSES)
+  );
+  assert.equal(users.accountStatus.notNull, true);
+  assert.equal(users.accountStatus.hasDefault, true);
+});
+
+test("hostels have unique human names and validated short codes", () => {
+  const config = getTableConfig(hostels);
+
+  assert.equal(hostels.code.notNull, true);
+  assert.equal(hostels.code.isUnique, true);
+  assert.equal(hostels.name.notNull, true);
+  assert.equal(hostels.name.isUnique, true);
+  assert.equal(hostels.isActive.notNull, true);
+  assert.ok(
+    config.checks.some((entry) => entry.name === "hostels_code_format_check")
+  );
+});
+
+test("hostel memberships prevent duplicate and multiple-primary assignments", () => {
+  const config = getTableConfig(hostelMemberships);
+  const membershipIndex = findIndex(
+    hostelMemberships,
+    "hostel_memberships_user_hostel_unique"
+  );
+  const primaryIndex = findIndex(
+    hostelMemberships,
+    "hostel_memberships_one_primary_per_user"
+  );
+
+  assert.equal(config.foreignKeys.length, 2);
+  assert.equal(membershipIndex.config.unique, true);
+  assert.deepEqual(
+    membershipIndex.config.columns.map((column) => column.name),
+    ["user_id", "hostel_id"]
+  );
+  assert.equal(primaryIndex.config.unique, true);
+  assert.ok(primaryIndex.config.where);
+});

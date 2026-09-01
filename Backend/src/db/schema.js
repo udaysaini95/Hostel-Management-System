@@ -1,18 +1,94 @@
-import { pgTable, serial, varchar, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
+import { USER_ROLES } from "../domain/roles.js";
+
+export const userRoleEnum = pgEnum("user_role", Object.values(USER_ROLES));
+export const accountStatusEnum = pgEnum(
+  "account_status",
+  Object.values(ACCOUNT_STATUSES)
+);
+
+// A single institution can manage multiple hostel buildings (for example H1 and H2).
+export const hostels = pgTable(
+  "hostels",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 20 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull().unique(),
+    address: text("address"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      "hostels_code_format_check",
+      sql`${table.code} ~ '^[A-Z][A-Z0-9-]{0,19}$'`
+    ),
+  ]
+);
 
 // 1. Users Table
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
-  role: varchar("role", { length: 50 }).default("student").notNull(), // student, warden, guard, admin
-  rollNo: varchar("roll_no", { length: 50 }),
-  phone: varchar("phone", { length: 50 }),
-  roomNo: varchar("room_no", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    password: varchar("password", { length: 255 }).notNull(),
+    role: userRoleEnum("role").default(USER_ROLES.STUDENT).notNull(),
+    accountStatus: accountStatusEnum("account_status")
+      .default(ACCOUNT_STATUSES.ACTIVE)
+      .notNull(),
+    emailVerifiedAt: timestamp("email_verified_at"),
+    lastLoginAt: timestamp("last_login_at"),
+    rollNo: varchar("roll_no", { length: 50 }),
+    phone: varchar("phone", { length: 50 }),
+    roomNo: varchar("room_no", { length: 50 }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [index("users_account_status_idx").on(table.accountStatus)]
+);
+
+// Memberships scope residents and staff to hostel buildings without coupling access to email.
+export const hostelMemberships = pgTable(
+  "hostel_memberships",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    isPrimary: boolean("is_primary").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("hostel_memberships_user_hostel_unique").on(
+      table.userId,
+      table.hostelId
+    ),
+    uniqueIndex("hostel_memberships_one_primary_per_user")
+      .on(table.userId)
+      .where(sql`${table.isPrimary} = true`),
+    index("hostel_memberships_hostel_id_idx").on(table.hostelId),
+  ]
+);
 
 // 2. Complaints Table
 export const complaints = pgTable("complaints", {

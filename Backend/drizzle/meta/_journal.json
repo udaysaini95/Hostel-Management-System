@@ -8,6 +8,13 @@
       "when": 1786102517987,
       "tag": "0000_solid_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788268822956,
+      "tag": "0001_multi_hostel_account_foundation",
+      "breakpoints": true
     }
   ]
 }
