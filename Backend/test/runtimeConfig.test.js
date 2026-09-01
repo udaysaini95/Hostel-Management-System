@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ConfigurationError,
+  DEFAULT_JWT_EXPIRES_IN,
   DEFAULT_PORT,
   JWT_SECRET_MIN_LENGTH,
   parseRuntimeConfig,
@@ -23,6 +24,7 @@ test("runtime configuration parses valid values", () => {
   assert.deepEqual(config, {
     databaseUrl: VALID_DATABASE_URL,
     jwtSecret: VALID_JWT_SECRET,
+    jwtExpiresIn: DEFAULT_JWT_EXPIRES_IN,
     port: 4100,
     nodeEnvironment: "test",
   });
@@ -37,6 +39,7 @@ test("runtime configuration applies safe non-secret defaults", () => {
 
   assert.equal(config.port, DEFAULT_PORT);
   assert.equal(config.nodeEnvironment, "development");
+  assert.equal(config.jwtExpiresIn, DEFAULT_JWT_EXPIRES_IN);
 });
 
 test("runtime configuration reports all missing required credentials", () => {
@@ -86,6 +89,34 @@ test("runtime configuration validates database protocol, port, and environment",
       assert.match(error.message, /development, test, or production/);
       return true;
     }
+  );
+});
+
+test("runtime configuration limits access-session lifetime", () => {
+  const validConfig = parseRuntimeConfig({
+    DATABASE_URL: VALID_DATABASE_URL,
+    JWT_SECRET: VALID_JWT_SECRET,
+    JWT_EXPIRES_IN: "15m",
+  });
+
+  assert.equal(validConfig.jwtExpiresIn, "15m");
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        DATABASE_URL: VALID_DATABASE_URL,
+        JWT_SECRET: VALID_JWT_SECRET,
+        JWT_EXPIRES_IN: "0h",
+      }),
+    /positive duration/
+  );
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        DATABASE_URL: VALID_DATABASE_URL,
+        JWT_SECRET: VALID_JWT_SECRET,
+        JWT_EXPIRES_IN: "25h",
+      }),
+    /cannot exceed 24 hours/
   );
 });
 

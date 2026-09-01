@@ -1,24 +1,48 @@
-import jwt from "jsonwebtoken";
-import { getRuntimeConfig } from "../config/runtimeConfig.js";
+import {
+  isExpiredAccessTokenError,
+  verifyAccessToken,
+} from "../services/accessTokenService.js";
+
+export const extractBearerToken = (authorizationHeader) => {
+  if (typeof authorizationHeader !== "string") {
+    return null;
+  }
+
+  return authorizationHeader.match(/^Bearer ([^\s]+)$/)?.[1] ?? null;
+};
+
+export const createProtectMiddleware = (tokenVerifier = verifyAccessToken) => {
+  return (req, res, next) => {
+    const token = extractBearerToken(req.headers.authorization);
+
+    if (!token) {
+      return res.status(401).json({
+        code: "AUTH_TOKEN_REQUIRED",
+        message: "A Bearer access token is required",
+      });
+    }
+
+    try {
+      req.user = tokenVerifier(token);
+      next();
+    } catch (error) {
+      if (isExpiredAccessTokenError(error)) {
+        return res.status(401).json({
+          code: "SESSION_EXPIRED",
+          message: "Your session has expired. Please sign in again.",
+        });
+      }
+
+      return res.status(401).json({
+        code: "INVALID_ACCESS_TOKEN",
+        message: "The access token is invalid",
+      });
+    }
+  };
+};
 
 // Protect Routes (Verify JWT)
-export const protect = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, getRuntimeConfig().jwtSecret);
-    req.user = decoded; // id, role, email
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-};
+export const protect = createProtectMiddleware();
 
 // Admin Only
 export const admin = (req, res, next) => {

@@ -1,6 +1,4 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -8,6 +6,10 @@ import {
   createPublicRegistrationUserValues,
   normalizeEmail,
 } from "../domain/roles.js";
+import { createAccessSession } from "../services/accessTokenService.js";
+
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
 
 export const register = async (req, res) => {
   try {
@@ -44,14 +46,11 @@ export const register = async (req, res) => {
       )
       .returning();
 
-    const token = jwt.sign(
-      { id: insertedUser.id, role: insertedUser.role, email: insertedUser.email },
-      getRuntimeConfig().jwtSecret
-    );
+    const session = createAccessSession(insertedUser);
 
     res.json({
       message: "Registered Successfully",
-      token,
+      ...session,
       role: insertedUser.role,
       user: {
         id: insertedUser.id,
@@ -74,29 +73,31 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
 
     const [user] = await db
       .select()
       .from(users)
       .where(eq(users.email, normalizedEmail));
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(400).json({ message: "Wrong password" });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role, email: user.email },
-      getRuntimeConfig().jwtSecret
+    const match = await bcrypt.compare(
+      password,
+      user?.password ?? DUMMY_PASSWORD_HASH
     );
+    if (!user || !match) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const authenticatedAt = new Date();
+    await db
+      .update(users)
+      .set({ lastLoginAt: authenticatedAt, updatedAt: authenticatedAt })
+      .where(eq(users.id, user.id));
+
+    const session = createAccessSession(user);
 
     res.json({
-      token,
+      ...session,
       role: user.role,
       user: {
         id: user.id,

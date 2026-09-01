@@ -1,6 +1,8 @@
 import "dotenv/config";
 
 export const JWT_SECRET_MIN_LENGTH = 32;
+export const DEFAULT_JWT_EXPIRES_IN = "1h";
+export const MAX_JWT_LIFETIME_SECONDS = 24 * 60 * 60;
 export const DEFAULT_PORT = 5000;
 
 const ALLOWED_NODE_ENVIRONMENTS = new Set([
@@ -18,6 +20,13 @@ const DATABASE_PLACEHOLDER_FRAGMENTS = [
 const JWT_PLACEHOLDER_VALUES = new Set([
   "your_jwt_secret_key_here",
 ]);
+
+const JWT_DURATION_MULTIPLIERS = Object.freeze({
+  s: 1,
+  m: 60,
+  h: 60 * 60,
+  d: 24 * 60 * 60,
+});
 
 export class ConfigurationError extends Error {
   constructor(issues) {
@@ -72,6 +81,31 @@ const parseJwtSecret = (value, issues) => {
   return value;
 };
 
+const parseJwtExpiration = (value, issues) => {
+  const expiration = value || DEFAULT_JWT_EXPIRES_IN;
+  const match = /^(\d+)([smhd])$/.exec(expiration);
+
+  if (!match || Number(match[1]) < 1) {
+    issues.push(
+      "JWT_EXPIRES_IN must use a positive duration such as 15m, 1h, or 1d."
+    );
+    return null;
+  }
+
+  const lifetimeSeconds =
+    Number(match[1]) * JWT_DURATION_MULTIPLIERS[match[2]];
+
+  if (
+    !Number.isSafeInteger(lifetimeSeconds) ||
+    lifetimeSeconds > MAX_JWT_LIFETIME_SECONDS
+  ) {
+    issues.push("JWT_EXPIRES_IN cannot exceed 24 hours.");
+    return null;
+  }
+
+  return expiration;
+};
+
 const parsePort = (value, issues) => {
   if (value === undefined || value === "") {
     return DEFAULT_PORT;
@@ -113,6 +147,7 @@ export const parseRuntimeConfig = (environment = process.env) => {
   const issues = [];
   const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, issues);
   const jwtSecret = parseJwtSecret(environment.JWT_SECRET, issues);
+  const jwtExpiresIn = parseJwtExpiration(environment.JWT_EXPIRES_IN, issues);
   const port = parsePort(environment.PORT, issues);
   const nodeEnvironment = parseNodeEnvironment(environment.NODE_ENV, issues);
 
@@ -123,6 +158,7 @@ export const parseRuntimeConfig = (environment = process.env) => {
   return Object.freeze({
     databaseUrl,
     jwtSecret,
+    jwtExpiresIn,
     port,
     nodeEnvironment,
   });
