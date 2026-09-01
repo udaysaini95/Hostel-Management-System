@@ -1,0 +1,140 @@
+import { USER_ROLES } from "./roles.js";
+
+export const PERMISSIONS = Object.freeze({
+  PROFILE_READ_SELF: "profile:read:self",
+  COMPLAINT_CREATE: "complaint:create",
+  COMPLAINT_READ_OWN: "complaint:read:own",
+  COMPLAINT_READ_MANAGED: "complaint:read:managed",
+  COMPLAINT_DELETE_OWN: "complaint:delete:own",
+  COMPLAINT_DELETE_ANY: "complaint:delete:any",
+  COMPLAINT_UPDATE_MANAGED: "complaint:update:managed",
+  COMPLAINT_VERIFY_OWN: "complaint:verify:own",
+  COMPLAINT_VERIFY_ANY: "complaint:verify:any",
+  LEAVE_CREATE_OWN: "leave:create:own",
+  LEAVE_READ_OWN: "leave:read:own",
+  LEAVE_REVIEW: "leave:review",
+  GATE_VERIFY_PASS: "gate:verify-pass",
+  GATE_LOG_MOVEMENT: "gate:log-movement",
+  GATE_READ_ACTIVITY: "gate:read-activity",
+  MESS_MENU_READ: "mess:menu:read",
+  MESS_MENU_MANAGE: "mess:menu:manage",
+  MESS_FEEDBACK_CREATE: "mess:feedback:create",
+  MESS_FEEDBACK_READ: "mess:feedback:read",
+  MESS_ISSUE_CREATE: "mess:issue:create",
+  MESS_ISSUE_READ_OWN: "mess:issue:read:own",
+  MESS_ISSUE_MANAGE: "mess:issue:manage",
+  STAFF_PROVISION: "staff:provision",
+  ACCOUNT_DEACTIVATE: "account:deactivate",
+});
+
+const permissionsFor = (...permissions) => Object.freeze(permissions);
+
+export const ROLE_PERMISSIONS = Object.freeze({
+  [USER_ROLES.STUDENT]: permissionsFor(
+    PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.COMPLAINT_CREATE,
+    PERMISSIONS.COMPLAINT_READ_OWN,
+    PERMISSIONS.COMPLAINT_DELETE_OWN,
+    PERMISSIONS.COMPLAINT_VERIFY_OWN,
+    PERMISSIONS.LEAVE_CREATE_OWN,
+    PERMISSIONS.LEAVE_READ_OWN,
+    PERMISSIONS.MESS_MENU_READ,
+    PERMISSIONS.MESS_FEEDBACK_CREATE,
+    PERMISSIONS.MESS_ISSUE_CREATE,
+    PERMISSIONS.MESS_ISSUE_READ_OWN
+  ),
+  [USER_ROLES.WARDEN]: permissionsFor(
+    PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.COMPLAINT_CREATE,
+    PERMISSIONS.COMPLAINT_READ_OWN,
+    PERMISSIONS.COMPLAINT_DELETE_OWN,
+    PERMISSIONS.COMPLAINT_READ_MANAGED,
+    PERMISSIONS.COMPLAINT_UPDATE_MANAGED,
+    PERMISSIONS.COMPLAINT_VERIFY_OWN,
+    PERMISSIONS.COMPLAINT_VERIFY_ANY,
+    PERMISSIONS.LEAVE_REVIEW,
+    PERMISSIONS.GATE_READ_ACTIVITY,
+    PERMISSIONS.MESS_MENU_READ,
+    PERMISSIONS.MESS_MENU_MANAGE,
+    PERMISSIONS.MESS_FEEDBACK_CREATE,
+    PERMISSIONS.MESS_FEEDBACK_READ,
+    PERMISSIONS.MESS_ISSUE_CREATE,
+    PERMISSIONS.MESS_ISSUE_READ_OWN,
+    PERMISSIONS.MESS_ISSUE_MANAGE
+  ),
+  [USER_ROLES.MAINTENANCE]: permissionsFor(
+    PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.MESS_MENU_READ,
+    PERMISSIONS.MESS_FEEDBACK_CREATE,
+    PERMISSIONS.MESS_ISSUE_CREATE,
+    PERMISSIONS.MESS_ISSUE_READ_OWN
+  ),
+  [USER_ROLES.GUARD]: permissionsFor(
+    PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.GATE_VERIFY_PASS,
+    PERMISSIONS.GATE_LOG_MOVEMENT,
+    PERMISSIONS.GATE_READ_ACTIVITY,
+    PERMISSIONS.MESS_MENU_READ,
+    PERMISSIONS.MESS_FEEDBACK_CREATE,
+    PERMISSIONS.MESS_ISSUE_CREATE,
+    PERMISSIONS.MESS_ISSUE_READ_OWN
+  ),
+  [USER_ROLES.ADMIN]: permissionsFor(
+    PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.COMPLAINT_CREATE,
+    PERMISSIONS.COMPLAINT_READ_OWN,
+    PERMISSIONS.COMPLAINT_READ_MANAGED,
+    PERMISSIONS.COMPLAINT_DELETE_OWN,
+    PERMISSIONS.COMPLAINT_DELETE_ANY,
+    PERMISSIONS.COMPLAINT_UPDATE_MANAGED,
+    PERMISSIONS.COMPLAINT_VERIFY_OWN,
+    PERMISSIONS.COMPLAINT_VERIFY_ANY,
+    PERMISSIONS.LEAVE_REVIEW,
+    PERMISSIONS.GATE_VERIFY_PASS,
+    PERMISSIONS.GATE_LOG_MOVEMENT,
+    PERMISSIONS.GATE_READ_ACTIVITY,
+    PERMISSIONS.MESS_MENU_READ,
+    PERMISSIONS.MESS_MENU_MANAGE,
+    PERMISSIONS.MESS_FEEDBACK_CREATE,
+    PERMISSIONS.MESS_FEEDBACK_READ,
+    PERMISSIONS.MESS_ISSUE_CREATE,
+    PERMISSIONS.MESS_ISSUE_READ_OWN,
+    PERMISSIONS.MESS_ISSUE_MANAGE,
+    PERMISSIONS.STAFF_PROVISION,
+    PERMISSIONS.ACCOUNT_DEACTIVATE
+  ),
+});
+
+const knownPermissions = new Set(Object.values(PERMISSIONS));
+
+export const isKnownPermission = (permission) =>
+  knownPermissions.has(permission);
+
+export const hasPermission = (role, permission) =>
+  isKnownPermission(permission) &&
+  (ROLE_PERMISSIONS[role]?.includes(permission) ?? false);
+
+export const canAccessOwnedResource = ({
+  actor,
+  ownerId,
+  ownPermission,
+  anyPermission,
+}) => {
+  const actorId = Number(actor?.id);
+
+  if (!Number.isSafeInteger(actorId) || actorId < 1) {
+    return false;
+  }
+
+  if (anyPermission && hasPermission(actor?.role, anyPermission)) {
+    return true;
+  }
+
+  const resourceOwnerId = Number(ownerId);
+
+  return (
+    Number.isSafeInteger(resourceOwnerId) &&
+    actorId === resourceOwnerId &&
+    hasPermission(actor?.role, ownPermission)
+  );
+};

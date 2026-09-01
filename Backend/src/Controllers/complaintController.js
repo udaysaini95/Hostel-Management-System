@@ -1,6 +1,10 @@
 import { db } from "../db/index.js";
 import { complaints, complaintTimelines, users } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
+import {
+  canAccessOwnedResource,
+  PERMISSIONS,
+} from "../domain/permissions.js";
 
 
 // ================= CREATE COMPLAINT =================
@@ -78,9 +82,18 @@ export const deleteComplaint = async (req, res) => {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    // Only owner or admin can delete
-    if (complaint.userId !== Number(req.user.id) && req.user.role !== "admin") {
-      return res.status(401).json({ message: "Not authorized" });
+    if (
+      !canAccessOwnedResource({
+        actor: req.user,
+        ownerId: complaint.userId,
+        ownPermission: PERMISSIONS.COMPLAINT_DELETE_OWN,
+        anyPermission: PERMISSIONS.COMPLAINT_DELETE_ANY,
+      })
+    ) {
+      return res.status(403).json({
+        code: "RESOURCE_ACCESS_DENIED",
+        message: "You cannot delete this complaint",
+      });
     }
 
     await db.delete(complaints).where(eq(complaints.id, complaintId));
@@ -163,7 +176,6 @@ export const studentVerifyComplaint = async (req, res) => {
   try {
     const complaintId = Number(req.params.id);
     const { status, note } = req.body; // status should be "Closed" or "In Progress"
-    const userId = Number(req.user.id);
 
     // Verify ownership
     const [complaint] = await db
@@ -175,8 +187,18 @@ export const studentVerifyComplaint = async (req, res) => {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    if (complaint.userId !== userId) {
-      return res.status(403).json({ message: "Unauthorized to verify this complaint" });
+    if (
+      !canAccessOwnedResource({
+        actor: req.user,
+        ownerId: complaint.userId,
+        ownPermission: PERMISSIONS.COMPLAINT_VERIFY_OWN,
+        anyPermission: PERMISSIONS.COMPLAINT_VERIFY_ANY,
+      })
+    ) {
+      return res.status(403).json({
+        code: "RESOURCE_ACCESS_DENIED",
+        message: "You cannot verify this complaint",
+      });
     }
 
     const updateData = { status, updatedAt: new Date() };

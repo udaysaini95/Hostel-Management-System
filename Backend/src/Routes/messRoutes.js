@@ -9,19 +9,61 @@ import {
   getAllIssues, 
   updateStatus 
 } from "../Controllers/messController.js";
-import { protect, admin } from "../middlewares/authMiddleware.js";
+import { protect } from "../middlewares/authMiddleware.js";
+import { requirePermission } from "../middlewares/authorizationMiddleware.js";
+import { PERMISSIONS } from "../domain/permissions.js";
 
 const router = express.Router();
 
-router.post("/admin/create", protect, admin, createMenu);
-router.get("/today", protect, getTodayMenu);
-router.post("/create", protect, createFeedback);
-router.get("/admin", protect, admin, getAllFeedback);
+router.post(
+  "/admin/create",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_MANAGE),
+  createMenu
+);
+router.get(
+  "/today",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_READ),
+  getTodayMenu
+);
+router.post(
+  "/create",
+  protect,
+  requirePermission(PERMISSIONS.MESS_FEEDBACK_CREATE),
+  createFeedback
+);
+router.get(
+  "/admin",
+  protect,
+  requirePermission(PERMISSIONS.MESS_FEEDBACK_READ),
+  getAllFeedback
+);
 
 // Mess Issue Routes
-router.post("/issue/create", protect, createIssue);
-router.get("/my", protect, getMyIssues);
-router.get("/", protect, admin, getAllIssues);
-router.put("/:id/status", protect, admin, updateStatus);
+router.post(
+  "/issue/create",
+  protect,
+  requirePermission(PERMISSIONS.MESS_ISSUE_CREATE),
+  createIssue
+);
+router.get(
+  "/my",
+  protect,
+  requirePermission(PERMISSIONS.MESS_ISSUE_READ_OWN),
+  getMyIssues
+);
+router.get(
+  "/",
+  protect,
+  requirePermission(PERMISSIONS.MESS_ISSUE_MANAGE),
+  getAllIssues
+);
+router.put(
+  "/:id/status",
+  protect,
+  requirePermission(PERMISSIONS.MESS_ISSUE_MANAGE),
+  updateStatus
+);
 
 export default router;

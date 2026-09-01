@@ -5,14 +5,36 @@ import {
   getActiveOutsideStudents, 
   getRecentGateLogs 
 } from "../Controllers/gateController.js";
-import { protect, requireRoles } from "../middlewares/authMiddleware.js";
+import { protect } from "../middlewares/authMiddleware.js";
+import { requirePermission } from "../middlewares/authorizationMiddleware.js";
+import { PERMISSIONS } from "../domain/permissions.js";
 
 const router = express.Router();
 
 // Guard & Admin Gate Routes
-router.post("/verify", protect, requireRoles(["guard", "admin"]), verifyGatePass);
-router.post("/log-action", protect, requireRoles(["guard", "admin"]), logGateAction);
-router.get("/active-outside", protect, requireRoles(["guard", "admin"]), getActiveOutsideStudents);
-router.get("/logs", protect, requireRoles(["guard", "admin"]), getRecentGateLogs);
+router.post(
+  "/verify",
+  protect,
+  requirePermission(PERMISSIONS.GATE_VERIFY_PASS),
+  verifyGatePass
+);
+router.post(
+  "/log-action",
+  protect,
+  requirePermission(PERMISSIONS.GATE_LOG_MOVEMENT),
+  logGateAction
+);
+router.get(
+  "/active-outside",
+  protect,
+  requirePermission(PERMISSIONS.GATE_READ_ACTIVITY),
+  getActiveOutsideStudents
+);
+router.get(
+  "/logs",
+  protect,
+  requirePermission(PERMISSIONS.GATE_READ_ACTIVITY),
+  getRecentGateLogs
+);
 
 export default router;

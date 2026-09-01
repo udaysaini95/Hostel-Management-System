@@ -43,29 +43,3 @@ export const createProtectMiddleware = (tokenVerifier = verifyAccessToken) => {
 
 // Protect Routes (Verify JWT)
 export const protect = createProtectMiddleware();
-
-// Admin Only
-export const admin = (req, res, next) => {
-  if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access required" });
-  }
-  next();
-};
-
-// Role-Based Access Control (RBAC) Middleware
-export const requireRoles = (roles = []) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized: Please log in." });
-    }
-
-    // "admin" always has super access, plus check specific role
-    if (req.user.role === "admin" || roles.includes(req.user.role)) {
-      return next();
-    }
-
-    return res.status(403).json({
-      message: `Access denied. Required roles: [${roles.join(", ")}]`,
-    });
-  };
-};

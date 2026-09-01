@@ -10,8 +10,10 @@ import leaveRoutes from "./Routes/leaveRoutes.js";
 import messRoutes from "./Routes/messRoutes.js";
 import gateRoutes from "./Routes/gateRoutes.js";
 import { protect } from "./middlewares/authMiddleware.js";
+import { requirePermission } from "./middlewares/authorizationMiddleware.js";
 import { getProfile } from "./Controllers/authController.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
+import { PERMISSIONS } from "./domain/permissions.js";
 
 const runtimeConfig = getRuntimeConfig();
 
@@ -24,7 +26,12 @@ app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/student/profile", protect, getProfile);
+app.use(
+  "/api/student/profile",
+  protect,
+  requirePermission(PERMISSIONS.PROFILE_READ_SELF),
+  getProfile
+);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/mess", messRoutes);
