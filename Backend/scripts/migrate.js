@@ -3,16 +3,15 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { requireDatabaseUrl } from "../src/config/runtimeConfig.js";
 
 const { Pool } = pg;
 
 const run = async () => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required to run database migrations.");
-  }
+  const databaseUrl = requireDatabaseUrl();
 
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl,
     max: 1,
   });
 

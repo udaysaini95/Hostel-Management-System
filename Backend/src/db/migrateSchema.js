@@ -1,10 +1,11 @@
 import "dotenv/config";
 import { neon } from "@neondatabase/serverless";
+import { requireDatabaseUrl } from "../config/runtimeConfig.js";
 
 async function runMigration() {
   try {
     console.log("Applying schema updates to Neon DB...");
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = neon(requireDatabaseUrl());
 
     // 1. Update complaints table for FAANG SLA & Resolution Loop
     await sql`

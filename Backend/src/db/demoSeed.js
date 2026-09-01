@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { eq, inArray } from "drizzle-orm";
+import { requireDatabaseUrl } from "../config/runtimeConfig.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { hostelMemberships, hostels, users } from "./schema.js";
@@ -81,8 +82,13 @@ export const assertDemoSeedAllowed = (environment) => {
     );
   }
 
-  if (!environment.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required to seed demo data.");
+  requireDatabaseUrl(environment);
+
+  if (
+    !environment.DEMO_SEED_PASSWORD ||
+    environment.DEMO_SEED_PASSWORD.length < 12
+  ) {
+    throw new Error("DEMO_SEED_PASSWORD must contain at least 12 characters.");
   }
 };
 

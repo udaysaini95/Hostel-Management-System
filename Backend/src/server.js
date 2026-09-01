@@ -11,6 +11,9 @@ import messRoutes from "./Routes/messRoutes.js";
 import gateRoutes from "./Routes/gateRoutes.js";
 import { protect } from "./middlewares/authMiddleware.js";
 import { getProfile } from "./Controllers/authController.js";
+import { getRuntimeConfig } from "./config/runtimeConfig.js";
+
+const runtimeConfig = getRuntimeConfig();
 
 const app = express();
 
@@ -18,9 +21,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
-
-// Database
-connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -38,8 +38,15 @@ app.get("/", (req, res) => {
 // HTTP Server
 const server = http.createServer(app);
 
-const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  await connectDB();
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  server.listen(runtimeConfig.port, () => {
+    console.log(`Server running on port ${runtimeConfig.port}`);
+  });
+};
+
+startServer().catch((error) => {
+  console.error(`Server startup failed: ${error.message}`);
+  process.exitCode = 1;
 });

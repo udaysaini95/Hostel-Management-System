@@ -1,4 +1,7 @@
 import "dotenv/config";
+import { requireDatabaseUrl } from "./src/config/runtimeConfig.js";
+
+const databaseUrl = requireDatabaseUrl();
 
 /** @type { import("drizzle-kit").Config } */
 export default {
@@ -6,6 +9,6 @@ export default {
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL || "",
+    url: databaseUrl,
   },
 };

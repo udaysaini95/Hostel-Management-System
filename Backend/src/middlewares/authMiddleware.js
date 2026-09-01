@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 // Protect Routes (Verify JWT)
 export const protect = (req, res, next) => {
@@ -11,7 +12,7 @@ export const protect = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_jwt_secret");
+    const decoded = jwt.verify(token, getRuntimeConfig().jwtSecret);
     req.user = decoded; // id, role, email
     next();
   } catch (error) {

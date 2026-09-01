@@ -1,15 +1,9 @@
 import { db } from "../db/index.js";
+import { sql } from "drizzle-orm";
 
 const connectDb = async () => {
-  try {
-    if (!process.env.DATABASE_URL) {
-      console.warn("⚠️ DATABASE_URL environment variable is missing!");
-      return;
-    }
-    console.log("⚡ Drizzle PostgreSQL Database Initialized!");
-  } catch (error) {
-    console.error("❌ Database connection failed:", error.message);
-  }
+  await db.execute(sql`select 1`);
+  console.log("PostgreSQL database connection verified.");
 };
 
 export default connectDb;

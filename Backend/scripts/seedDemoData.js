@@ -28,7 +28,7 @@ const run = async () => {
 
       return seedDemoData(
         transaction,
-        process.env.DEMO_SEED_PASSWORD || "HostelMateDemo!2026"
+        process.env.DEMO_SEED_PASSWORD
       );
     });
 

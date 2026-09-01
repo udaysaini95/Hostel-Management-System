@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -45,7 +46,7 @@ export const register = async (req, res) => {
 
     const token = jwt.sign(
       { id: insertedUser.id, role: insertedUser.role, email: insertedUser.email },
-      process.env.JWT_SECRET || "default_jwt_secret"
+      getRuntimeConfig().jwtSecret
     );
 
     res.json({
@@ -91,7 +92,7 @@ export const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email },
-      process.env.JWT_SECRET || "default_jwt_secret"
+      getRuntimeConfig().jwtSecret
     );
 
     res.json({

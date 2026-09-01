@@ -31,7 +31,7 @@ Do not point either seed command at a database containing valuable data.
 
 ## Fictional demo accounts
 
-The password is the configured `DEMO_SEED_PASSWORD`. When omitted, the development-only fallback is `HostelMateDemo!2026`.
+The password is the configured `DEMO_SEED_PASSWORD`; there is no fallback password.
 
 | Role | Email | Hostel access |
 | --- | --- | --- |

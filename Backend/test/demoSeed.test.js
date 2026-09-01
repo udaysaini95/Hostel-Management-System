@@ -53,6 +53,7 @@ test("demo seeding requires explicit non-production configuration", () => {
         NODE_ENV: "production",
         ALLOW_DEMO_SEED: "true",
         DATABASE_URL: "postgresql://demo.invalid/database",
+        DEMO_SEED_PASSWORD: "valid-demo-password",
       }),
     /disabled in production/
   );
@@ -61,6 +62,7 @@ test("demo seeding requires explicit non-production configuration", () => {
       assertDemoSeedAllowed({
         NODE_ENV: "development",
         DATABASE_URL: "postgresql://demo.invalid/database",
+        DEMO_SEED_PASSWORD: "valid-demo-password",
       }),
     /ALLOW_DEMO_SEED=true/
   );
@@ -69,6 +71,7 @@ test("demo seeding requires explicit non-production configuration", () => {
       assertDemoSeedAllowed({
         NODE_ENV: "development",
         ALLOW_DEMO_SEED: "true",
+        DEMO_SEED_PASSWORD: "valid-demo-password",
       }),
     /DATABASE_URL is required/
   );
@@ -77,7 +80,20 @@ test("demo seeding requires explicit non-production configuration", () => {
       NODE_ENV: "development",
       ALLOW_DEMO_SEED: "true",
       DATABASE_URL: "postgresql://demo.invalid/database",
+      DEMO_SEED_PASSWORD: "valid-demo-password",
     })
+  );
+});
+
+test("demo seeding validates its password before opening a database connection", () => {
+  assert.throws(
+    () =>
+      assertDemoSeedAllowed({
+        NODE_ENV: "development",
+        ALLOW_DEMO_SEED: "true",
+        DATABASE_URL: "postgresql://demo.invalid/database",
+      }),
+    /DEMO_SEED_PASSWORD must contain at least 12 characters/
   );
 });
 
