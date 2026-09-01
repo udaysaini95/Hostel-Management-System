@@ -7,6 +7,7 @@ import {
   normalizeEmail,
 } from "../domain/roles.js";
 import { createAccessSession } from "../services/accessTokenService.js";
+import { canStartSession } from "../domain/accountStatuses.js";
 
 const DUMMY_PASSWORD_HASH =
   "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
@@ -86,6 +87,13 @@ export const login = async (req, res) => {
     );
     if (!user || !match) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!canStartSession(user.accountStatus)) {
+      return res.status(403).json({
+        code: "ACCOUNT_INACTIVE",
+        message: "This account is not active. Contact an administrator.",
+      });
     }
 
     const authenticatedAt = new Date();

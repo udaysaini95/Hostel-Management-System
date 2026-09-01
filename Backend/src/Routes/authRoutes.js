@@ -3,11 +3,13 @@ import { register, login, getProfile } from "../Controllers/authController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
+import { acceptStaffInvitationRequest } from "../Controllers/staffAccountController.js";
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/staff-invitations/accept", acceptStaffInvitationRequest);
 router.get(
   "/profile",
   protect,

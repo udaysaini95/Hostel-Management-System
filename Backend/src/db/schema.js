@@ -90,6 +90,71 @@ export const hostelMemberships = pgTable(
   ]
 );
 
+// Staff accounts are activated only after a recipient consumes a one-time invite.
+// Raw invitation tokens never enter the database; only their SHA-256 hashes do.
+export const staffInvitations = pgTable(
+  "staff_invitations",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    role: userRoleEnum("role").notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    invitedByUserId: integer("invited_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "staff_invitations_role_check",
+      sql`${table.role} in ('warden', 'maintenance', 'guard')`
+    ),
+    uniqueIndex("staff_invitations_active_email_unique")
+      .on(table.email)
+      .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
+    index("staff_invitations_expires_at_idx").on(table.expiresAt),
+    index("staff_invitations_invited_by_user_id_idx").on(
+      table.invitedByUserId
+    ),
+  ]
+);
+
+export const staffInvitationHostels = pgTable(
+  "staff_invitation_hostels",
+  {
+    id: serial("id").primaryKey(),
+    invitationId: integer("invitation_id")
+      .notNull()
+      .references(() => staffInvitations.id, { onDelete: "cascade" }),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    isPrimary: boolean("is_primary").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("staff_invitation_hostels_invitation_hostel_unique").on(
+      table.invitationId,
+      table.hostelId
+    ),
+    uniqueIndex("staff_invitation_hostels_one_primary_per_invitation")
+      .on(table.invitationId)
+      .where(sql`${table.isPrimary} = true`),
+    index("staff_invitation_hostels_hostel_id_idx").on(table.hostelId),
+  ]
+);
+
 // 2. Complaints Table
 export const complaints = pgTable("complaints", {
   id: serial("id").primaryKey(),

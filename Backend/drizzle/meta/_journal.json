@@ -15,6 +15,13 @@
       "when": 1788268822956,
       "tag": "0001_multi_hostel_account_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788272618394,
+      "tag": "0002_staff_account_lifecycle",
+      "breakpoints": true
     }
   ]
 }

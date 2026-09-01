@@ -7,6 +7,8 @@ import {
   accountStatusEnum,
   hostelMemberships,
   hostels,
+  staffInvitationHostels,
+  staffInvitations,
   userRoleEnum,
   users,
 } from "../src/db/schema.js";
@@ -58,6 +60,48 @@ test("hostel memberships prevent duplicate and multiple-primary assignments", ()
   assert.deepEqual(
     membershipIndex.config.columns.map((column) => column.name),
     ["user_id", "hostel_id"]
+  );
+  assert.equal(primaryIndex.config.unique, true);
+  assert.ok(primaryIndex.config.where);
+});
+
+test("staff invitations store only hashed one-time tokens with constrained roles", () => {
+  const config = getTableConfig(staffInvitations);
+  const activeEmailIndex = findIndex(
+    staffInvitations,
+    "staff_invitations_active_email_unique"
+  );
+
+  assert.equal(staffInvitations.tokenHash.notNull, true);
+  assert.equal(staffInvitations.tokenHash.isUnique, true);
+  assert.equal(staffInvitations.tokenHash.config.length, 64);
+  assert.equal(staffInvitations.expiresAt.notNull, true);
+  assert.equal(config.foreignKeys.length, 1);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "staff_invitations_role_check"
+    )
+  );
+  assert.equal(activeEmailIndex.config.unique, true);
+  assert.ok(activeEmailIndex.config.where);
+});
+
+test("staff invitation hostel assignments prevent duplicates and multiple primaries", () => {
+  const config = getTableConfig(staffInvitationHostels);
+  const assignmentIndex = findIndex(
+    staffInvitationHostels,
+    "staff_invitation_hostels_invitation_hostel_unique"
+  );
+  const primaryIndex = findIndex(
+    staffInvitationHostels,
+    "staff_invitation_hostels_one_primary_per_invitation"
+  );
+
+  assert.equal(config.foreignKeys.length, 2);
+  assert.equal(assignmentIndex.config.unique, true);
+  assert.deepEqual(
+    assignmentIndex.config.columns.map((column) => column.name),
+    ["invitation_id", "hostel_id"]
   );
   assert.equal(primaryIndex.config.unique, true);
   assert.ok(primaryIndex.config.where);
