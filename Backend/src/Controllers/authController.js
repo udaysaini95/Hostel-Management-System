@@ -3,16 +3,20 @@ import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import {
+  createPublicRegistrationUserValues,
+  normalizeEmail,
+} from "../domain/roles.js";
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
 
     // Check if user already exists
     const existingUser = await db
@@ -30,12 +34,13 @@ export const register = async (req, res) => {
     // Insert into SQL table
     const [insertedUser] = await db
       .insert(users)
-      .values({
-        name: name.trim(),
-        email: normalizedEmail,
-        password: hash,
-        role: role || "student",
-      })
+      .values(
+        createPublicRegistrationUserValues({
+          name,
+          email: normalizedEmail,
+          passwordHash: hash,
+        })
+      )
       .returning();
 
     const token = jwt.sign(
