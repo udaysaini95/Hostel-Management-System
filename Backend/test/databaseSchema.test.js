@@ -5,10 +5,12 @@ import { ACCOUNT_STATUSES } from "../src/domain/accountStatuses.js";
 import { USER_ROLES } from "../src/domain/roles.js";
 import {
   accountStatusEnum,
+  approvedStudents,
   hostelMemberships,
   hostels,
   staffInvitationHostels,
   staffInvitations,
+  studentActivationTokens,
   userRoleEnum,
   users,
 } from "../src/db/schema.js";
@@ -29,6 +31,7 @@ test("database enums constrain supported roles and account states", () => {
   );
   assert.equal(users.accountStatus.notNull, true);
   assert.equal(users.accountStatus.hasDefault, true);
+  assert.equal(users.rollNo.isUnique, true);
 });
 
 test("hostels have unique human names and validated short codes", () => {
@@ -105,4 +108,38 @@ test("staff invitation hostel assignments prevent duplicates and multiple primar
   );
   assert.equal(primaryIndex.config.unique, true);
   assert.ok(primaryIndex.config.where);
+});
+
+test("approved students have unique institutional identities and one hostel", () => {
+  const config = getTableConfig(approvedStudents);
+
+  assert.equal(approvedStudents.email.isUnique, true);
+  assert.equal(approvedStudents.rollNo.isUnique, true);
+  assert.equal(approvedStudents.activatedUserId.isUnique, true);
+  assert.equal(config.foreignKeys.length, 3);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "approved_students_email_normalized_check"
+    )
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "approved_students_roll_no_not_blank_check"
+    )
+  );
+});
+
+test("student activation tokens are hashed, expiring, and single-use", () => {
+  const config = getTableConfig(studentActivationTokens);
+  const activeTokenIndex = findIndex(
+    studentActivationTokens,
+    "student_activation_tokens_one_active_per_student"
+  );
+
+  assert.equal(studentActivationTokens.tokenHash.isUnique, true);
+  assert.equal(studentActivationTokens.tokenHash.config.length, 64);
+  assert.equal(studentActivationTokens.expiresAt.notNull, true);
+  assert.equal(config.foreignKeys.length, 1);
+  assert.equal(activeTokenIndex.config.unique, true);
+  assert.ok(activeTokenIndex.config.where);
 });

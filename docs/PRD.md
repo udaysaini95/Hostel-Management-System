@@ -575,7 +575,8 @@ Release 1 is considered complete only when all of the following are true:
 - Release 1 is a single-institution deployment with multiple hostel buildings, each identified by a unique name and short code.
 - Students have one primary hostel membership; wardens and operational staff may be assigned to one or more hostels; institution administrators may operate globally.
 - There is no production data that prevents corrective schema changes during early development.
-- Email/SMS delivery is optional until the in-app notification system is stable.
+- Email delivery is required for account activation. Operational email/SMS notifications remain optional until the in-app notification system is stable.
+- The institutional roll number is the required student identifier for Release 1.
 - Object storage and hosting provider selection will be finalized in the engineering plan.
 - The system uses a modular monolith unless measured scale creates a justified need for separation.
 
@@ -584,12 +585,11 @@ Release 1 is considered complete only when all of the following are true:
 The implementation plan must resolve these before their affected milestone begins:
 
 1. Whether maintenance staff are grouped by trade/category.
-2. The exact student identity fields required by the institution.
-3. The default SLA policy for each complaint category.
-4. Whether approved gate passes require a generated PDF in addition to the in-app QR.
-5. Notice retention and audit-log retention periods.
-7. Whether email notifications are part of Release 1 launch or immediately post-launch.
-8. The deployment, object-storage, and error-monitoring providers.
+2. The default SLA policy for each complaint category.
+3. Whether approved gate passes require a generated PDF in addition to the in-app QR.
+4. Notice retention and audit-log retention periods.
+5. Whether operational email notifications are part of Release 1 launch or immediately post-launch.
+6. The deployment, object-storage, and error-monitoring providers.
 
 ## 23. Definition of done for an individual feature
 

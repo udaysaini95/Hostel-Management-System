@@ -14,14 +14,3 @@ export const STAFF_ROLES = Object.freeze([
 ]);
 
 export const normalizeEmail = (email) => email.toLowerCase().trim();
-
-export const createPublicRegistrationUserValues = ({
-  name,
-  email,
-  passwordHash,
-}) => ({
-  name: name.trim(),
-  email: normalizeEmail(email),
-  password: passwordHash,
-  role: USER_ROLES.STUDENT,
-});

@@ -55,7 +55,7 @@ export const users = pgTable(
       .notNull(),
     emailVerifiedAt: timestamp("email_verified_at"),
     lastLoginAt: timestamp("last_login_at"),
-    rollNo: varchar("roll_no", { length: 50 }),
+    rollNo: varchar("roll_no", { length: 50 }).unique(),
     phone: varchar("phone", { length: 50 }),
     roomNo: varchar("room_no", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow(),
@@ -152,6 +152,75 @@ export const staffInvitationHostels = pgTable(
       .on(table.invitationId)
       .where(sql`${table.isPrimary} = true`),
     index("staff_invitation_hostels_hostel_id_idx").on(table.hostelId),
+  ]
+);
+
+// Students can activate accounts only after an administrator approves their
+// institutional identity and hostel assignment.
+export const approvedStudents = pgTable(
+  "approved_students",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    rollNo: varchar("roll_no", { length: 50 }).notNull().unique(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    approvedByUserId: integer("approved_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    activatedUserId: integer("activated_user_id")
+      .unique()
+      .references(() => users.id, { onDelete: "restrict" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "approved_students_email_normalized_check",
+      sql`${table.email} = lower(${table.email})`
+    ),
+    check(
+      "approved_students_roll_no_not_blank_check",
+      sql`length(trim(${table.rollNo})) > 0`
+    ),
+    index("approved_students_hostel_id_idx").on(table.hostelId),
+    index("approved_students_approved_by_user_id_idx").on(
+      table.approvedByUserId
+    ),
+  ]
+);
+
+export const studentActivationTokens = pgTable(
+  "student_activation_tokens",
+  {
+    id: serial("id").primaryKey(),
+    approvedStudentId: integer("approved_student_id")
+      .notNull()
+      .references(() => approvedStudents.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("student_activation_tokens_one_active_per_student")
+      .on(table.approvedStudentId)
+      .where(sql`${table.usedAt} is null and ${table.revokedAt} is null`),
+    index("student_activation_tokens_expires_at_idx").on(table.expiresAt),
   ]
 );
 

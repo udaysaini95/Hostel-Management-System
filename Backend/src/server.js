@@ -15,8 +15,10 @@ import { requirePermission } from "./middlewares/authorizationMiddleware.js";
 import { getProfile } from "./Controllers/authController.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 import { PERMISSIONS } from "./domain/permissions.js";
+import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
 
 const runtimeConfig = getRuntimeConfig();
+getStudentActivationEmailConfig();
 
 const app = express();
 

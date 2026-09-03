@@ -2,68 +2,18 @@ import bcrypt from "bcryptjs";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import {
-  createPublicRegistrationUserValues,
-  normalizeEmail,
-} from "../domain/roles.js";
+import { normalizeEmail } from "../domain/roles.js";
 import { createAccessSession } from "../services/accessTokenService.js";
 import { canStartSession } from "../domain/accountStatuses.js";
 
 const DUMMY_PASSWORD_HASH =
   "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
 
-export const register = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Name, email, and password are required" });
-    }
-
-    const normalizedEmail = normalizeEmail(email);
-
-    // Check if user already exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalizedEmail));
-
-    if (existingUser.length > 0) {
-      return res.status(400).json({ message: "User with this email already exists" });
-    }
-
-    // Hash password
-    const hash = await bcrypt.hash(password, 10);
-
-    // Insert into SQL table
-    const [insertedUser] = await db
-      .insert(users)
-      .values(
-        createPublicRegistrationUserValues({
-          name,
-          email: normalizedEmail,
-          passwordHash: hash,
-        })
-      )
-      .returning();
-
-    const session = createAccessSession(insertedUser);
-
-    res.json({
-      message: "Registered Successfully",
-      ...session,
-      role: insertedUser.role,
-      user: {
-        id: insertedUser.id,
-        name: insertedUser.name,
-        email: insertedUser.email,
-        role: insertedUser.role,
-      },
-    });
-  } catch (error) {
-    console.error("Register Error:", error);
-    res.status(500).json({ message: "Register failed", error: error.message });
-  }
+export const register = (req, res) => {
+  return res.status(410).json({
+    code: "STUDENT_ACTIVATION_REQUIRED",
+    message: "Students must activate an administrator-approved record",
+  });
 };
 
 export const login = async (req, res) => {

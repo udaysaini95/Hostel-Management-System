@@ -17,6 +17,7 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
 
 Staff provisioning and suspension rules are documented in [Staff Account Lifecycle](./STAFF_ACCOUNT_LIFECYCLE.md).
+The student identity and email-verification flow is documented in [Approved Student Activation](./STUDENT_ACTIVATION.md).
 
 Protected endpoints return `AUTHENTICATION_REQUIRED` when no valid actor exists and `PERMISSION_DENIED` when the authenticated role lacks the requested capability. Ownership failures return `RESOURCE_ACCESS_DENIED`.
 

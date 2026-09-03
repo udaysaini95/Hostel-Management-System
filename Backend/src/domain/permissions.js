@@ -24,6 +24,7 @@ export const PERMISSIONS = Object.freeze({
   MESS_ISSUE_READ_OWN: "mess:issue:read:own",
   MESS_ISSUE_MANAGE: "mess:issue:manage",
   STAFF_PROVISION: "staff:provision",
+  STUDENT_APPROVE: "student:approve",
   ACCOUNT_DEACTIVATE: "account:deactivate",
 });
 
@@ -101,6 +102,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.MESS_ISSUE_READ_OWN,
     PERMISSIONS.MESS_ISSUE_MANAGE,
     PERMISSIONS.STAFF_PROVISION,
+    PERMISSIONS.STUDENT_APPROVE,
     PERMISSIONS.ACCOUNT_DEACTIVATE
   ),
 });

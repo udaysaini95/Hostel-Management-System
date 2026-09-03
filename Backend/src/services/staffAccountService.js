@@ -1,4 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import {
@@ -9,12 +8,23 @@ import {
   users,
 } from "../db/schema.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
+import {
+  isPasswordAllowed,
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_POLICY_MESSAGE,
+} from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
+import {
+  createSecureToken,
+  hashSecureToken,
+  SECURE_TOKEN_BYTES,
+} from "./secureTokenService.js";
 
 export const STAFF_INVITATION_TTL_MS = 24 * 60 * 60 * 1000;
-export const STAFF_INVITATION_TOKEN_BYTES = 32;
-export const STAFF_PASSWORD_MIN_LENGTH = 12;
-export const STAFF_PASSWORD_MAX_BYTES = 72;
+export const STAFF_INVITATION_TOKEN_BYTES = SECURE_TOKEN_BYTES;
+export const STAFF_PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
+export const STAFF_PASSWORD_MAX_BYTES = PASSWORD_MAX_BYTES;
 export const INVITABLE_STAFF_ROLES = Object.freeze([
   USER_ROLES.WARDEN,
   USER_ROLES.MAINTENANCE,
@@ -54,27 +64,19 @@ const requirePositiveInteger = (value, fieldName) => {
 };
 
 export const createInvitationToken = () =>
-  randomBytes(STAFF_INVITATION_TOKEN_BYTES).toString("base64url");
+  createSecureToken();
 
 export const hashInvitationToken = (token) => {
   if (typeof token !== "string" || token.length === 0) {
     fail(400, "INVALID_INVITATION", "Invitation token is required");
   }
 
-  return createHash("sha256").update(token).digest("hex");
+  return hashSecureToken(token);
 };
 
 export const validateStaffPassword = (password) => {
-  if (
-    typeof password !== "string" ||
-    password.length < STAFF_PASSWORD_MIN_LENGTH ||
-    Buffer.byteLength(password, "utf8") > STAFF_PASSWORD_MAX_BYTES
-  ) {
-    fail(
-      400,
-      "WEAK_PASSWORD",
-      `Password must contain at least ${STAFF_PASSWORD_MIN_LENGTH} characters and at most ${STAFF_PASSWORD_MAX_BYTES} UTF-8 bytes`
-    );
+  if (!isPasswordAllowed(password)) {
+    fail(400, "WEAK_PASSWORD", PASSWORD_POLICY_MESSAGE);
   }
 
   return password;

@@ -6,6 +6,7 @@ import {
 import { PERMISSIONS } from "../domain/permissions.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
+import { createStudentApproval } from "../Controllers/studentActivationController.js";
 
 const router = express.Router();
 
@@ -21,6 +22,13 @@ router.patch(
   protect,
   requirePermission(PERMISSIONS.ACCOUNT_DEACTIVATE),
   updateAccountStatus
+);
+
+router.post(
+  "/students/approvals",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVE),
+  createStudentApproval
 );
 
 export default router;

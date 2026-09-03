@@ -37,6 +37,8 @@ test("permission matrix enforces critical role boundaries", () => {
     [USER_ROLES.GUARD, PERMISSIONS.MESS_MENU_MANAGE, false],
     [USER_ROLES.ADMIN, PERMISSIONS.STAFF_PROVISION, true],
     [USER_ROLES.WARDEN, PERMISSIONS.STAFF_PROVISION, false],
+    [USER_ROLES.ADMIN, PERMISSIONS.STUDENT_APPROVE, true],
+    [USER_ROLES.WARDEN, PERMISSIONS.STUDENT_APPROVE, false],
   ];
 
   for (const [role, permission, expected] of expectations) {
