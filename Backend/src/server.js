@@ -9,6 +9,7 @@ import leaveRoutes from "./Routes/leaveRoutes.js";
 import messRoutes from "./Routes/messRoutes.js";
 import gateRoutes from "./Routes/gateRoutes.js";
 import adminRoutes from "./Routes/adminRoutes.js";
+import auditRoutes from "./Routes/auditRoutes.js";
 import { protect } from "./middlewares/authMiddleware.js";
 import { requirePermission } from "./middlewares/authorizationMiddleware.js";
 import { getProfile } from "./Controllers/authController.js";
@@ -32,6 +33,7 @@ app.use("/uploads", express.static("uploads"));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/audit-events", auditRoutes);
 app.use(
   "/api/student/profile",
   protect,

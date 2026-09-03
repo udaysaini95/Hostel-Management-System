@@ -9,6 +9,11 @@ import {
 } from "../db/schema.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import {
+  AUDIT_ACTIONS,
+  AUDIT_CATEGORIES,
+  AUDIT_RESOURCE_TYPES,
+} from "../domain/auditEvents.js";
+import {
   isPasswordAllowed,
   PASSWORD_MAX_BYTES,
   PASSWORD_MIN_LENGTH,
@@ -16,6 +21,11 @@ import {
 } from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
+import {
+  appendAuditEvent,
+  loadAuditActor,
+  loadUserHostelScopes,
+} from "./auditEventService.js";
 import {
   createSecureToken,
   hashSecureToken,
@@ -197,7 +207,7 @@ export const issueStaffInvitation = async (
       );
     }
 
-    await transaction
+    const revokedInvitations = await transaction
       .update(staffInvitations)
       .set({ revokedAt: now, updatedAt: now })
       .where(
@@ -206,7 +216,8 @@ export const issueStaffInvitation = async (
           isNull(staffInvitations.acceptedAt),
           isNull(staffInvitations.revokedAt)
         )
-      );
+      )
+      .returning({ id: staffInvitations.id });
 
     const [invitation] = await transaction
       .insert(staffInvitations)
@@ -237,6 +248,28 @@ export const issueStaffInvitation = async (
         createdAt: now,
       }))
     );
+
+    const auditActor = await loadAuditActor(transaction, invitedByUserId);
+    await appendAuditEvent(transaction, {
+      actor: auditActor,
+      category: AUDIT_CATEGORIES.ACCOUNT,
+      action: AUDIT_ACTIONS.STAFF_INVITATION_CREATED,
+      resourceType: AUDIT_RESOURCE_TYPES.STAFF_INVITATION,
+      resourceId: invitation.id,
+      description: `Created a ${values.role} invitation for ${values.email}`,
+      metadata: {
+        invitedName: values.name,
+        invitedEmail: values.email,
+        invitedRole: values.role,
+        hostelCodes: values.hostelCodes,
+        primaryHostelCode: values.primaryHostelCode,
+        replacedInvitationIds: revokedInvitations.map(
+          (replacedInvitation) => replacedInvitation.id
+        ),
+      },
+      assignedHostels,
+      createdAt: now,
+    });
 
     return Object.freeze({
       invitation: Object.freeze({
@@ -377,7 +410,13 @@ export const setManagedAccountStatus = async (
 
   return database.transaction(async (transaction) => {
     const [targetUser] = await transaction
-      .select({ id: users.id, role: users.role })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        accountStatus: users.accountStatus,
+      })
       .from(users)
       .where(eq(users.id, parsedTargetUserId))
       .for("update")
@@ -407,6 +446,33 @@ export const setManagedAccountStatus = async (
         accountStatus: users.accountStatus,
         updatedAt: users.updatedAt,
       });
+
+    const auditActor = await loadAuditActor(transaction, parsedActorId);
+    const assignedHostels = await loadUserHostelScopes(
+      transaction,
+      parsedTargetUserId
+    );
+    const auditDescription =
+      `Changed ${updatedUser.email} from ` +
+      `${targetUser.accountStatus} to ${updatedUser.accountStatus}`;
+
+    await appendAuditEvent(transaction, {
+      actor: auditActor,
+      category: AUDIT_CATEGORIES.ACCOUNT,
+      action: AUDIT_ACTIONS.ACCOUNT_STATUS_CHANGED,
+      resourceType: AUDIT_RESOURCE_TYPES.USER_ACCOUNT,
+      resourceId: updatedUser.id,
+      description: auditDescription,
+      metadata: {
+        targetName: updatedUser.name,
+        targetEmail: updatedUser.email,
+        targetRole: updatedUser.role,
+        previousStatus: targetUser.accountStatus,
+        newStatus: updatedUser.accountStatus,
+      },
+      assignedHostels,
+      createdAt: now,
+    });
 
     return Object.freeze({ user: Object.freeze(updatedUser) });
   });

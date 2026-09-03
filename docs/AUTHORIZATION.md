@@ -16,8 +16,15 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Guards may verify passes, log gate movement, read gate activity, and use shared mess participation features.
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
 
+Audit visibility is additionally filtered after the route permission check:
+administrators can read all events, wardens can read operational events for
+their assigned hostels, guards can read gate events for their assigned hostels,
+and maintenance users can read only events they performed. Students cannot use
+the audit API.
+
 Staff provisioning and suspension rules are documented in [Staff Account Lifecycle](./STAFF_ACCOUNT_LIFECYCLE.md).
 The student identity and email-verification flow is documented in [Approved Student Activation](./STUDENT_ACTIVATION.md).
+The append-only audit model is documented in [Audit Logging](./AUDIT_LOGGING.md).
 
 Protected endpoints return `AUTHENTICATION_REQUIRED` when no valid actor exists and `PERMISSION_DENIED` when the authenticated role lacks the requested capability. Ownership failures return `RESOURCE_ACCESS_DENIED`.
 

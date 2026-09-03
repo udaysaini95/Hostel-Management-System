@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -221,6 +222,73 @@ export const studentActivationTokens = pgTable(
       .on(table.approvedStudentId)
       .where(sql`${table.usedAt} is null and ${table.revokedAt} is null`),
     index("student_activation_tokens_expires_at_idx").on(table.expiresAt),
+  ]
+);
+
+// Audit events are append-only records with actor and hostel snapshots. They do
+// not depend on source records remaining active or present.
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: serial("id").primaryKey(),
+    actorUserId: integer("actor_user_id"),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorEmail: varchar("actor_email", { length: 255 }),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    category: varchar("category", { length: 50 }).notNull(),
+    action: varchar("action", { length: 100 }).notNull(),
+    resourceType: varchar("resource_type", { length: 100 }).notNull(),
+    resourceId: varchar("resource_id", { length: 100 }).notNull(),
+    description: varchar("description", { length: 500 }).notNull(),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`).notNull(),
+    requestId: varchar("request_id", { length: 100 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "audit_events_action_not_blank_check",
+      sql`length(trim(${table.action})) > 0`
+    ),
+    check(
+      "audit_events_resource_not_blank_check",
+      sql`length(trim(${table.resourceType})) > 0 and length(trim(${table.resourceId})) > 0`
+    ),
+    check(
+      "audit_events_metadata_object_check",
+      sql`jsonb_typeof(${table.metadata}) = 'object'`
+    ),
+    index("audit_events_created_at_idx").on(table.createdAt),
+    index("audit_events_actor_user_id_idx").on(table.actorUserId),
+    index("audit_events_action_idx").on(table.action),
+    index("audit_events_category_created_at_idx").on(
+      table.category,
+      table.createdAt
+    ),
+    index("audit_events_resource_idx").on(
+      table.resourceType,
+      table.resourceId
+    ),
+  ]
+);
+
+export const auditEventHostels = pgTable(
+  "audit_event_hostels",
+  {
+    id: serial("id").primaryKey(),
+    auditEventId: integer("audit_event_id")
+      .notNull()
+      .references(() => auditEvents.id, { onDelete: "cascade" }),
+    hostelId: integer("hostel_id").notNull(),
+    hostelCode: varchar("hostel_code", { length: 20 }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("audit_event_hostels_event_hostel_unique").on(
+      table.auditEventId,
+      table.hostelId
+    ),
+    index("audit_event_hostels_hostel_id_idx").on(table.hostelId),
   ]
 );
 

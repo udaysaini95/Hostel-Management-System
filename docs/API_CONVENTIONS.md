@@ -7,7 +7,7 @@ need endpoint-specific error handling.
 ## Current base paths
 
 The existing application uses `/api/auth`, `/api/admin`, `/api/complaints`,
-`/api/leave`, `/api/mess`, and `/api/gate`.
+`/api/audit-events`, `/api/leave`, `/api/mess`, and `/api/gate`.
 
 The PRD targets a versioned `/api/v1` base. That migration is intentionally
 deferred until the frontend and backend can move together without breaking
@@ -27,7 +27,8 @@ trimming text, lowercasing email addresses, uppercasing hostel codes, and
 converting numeric route IDs.
 
 Validation currently covers authentication, account provisioning, student
-activation, complaints, leave applications, mess operations, and gate actions.
+activation, audit searches, complaints, leave applications, mess operations,
+and gate actions.
 
 ## Error response
 

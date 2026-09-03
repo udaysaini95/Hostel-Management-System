@@ -9,11 +9,20 @@ import {
 } from "../db/schema.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import {
+  AUDIT_ACTIONS,
+  AUDIT_CATEGORIES,
+  AUDIT_RESOURCE_TYPES,
+} from "../domain/auditEvents.js";
+import {
   isPasswordAllowed,
   PASSWORD_POLICY_MESSAGE,
 } from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
+import {
+  appendAuditEvent,
+  loadAuditActor,
+} from "./auditEventService.js";
 import {
   createSecureToken,
   hashSecureToken,
@@ -201,6 +210,24 @@ export const approveStudent = async (
         rollNo: approvedStudents.rollNo,
         approvedAt: approvedStudents.approvedAt,
       });
+
+    const auditActor = await loadAuditActor(transaction, approvedByUserId);
+    await appendAuditEvent(transaction, {
+      actor: auditActor,
+      category: AUDIT_CATEGORIES.STUDENT,
+      action: AUDIT_ACTIONS.STUDENT_APPROVAL_CREATED,
+      resourceType: AUDIT_RESOURCE_TYPES.APPROVED_STUDENT,
+      resourceId: approval.id,
+      description: `Approved ${approval.rollNo} for ${hostel.code}`,
+      metadata: {
+        studentName: approval.name,
+        studentEmail: approval.email,
+        rollNo: approval.rollNo,
+        hostelCode: hostel.code,
+      },
+      assignedHostels: [hostel],
+      createdAt: now,
+    });
 
     return { approval: { ...approval, hostel } };
   });

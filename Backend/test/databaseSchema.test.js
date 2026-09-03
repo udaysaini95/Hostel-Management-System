@@ -6,6 +6,8 @@ import { USER_ROLES } from "../src/domain/roles.js";
 import {
   accountStatusEnum,
   approvedStudents,
+  auditEventHostels,
+  auditEvents,
   hostelMemberships,
   hostels,
   staffInvitationHostels,
@@ -142,4 +144,42 @@ test("student activation tokens are hashed, expiring, and single-use", () => {
   assert.equal(config.foreignKeys.length, 1);
   assert.equal(activeTokenIndex.config.unique, true);
   assert.ok(activeTokenIndex.config.where);
+});
+
+test("audit events keep immutable actor and resource snapshots", () => {
+  const config = getTableConfig(auditEvents);
+
+  assert.equal(auditEvents.actorName.notNull, true);
+  assert.equal(auditEvents.actorRole.notNull, true);
+  assert.equal(auditEvents.action.notNull, true);
+  assert.equal(auditEvents.resourceType.notNull, true);
+  assert.equal(auditEvents.resourceId.notNull, true);
+  assert.equal(auditEvents.metadata.notNull, true);
+  assert.equal(auditEvents.metadata.hasDefault, true);
+  assert.equal(auditEvents.createdAt.notNull, true);
+  assert.equal(auditEvents.updatedAt, undefined);
+  assert.equal(config.foreignKeys.length, 0);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "audit_events_metadata_object_check"
+    )
+  );
+  assert.ok(findIndex(auditEvents, "audit_events_resource_idx"));
+  assert.ok(findIndex(auditEvents, "audit_events_category_created_at_idx"));
+});
+
+test("audit hostel scopes are unique and preserve hostel snapshots", () => {
+  const config = getTableConfig(auditEventHostels);
+  const scopeIndex = findIndex(
+    auditEventHostels,
+    "audit_event_hostels_event_hostel_unique"
+  );
+
+  assert.equal(auditEventHostels.hostelCode.notNull, true);
+  assert.equal(config.foreignKeys.length, 1);
+  assert.equal(scopeIndex.config.unique, true);
+  assert.deepEqual(
+    scopeIndex.config.columns.map((column) => column.name),
+    ["audit_event_id", "hostel_id"]
+  );
 });
