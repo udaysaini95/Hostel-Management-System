@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test",
+    "test": "node scripts/runTests.js",
+    "test:unit": "node scripts/runTests.js --unit",
+    "test:integration": "node scripts/runTests.js --integration",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.js",
     "db:push": "drizzle-kit push",
