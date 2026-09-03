@@ -13,6 +13,7 @@ import {
   PASSWORD_POLICY_MESSAGE,
 } from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
+import { ApiError } from "../utils/apiErrors.js";
 import {
   createSecureToken,
   hashSecureToken,
@@ -25,12 +26,10 @@ const HOSTEL_CODE_PATTERN = /^[A-Z][A-Z0-9-]{0,19}$/;
 const ROLL_NO_PATTERN = /^[A-Z0-9][A-Z0-9 /-]{1,49}$/;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-export class StudentActivationError extends Error {
+export class StudentActivationError extends ApiError {
   constructor(statusCode, code, message) {
-    super(message);
+    super(statusCode, code, message);
     this.name = "StudentActivationError";
-    this.statusCode = statusCode;
-    this.code = code;
   }
 }
 

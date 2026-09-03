@@ -5,6 +5,10 @@ import QRCode from "qrcode";
 import { db } from "../db/index.js";
 import { leaves, users } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
+import {
+  handleControllerError,
+  sendApiError,
+} from "../utils/apiErrors.js";
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -29,10 +33,9 @@ export const applyLeave = async (req, res) => {
       })
       .returning();
 
-    res.json({ ...newLeave, _id: newLeave.id });
+    res.status(201).json({ ...newLeave, _id: newLeave.id });
   } catch (error) {
-    console.error("Apply Leave Error:", error);
-    res.status(500).json({ message: "Failed to apply leave", error: error.message });
+    return handleControllerError(res, error, "Apply Leave Error");
   }
 };
 
@@ -68,8 +71,7 @@ export const getAllLeaves = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error("Get All Leaves Error:", error);
-    res.status(500).json({ message: "Failed to fetch leaves", error: error.message });
+    return handleControllerError(res, error, "Get All Leaves Error");
   }
 };
 
@@ -97,7 +99,7 @@ export const approveLeave = async (req, res) => {
       .where(eq(leaves.id, leaveId));
 
     if (!leaveData) {
-      return res.status(404).json({ message: "Leave not found" });
+      return sendApiError(res, 404, "LEAVE_NOT_FOUND", "Leave not found");
     }
 
     // Generate unique 6-character Pass Code (e.g. LP-4821)
@@ -160,8 +162,7 @@ export const approveLeave = async (req, res) => {
 
     res.json({ message: "Approved with QR Pass", leave: updatedLeave, passCode });
   } catch (error) {
-    console.error("Approve Leave Error:", error);
-    res.status(500).json({ message: "Failed to approve leave", error: error.message });
+    return handleControllerError(res, error, "Approve Leave Error");
   }
 };
 
@@ -179,8 +180,7 @@ export const myLeaves = async (req, res) => {
     const formatted = userLeaves.map((l) => ({ ...l, _id: l.id }));
     res.json(formatted);
   } catch (error) {
-    console.error("My Leaves Error:", error);
-    res.status(500).json({ message: "Failed to fetch leaves", error: error.message });
+    return handleControllerError(res, error, "My Leaves Error");
   }
 };
 
@@ -199,12 +199,11 @@ export const rejectLeave = async (req, res) => {
       .returning();
 
     if (!updatedLeave) {
-      return res.status(404).json({ message: "Leave not found" });
+      return sendApiError(res, 404, "LEAVE_NOT_FOUND", "Leave not found");
     }
 
     res.json({ message: "Rejected", leave: updatedLeave });
   } catch (error) {
-    console.error("Reject Leave Error:", error);
-    res.status(500).json({ message: "Failed to reject leave", error: error.message });
+    return handleControllerError(res, error, "Reject Leave Error");
   }
 };

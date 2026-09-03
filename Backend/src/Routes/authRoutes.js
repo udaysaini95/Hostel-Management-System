@@ -8,14 +8,33 @@ import {
   completeActivation,
   requestActivation,
 } from "../Controllers/studentActivationController.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
+import {
+  loginRequestSchema,
+  staffInvitationAcceptanceSchema,
+  studentActivationCompletionSchema,
+  studentActivationRequestSchema,
+} from "../validation/authSchemas.js";
 
 const router = express.Router();
 
 router.post("/register", register);
-router.post("/login", login);
-router.post("/staff-invitations/accept", acceptStaffInvitationRequest);
-router.post("/student-activation/request", requestActivation);
-router.post("/student-activation/complete", completeActivation);
+router.post("/login", validateRequest(loginRequestSchema), login);
+router.post(
+  "/staff-invitations/accept",
+  validateRequest(staffInvitationAcceptanceSchema),
+  acceptStaffInvitationRequest
+);
+router.post(
+  "/student-activation/request",
+  validateRequest(studentActivationRequestSchema),
+  requestActivation
+);
+router.post(
+  "/student-activation/complete",
+  validateRequest(studentActivationCompletionSchema),
+  completeActivation
+);
 router.get(
   "/profile",
   protect,

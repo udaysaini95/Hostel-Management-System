@@ -11,6 +11,13 @@ import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import upload from "../middlewares/upload.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
+import {
+  complaintCreationSchema,
+  complaintStatusSchema,
+  complaintVerificationSchema,
+  resourceIdSchema,
+} from "../validation/operationalSchemas.js";
 
 const router = express.Router();
 
@@ -20,6 +27,7 @@ router.post(
   protect,
   requirePermission(PERMISSIONS.COMPLAINT_CREATE),
   upload.single("image"),
+  validateRequest(complaintCreationSchema),
   createComplaint
 );
 router.get(
@@ -32,12 +40,14 @@ router.delete(
   "/:id",
   protect,
   requirePermission(PERMISSIONS.COMPLAINT_DELETE_OWN),
+  validateRequest(resourceIdSchema),
   deleteComplaint
 );
 router.put(
   "/verify/:id",
   protect,
   requirePermission(PERMISSIONS.COMPLAINT_VERIFY_OWN),
+  validateRequest(complaintVerificationSchema),
   studentVerifyComplaint
 );
 
@@ -52,6 +62,7 @@ router.put(
   "/status/:id",
   protect,
   requirePermission(PERMISSIONS.COMPLAINT_UPDATE_MANAGED),
+  validateRequest(complaintStatusSchema),
   updateStatus
 );
 

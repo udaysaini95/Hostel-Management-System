@@ -1,6 +1,10 @@
 import { db } from "../db/index.js";
 import { leaves, users, gateLogs } from "../db/schema.js";
 import { eq, or, desc, and } from "drizzle-orm";
+import {
+  handleControllerError,
+  sendApiError,
+} from "../utils/apiErrors.js";
 
 // 1. Verify Pass or Roll Number (Guard Terminal)
 export const verifyGatePass = async (req, res) => {
@@ -8,7 +12,12 @@ export const verifyGatePass = async (req, res) => {
     const { identifier } = req.body; // passCode (e.g. LP-4821) OR Roll No OR Email
 
     if (!identifier) {
-      return res.status(400).json({ message: "Please provide a Pass Code, QR Token, or Roll Number." });
+      return sendApiError(
+        res,
+        422,
+        "VALIDATION_ERROR",
+        "Please provide a pass code, roll number, or email"
+      );
     }
 
     const trimmed = identifier.trim();
@@ -46,10 +55,12 @@ export const verifyGatePass = async (req, res) => {
       .orderBy(desc(leaves.createdAt));
 
     if (!results || results.length === 0) {
-      return res.status(404).json({
-        valid: false,
-        message: "No leave records found for this Pass Code or Roll Number.",
-      });
+      return sendApiError(
+        res,
+        404,
+        "GATE_PASS_NOT_FOUND",
+        "No leave record was found for this pass code, roll number, or email"
+      );
     }
 
     // Prioritize active leaves (Approved or Exited)
@@ -79,8 +90,7 @@ export const verifyGatePass = async (req, res) => {
       leave: activeLeave,
     });
   } catch (error) {
-    console.error("Gate Verification Error:", error);
-    res.status(500).json({ message: "Failed to verify gate pass", error: error.message });
+    return handleControllerError(res, error, "Gate Verification Error");
   }
 };
 
@@ -91,7 +101,12 @@ export const logGateAction = async (req, res) => {
     const guardId = req.user?.id ? Number(req.user.id) : null;
 
     if (!leaveId || !action || !["EXIT", "ENTRY"].includes(action)) {
-      return res.status(400).json({ message: "Invalid leave ID or action (Must be EXIT or ENTRY)." });
+      return sendApiError(
+        res,
+        422,
+        "VALIDATION_ERROR",
+        "Enter a valid leave ID and gate action"
+      );
     }
 
     const [leave] = await db
@@ -100,7 +115,7 @@ export const logGateAction = async (req, res) => {
       .where(eq(leaves.id, Number(leaveId)));
 
     if (!leave) {
-      return res.status(404).json({ message: "Leave record not found." });
+      return sendApiError(res, 404, "LEAVE_NOT_FOUND", "Leave not found");
     }
 
     const now = new Date();
@@ -140,8 +155,7 @@ export const logGateAction = async (req, res) => {
       timestamp: now,
     });
   } catch (error) {
-    console.error("Log Gate Action Error:", error);
-    res.status(500).json({ message: "Failed to log gate action", error: error.message });
+    return handleControllerError(res, error, "Log Gate Action Error");
   }
 };
 
@@ -172,8 +186,7 @@ export const getActiveOutsideStudents = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error("Get Outside Students Error:", error);
-    res.status(500).json({ message: "Failed to fetch outside students", error: error.message });
+    return handleControllerError(res, error, "Get Outside Students Error");
   }
 };
 
@@ -199,7 +212,6 @@ export const getRecentGateLogs = async (req, res) => {
 
     res.json(logs);
   } catch (error) {
-    console.error("Get Gate Logs Error:", error);
-    res.status(500).json({ message: "Failed to fetch gate logs", error: error.message });
+    return handleControllerError(res, error, "Get Gate Logs Error");
   }
 };

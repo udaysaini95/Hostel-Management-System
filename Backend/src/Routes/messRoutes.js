@@ -12,6 +12,13 @@ import {
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
+import {
+  menuRequestSchema,
+  messFeedbackSchema,
+  messIssueCreationSchema,
+  messIssueStatusSchema,
+} from "../validation/operationalSchemas.js";
 
 const router = express.Router();
 
@@ -19,6 +26,7 @@ router.post(
   "/admin/create",
   protect,
   requirePermission(PERMISSIONS.MESS_MENU_MANAGE),
+  validateRequest(menuRequestSchema),
   createMenu
 );
 router.get(
@@ -31,6 +39,7 @@ router.post(
   "/create",
   protect,
   requirePermission(PERMISSIONS.MESS_FEEDBACK_CREATE),
+  validateRequest(messFeedbackSchema),
   createFeedback
 );
 router.get(
@@ -45,6 +54,7 @@ router.post(
   "/issue/create",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_CREATE),
+  validateRequest(messIssueCreationSchema),
   createIssue
 );
 router.get(
@@ -63,6 +73,7 @@ router.put(
   "/:id/status",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_MANAGE),
+  validateRequest(messIssueStatusSchema),
   updateStatus
 );
 

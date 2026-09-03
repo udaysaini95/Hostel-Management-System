@@ -15,6 +15,7 @@ import {
   PASSWORD_POLICY_MESSAGE,
 } from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
+import { ApiError } from "../utils/apiErrors.js";
 import {
   createSecureToken,
   hashSecureToken,
@@ -40,12 +41,10 @@ const HOSTEL_CODE_PATTERN = /^[A-Z][A-Z0-9-]{0,19}$/;
 const invitableRoles = new Set(INVITABLE_STAFF_ROLES);
 const managedStatuses = new Set(MANAGED_ACCOUNT_STATUSES);
 
-export class StaffAccountError extends Error {
+export class StaffAccountError extends ApiError {
   constructor(statusCode, code, message) {
-    super(message);
+    super(statusCode, code, message);
     this.name = "StaffAccountError";
-    this.statusCode = statusCode;
-    this.code = code;
   }
 }
 

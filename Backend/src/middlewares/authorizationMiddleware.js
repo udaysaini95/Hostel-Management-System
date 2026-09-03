@@ -2,6 +2,7 @@ import {
   hasPermission,
   isKnownPermission,
 } from "../domain/permissions.js";
+import { sendApiError } from "../utils/apiErrors.js";
 
 export const requirePermission = (permission) => {
   if (!isKnownPermission(permission)) {
@@ -12,17 +13,21 @@ export const requirePermission = (permission) => {
     const actorId = Number(req.user?.id);
 
     if (!Number.isSafeInteger(actorId) || actorId < 1) {
-      return res.status(401).json({
-        code: "AUTHENTICATION_REQUIRED",
-        message: "Authentication is required",
-      });
+      return sendApiError(
+        res,
+        401,
+        "AUTHENTICATION_REQUIRED",
+        "Authentication is required"
+      );
     }
 
     if (!hasPermission(req.user.role, permission)) {
-      return res.status(403).json({
-        code: "PERMISSION_DENIED",
-        message: "You do not have permission to perform this action",
-      });
+      return sendApiError(
+        res,
+        403,
+        "PERMISSION_DENIED",
+        "You do not have permission to perform this action"
+      );
     }
 
     return next();

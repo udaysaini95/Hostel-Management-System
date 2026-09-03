@@ -2,6 +2,7 @@ import {
   isExpiredAccessTokenError,
   verifyAccessToken,
 } from "../services/accessTokenService.js";
+import { sendApiError } from "../utils/apiErrors.js";
 
 export const extractBearerToken = (authorizationHeader) => {
   if (typeof authorizationHeader !== "string") {
@@ -16,10 +17,12 @@ export const createProtectMiddleware = (tokenVerifier = verifyAccessToken) => {
     const token = extractBearerToken(req.headers.authorization);
 
     if (!token) {
-      return res.status(401).json({
-        code: "AUTH_TOKEN_REQUIRED",
-        message: "A Bearer access token is required",
-      });
+      return sendApiError(
+        res,
+        401,
+        "AUTH_TOKEN_REQUIRED",
+        "A Bearer access token is required"
+      );
     }
 
     try {
@@ -27,16 +30,20 @@ export const createProtectMiddleware = (tokenVerifier = verifyAccessToken) => {
       next();
     } catch (error) {
       if (isExpiredAccessTokenError(error)) {
-        return res.status(401).json({
-          code: "SESSION_EXPIRED",
-          message: "Your session has expired. Please sign in again.",
-        });
+        return sendApiError(
+          res,
+          401,
+          "SESSION_EXPIRED",
+          "Your session has expired. Please sign in again."
+        );
       }
 
-      return res.status(401).json({
-        code: "INVALID_ACCESS_TOKEN",
-        message: "The access token is invalid",
-      });
+      return sendApiError(
+        res,
+        401,
+        "INVALID_ACCESS_TOKEN",
+        "The access token is invalid"
+      );
     }
   };
 };

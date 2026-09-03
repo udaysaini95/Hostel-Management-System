@@ -3,29 +3,23 @@ import {
   acceptStaffInvitation,
   issueStaffInvitation,
   setManagedAccountStatus,
-  StaffAccountError,
 } from "../services/staffAccountService.js";
+import {
+  handleControllerError,
+  sendApiError,
+} from "../utils/apiErrors.js";
 
 const sendStaffAccountError = (res, error, operation) => {
-  if (error instanceof StaffAccountError) {
-    return res.status(error.statusCode).json({
-      code: error.code,
-      message: error.message,
-    });
-  }
-
   if (error?.code === "23505") {
-    return res.status(409).json({
-      code: "ACCOUNT_OR_INVITATION_CONFLICT",
-      message: "The account or invitation already exists",
-    });
+    return sendApiError(
+      res,
+      409,
+      "ACCOUNT_OR_INVITATION_CONFLICT",
+      "The account or invitation already exists"
+    );
   }
 
-  console.error(`${operation}:`, error);
-  return res.status(500).json({
-    code: "INTERNAL_SERVER_ERROR",
-    message: "The request could not be completed",
-  });
+  return handleControllerError(res, error, operation);
 };
 
 export const createStaffInvitation = async (req, res) => {

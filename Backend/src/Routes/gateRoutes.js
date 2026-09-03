@@ -8,6 +8,11 @@ import {
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
+import {
+  gateActionSchema,
+  gatePassVerificationSchema,
+} from "../validation/operationalSchemas.js";
 
 const router = express.Router();
 
@@ -16,12 +21,14 @@ router.post(
   "/verify",
   protect,
   requirePermission(PERMISSIONS.GATE_VERIFY_PASS),
+  validateRequest(gatePassVerificationSchema),
   verifyGatePass
 );
 router.post(
   "/log-action",
   protect,
   requirePermission(PERMISSIONS.GATE_LOG_MOVEMENT),
+  validateRequest(gateActionSchema),
   logGateAction
 );
 router.get(

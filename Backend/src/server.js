@@ -16,6 +16,10 @@ import { getProfile } from "./Controllers/authController.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 import { PERMISSIONS } from "./domain/permissions.js";
 import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middlewares/errorMiddleware.js";
 
 const runtimeConfig = getRuntimeConfig();
 getStudentActivationEmailConfig();
@@ -45,6 +49,9 @@ app.use("/api/gate", gateRoutes);
 app.get("/", (req, res) => {
   res.send("Hostel Management System API Running 🚀");
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // HTTP Server
 const server = http.createServer(app);

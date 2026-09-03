@@ -5,6 +5,10 @@ import {
   canAccessOwnedResource,
   PERMISSIONS,
 } from "../domain/permissions.js";
+import {
+  handleControllerError,
+  sendApiError,
+} from "../utils/apiErrors.js";
 
 
 // ================= CREATE COMPLAINT =================
@@ -43,8 +47,7 @@ export const createComplaint = async (req, res) => {
 
     res.status(201).json({ ...complaint, _id: complaint.id });
   } catch (error) {
-    console.error("Create Complaint Error:", error);
-    res.status(500).json({ message: "Create failed", error: error.message });
+    return handleControllerError(res, error, "Create Complaint Error");
   }
 };
 
@@ -63,8 +66,7 @@ export const myComplaints = async (req, res) => {
     const formatted = userComplaints.map((c) => ({ ...c, _id: c.id }));
     res.json(formatted);
   } catch (error) {
-    console.error("Fetch My Complaints Error:", error);
-    res.status(500).json({ message: "Fetch failed", error: error.message });
+    return handleControllerError(res, error, "Fetch My Complaints Error");
   }
 };
 
@@ -79,7 +81,12 @@ export const deleteComplaint = async (req, res) => {
       .where(eq(complaints.id, complaintId));
 
     if (!complaint) {
-      return res.status(404).json({ message: "Complaint not found" });
+      return sendApiError(
+        res,
+        404,
+        "COMPLAINT_NOT_FOUND",
+        "Complaint not found"
+      );
     }
 
     if (
@@ -90,17 +97,18 @@ export const deleteComplaint = async (req, res) => {
         anyPermission: PERMISSIONS.COMPLAINT_DELETE_ANY,
       })
     ) {
-      return res.status(403).json({
-        code: "RESOURCE_ACCESS_DENIED",
-        message: "You cannot delete this complaint",
-      });
+      return sendApiError(
+        res,
+        403,
+        "RESOURCE_ACCESS_DENIED",
+        "You cannot delete this complaint"
+      );
     }
 
     await db.delete(complaints).where(eq(complaints.id, complaintId));
     res.json({ message: "Deleted" });
   } catch (error) {
-    console.error("Delete Complaint Error:", error);
-    res.status(500).json({ message: "Delete failed", error: error.message });
+    return handleControllerError(res, error, "Delete Complaint Error");
   }
 };
 
@@ -132,8 +140,7 @@ export const allComplaints = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error("All Complaints Error:", error);
-    res.status(500).json({ message: "Fetch failed", error: error.message });
+    return handleControllerError(res, error, "All Complaints Error");
   }
 };
 
@@ -154,7 +161,12 @@ export const updateStatus = async (req, res) => {
       .returning();
 
     if (!updatedComplaint) {
-      return res.status(404).json({ message: "Complaint not found" });
+      return sendApiError(
+        res,
+        404,
+        "COMPLAINT_NOT_FOUND",
+        "Complaint not found"
+      );
     }
 
     // Add timeline record
@@ -166,8 +178,7 @@ export const updateStatus = async (req, res) => {
 
     res.json({ message: "Status Updated", complaint: updatedComplaint });
   } catch (error) {
-    console.error("Update Status Error:", error);
-    res.status(500).json({ message: "Update status failed", error: error.message });
+    return handleControllerError(res, error, "Update Complaint Status Error");
   }
 };
 
@@ -184,7 +195,12 @@ export const studentVerifyComplaint = async (req, res) => {
       .where(eq(complaints.id, complaintId));
 
     if (!complaint) {
-      return res.status(404).json({ message: "Complaint not found" });
+      return sendApiError(
+        res,
+        404,
+        "COMPLAINT_NOT_FOUND",
+        "Complaint not found"
+      );
     }
 
     if (
@@ -195,10 +211,12 @@ export const studentVerifyComplaint = async (req, res) => {
         anyPermission: PERMISSIONS.COMPLAINT_VERIFY_ANY,
       })
     ) {
-      return res.status(403).json({
-        code: "RESOURCE_ACCESS_DENIED",
-        message: "You cannot verify this complaint",
-      });
+      return sendApiError(
+        res,
+        403,
+        "RESOURCE_ACCESS_DENIED",
+        "You cannot verify this complaint"
+      );
     }
 
     const updateData = { status, updatedAt: new Date() };
@@ -220,7 +238,6 @@ export const studentVerifyComplaint = async (req, res) => {
 
     res.json({ message: "Verification logged", complaint: updatedComplaint });
   } catch (error) {
-    console.error("Verify Complaint Error:", error);
-    res.status(500).json({ message: "Verification failed", error: error.message });
+    return handleControllerError(res, error, "Verify Complaint Error");
   }
 };

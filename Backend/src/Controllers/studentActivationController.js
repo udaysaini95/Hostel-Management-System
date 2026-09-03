@@ -6,30 +6,24 @@ import {
   completeStudentActivation,
   requestStudentActivation,
   revokeStudentActivationToken,
-  StudentActivationError,
 } from "../services/studentActivationService.js";
 import { sendStudentActivationEmail } from "../services/studentActivationEmailService.js";
+import {
+  handleControllerError,
+  sendApiError,
+} from "../utils/apiErrors.js";
 
 const sendError = (res, error, operation) => {
-  if (error instanceof StudentActivationError) {
-    return res.status(error.statusCode).json({
-      code: error.code,
-      message: error.message,
-    });
-  }
-
   if (error?.code === "23505") {
-    return res.status(409).json({
-      code: "STUDENT_IDENTITY_CONFLICT",
-      message: "The student email or roll number is already in use",
-    });
+    return sendApiError(
+      res,
+      409,
+      "STUDENT_IDENTITY_CONFLICT",
+      "The student email or roll number is already in use"
+    );
   }
 
-  console.error(`${operation}:`, error);
-  return res.status(500).json({
-    code: "INTERNAL_SERVER_ERROR",
-    message: "The request could not be completed",
-  });
+  return handleControllerError(res, error, operation);
 };
 
 export const createStudentApproval = async (req, res) => {
@@ -50,10 +44,12 @@ export const requestActivation = async (req, res) => {
     const emailConfig = getStudentActivationEmailConfig();
 
     if (!emailConfig.enabled) {
-      return res.status(503).json({
-        code: "ACTIVATION_EMAIL_UNAVAILABLE",
-        message: "Student activation email is not configured",
-      });
+      return sendApiError(
+        res,
+        503,
+        "ACTIVATION_EMAIL_UNAVAILABLE",
+        "Student activation email is not configured"
+      );
     }
 
     const activation = await requestStudentActivation(db, req.body);
