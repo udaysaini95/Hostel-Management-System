@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import http from "http";
 
 import connectDB from "./config/db.js";
@@ -20,15 +19,14 @@ import {
   errorHandler,
   notFoundHandler,
 } from "./middlewares/errorMiddleware.js";
+import { applySecurityMiddleware } from "./middlewares/securityMiddleware.js";
 
 const runtimeConfig = getRuntimeConfig();
 getStudentActivationEmailConfig();
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+applySecurityMiddleware(app, runtimeConfig);
 app.use("/uploads", express.static("uploads"));
 
 // Routes

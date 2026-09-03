@@ -2,6 +2,17 @@ import multer from "multer";
 import path from "path";
 import { ApiError } from "../utils/apiErrors.js";
 
+export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+export const UPLOAD_MAX_FIELDS = 10;
+
+export const uploadLimits = Object.freeze({
+  fileSize: UPLOAD_MAX_BYTES,
+  files: 1,
+  fields: UPLOAD_MAX_FIELDS,
+  parts: UPLOAD_MAX_FIELDS + 1,
+  fieldSize: 50 * 1024,
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, callback) => {
     callback(null, "uploads/");
@@ -27,6 +38,6 @@ const fileFilter = (req, file, callback) => {
   }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({ storage, fileFilter, limits: uploadLimits });
 
 export default upload;

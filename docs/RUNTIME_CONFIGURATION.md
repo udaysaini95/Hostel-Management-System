@@ -9,8 +9,16 @@ The API validates its runtime configuration before accepting requests. Missing c
 | `DATABASE_URL` | Valid `postgres://` or `postgresql://` connection URL with no example placeholders |
 | `JWT_SECRET` | Non-placeholder secret containing at least 32 characters |
 | `JWT_EXPIRES_IN` | Optional positive duration such as `15m` or `1h`; defaults to `1h` and cannot exceed `1d` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins. Required in production; defaults to local Vite origins outside production. |
+| `TRUST_PROXY_HOPS` | Number of trusted reverse proxies in front of the API, from `0` through `2`; defaults to `0`. |
 
 `PORT` is optional and defaults to `5000`. When provided, it must be an integer from `1` through `65535`. `NODE_ENV` defaults to `development` and accepts only `development`, `test`, or `production`.
+
+An origin contains only the protocol, host, and optional port—for example,
+`https://hostel.example` or `http://localhost:5173`. Do not include routes.
+Set `TRUST_PROXY_HOPS=1` only when exactly one trusted load balancer or reverse
+proxy sits between the public client and the API. An incorrect value can make
+IP-based rate limiting group unrelated users or trust a spoofed address.
 
 Generate a JWT secret with a trusted password manager or cryptographically secure random generator. Never commit the generated value; local `.env` files are ignored by Git.
 

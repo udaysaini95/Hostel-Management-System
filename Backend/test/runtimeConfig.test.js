@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ConfigurationError,
+  DEFAULT_CORS_ALLOWED_ORIGINS,
   DEFAULT_JWT_EXPIRES_IN,
   DEFAULT_PORT,
+  DEFAULT_TRUST_PROXY_HOPS,
   JWT_SECRET_MIN_LENGTH,
   parseRuntimeConfig,
   requireDatabaseUrl,
@@ -27,6 +29,8 @@ test("runtime configuration parses valid values", () => {
     jwtExpiresIn: DEFAULT_JWT_EXPIRES_IN,
     port: 4100,
     nodeEnvironment: "test",
+    corsAllowedOrigins: DEFAULT_CORS_ALLOWED_ORIGINS,
+    trustProxyHops: DEFAULT_TRUST_PROXY_HOPS,
   });
   assert.equal(Object.isFrozen(config), true);
 });
@@ -40,6 +44,8 @@ test("runtime configuration applies safe non-secret defaults", () => {
   assert.equal(config.port, DEFAULT_PORT);
   assert.equal(config.nodeEnvironment, "development");
   assert.equal(config.jwtExpiresIn, DEFAULT_JWT_EXPIRES_IN);
+  assert.equal(config.corsAllowedOrigins, DEFAULT_CORS_ALLOWED_ORIGINS);
+  assert.equal(config.trustProxyHops, DEFAULT_TRUST_PROXY_HOPS);
 });
 
 test("runtime configuration reports all missing required credentials", () => {
@@ -117,6 +123,57 @@ test("runtime configuration limits access-session lifetime", () => {
         JWT_EXPIRES_IN: "25h",
       }),
     /cannot exceed 24 hours/
+  );
+});
+
+test("runtime configuration normalizes the CORS allowlist", () => {
+  const config = parseRuntimeConfig({
+    DATABASE_URL: VALID_DATABASE_URL,
+    JWT_SECRET: VALID_JWT_SECRET,
+    CORS_ALLOWED_ORIGINS:
+      "https://hostel.example, http://localhost:4173/, https://hostel.example",
+    TRUST_PROXY_HOPS: "1",
+  });
+
+  assert.deepEqual(config.corsAllowedOrigins, [
+    "https://hostel.example",
+    "http://localhost:4173",
+  ]);
+  assert.equal(config.trustProxyHops, 1);
+  assert.equal(Object.isFrozen(config.corsAllowedOrigins), true);
+});
+
+test("production requires an explicit valid CORS origin", () => {
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        DATABASE_URL: VALID_DATABASE_URL,
+        JWT_SECRET: VALID_JWT_SECRET,
+        NODE_ENV: "production",
+      }),
+    /CORS_ALLOWED_ORIGINS is required in production/
+  );
+
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        DATABASE_URL: VALID_DATABASE_URL,
+        JWT_SECRET: VALID_JWT_SECRET,
+        CORS_ALLOWED_ORIGINS: "https://hostel.example/private",
+      }),
+    /contains an invalid origin/
+  );
+});
+
+test("runtime configuration validates trusted proxy hops", () => {
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        DATABASE_URL: VALID_DATABASE_URL,
+        JWT_SECRET: VALID_JWT_SECRET,
+        TRUST_PROXY_HOPS: "all",
+      }),
+    /TRUST_PROXY_HOPS must be an integer from 0 through 2/
   );
 });
 

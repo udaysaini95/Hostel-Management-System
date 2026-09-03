@@ -4,6 +4,11 @@ export const JWT_SECRET_MIN_LENGTH = 32;
 export const DEFAULT_JWT_EXPIRES_IN = "1h";
 export const MAX_JWT_LIFETIME_SECONDS = 24 * 60 * 60;
 export const DEFAULT_PORT = 5000;
+export const DEFAULT_TRUST_PROXY_HOPS = 0;
+export const DEFAULT_CORS_ALLOWED_ORIGINS = Object.freeze([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
 
 const ALLOWED_NODE_ENVIRONMENTS = new Set([
   "development",
@@ -132,6 +137,59 @@ const parseNodeEnvironment = (value, issues) => {
   return nodeEnvironment;
 };
 
+const parseCorsAllowedOrigins = (value, nodeEnvironment, issues) => {
+  const configuredOrigins = value
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (!configuredOrigins?.length) {
+    if (nodeEnvironment === "production") {
+      issues.push("CORS_ALLOWED_ORIGINS is required in production.");
+      return Object.freeze([]);
+    }
+
+    return DEFAULT_CORS_ALLOWED_ORIGINS;
+  }
+
+  const normalizedOrigins = new Set();
+
+  for (const origin of configuredOrigins) {
+    try {
+      const url = new URL(origin);
+      const hasUnsupportedParts =
+        !["http:", "https:"].includes(url.protocol) ||
+        url.pathname !== "/" ||
+        Boolean(url.search || url.hash || url.username || url.password);
+
+      if (hasUnsupportedParts) {
+        throw new Error("Origin must contain only a protocol, host, and port");
+      }
+
+      normalizedOrigins.add(url.origin);
+    } catch {
+      issues.push("CORS_ALLOWED_ORIGINS contains an invalid origin.");
+    }
+  }
+
+  return Object.freeze([...normalizedOrigins]);
+};
+
+const parseTrustProxyHops = (value, issues) => {
+  if (value === undefined || value === "") {
+    return DEFAULT_TRUST_PROXY_HOPS;
+  }
+
+  const hops = Number(value);
+
+  if (!Number.isInteger(hops) || hops < 0 || hops > 2) {
+    issues.push("TRUST_PROXY_HOPS must be an integer from 0 through 2.");
+    return null;
+  }
+
+  return hops;
+};
+
 export const requireDatabaseUrl = (environment = process.env) => {
   const issues = [];
   const databaseUrl = parseDatabaseUrl(environment.DATABASE_URL, issues);
@@ -150,6 +208,15 @@ export const parseRuntimeConfig = (environment = process.env) => {
   const jwtExpiresIn = parseJwtExpiration(environment.JWT_EXPIRES_IN, issues);
   const port = parsePort(environment.PORT, issues);
   const nodeEnvironment = parseNodeEnvironment(environment.NODE_ENV, issues);
+  const corsAllowedOrigins = parseCorsAllowedOrigins(
+    environment.CORS_ALLOWED_ORIGINS,
+    nodeEnvironment,
+    issues
+  );
+  const trustProxyHops = parseTrustProxyHops(
+    environment.TRUST_PROXY_HOPS,
+    issues
+  );
 
   if (issues.length > 0) {
     throw new ConfigurationError(issues);
@@ -161,6 +228,8 @@ export const parseRuntimeConfig = (environment = process.env) => {
     jwtExpiresIn,
     port,
     nodeEnvironment,
+    corsAllowedOrigins,
+    trustProxyHops,
   });
 };
 

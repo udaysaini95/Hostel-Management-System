@@ -15,23 +15,36 @@ import {
   studentActivationCompletionSchema,
   studentActivationRequestSchema,
 } from "../validation/authSchemas.js";
+import {
+  activationRequestRateLimiter,
+  credentialSetupRateLimiter,
+  loginRateLimiter,
+} from "../middlewares/authRateLimiters.js";
 
 const router = express.Router();
 
 router.post("/register", register);
-router.post("/login", validateRequest(loginRequestSchema), login);
+router.post(
+  "/login",
+  loginRateLimiter,
+  validateRequest(loginRequestSchema),
+  login
+);
 router.post(
   "/staff-invitations/accept",
+  credentialSetupRateLimiter,
   validateRequest(staffInvitationAcceptanceSchema),
   acceptStaffInvitationRequest
 );
 router.post(
   "/student-activation/request",
+  activationRequestRateLimiter,
   validateRequest(studentActivationRequestSchema),
   requestActivation
 );
 router.post(
   "/student-activation/complete",
+  credentialSetupRateLimiter,
   validateRequest(studentActivationCompletionSchema),
   completeActivation
 );
