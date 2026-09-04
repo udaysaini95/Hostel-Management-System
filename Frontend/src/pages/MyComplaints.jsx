@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { buildUploadUrl } from "../config/serviceUrls";
 import { 
   AlertCircle, 
   Plus, 
@@ -122,6 +123,7 @@ const MyComplaints = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredComplaints.map((c) => {
             const complaintId = c.id || c._id;
+            const attachmentUrl = buildUploadUrl(c.image);
             return (
               <div key={complaintId} className="ui-card p-5 rounded-xl bg-white border-slate-200 flex flex-col justify-between space-y-3">
                 
@@ -150,10 +152,10 @@ const MyComplaints = () => {
                   </p>
                 </div>
 
-                {c.image && (
+                {attachmentUrl && (
                   <div className="pt-1">
                     <a
-                      href={`http://localhost:5000/uploads/${c.image}`}
+                      href={attachmentUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:underline"

@@ -38,3 +38,23 @@ The demo seed additionally requires:
 | `DEMO_SEED_PASSWORD` | At least 12 characters, with no built-in fallback |
 
 See [DEMO_DATA.md](./DEMO_DATA.md) for the fictional accounts and seed workflow.
+
+## Frontend service variables
+
+The Vite frontend uses one configuration module for API requests and files
+served by the backend or an asset host:
+
+| Variable | Requirement |
+| --- | --- |
+| `VITE_API_BASE_URL` | Optional absolute HTTP(S) origin for the API, such as `https://api.hostel.example`. When omitted, requests use the browser's current origin. |
+| `VITE_ASSET_BASE_URL` | Optional absolute HTTP(S) origin for uploaded files or a future CDN. It defaults to `VITE_API_BASE_URL`. |
+
+Configured values must be origins only. Credentials, paths, query strings,
+fragments, and non-HTTP protocols are rejected when Vite loads its configuration.
+The same-origin default supports deployments where a reverse proxy exposes the
+frontend and `/api` from one host.
+
+For local development with Vite and the API on different ports, copy
+`Frontend/.env.example` to `Frontend/.env`. Components must use the shared Axios
+client and asset helpers instead of reading `import.meta.env` or constructing a
+host URL themselves.

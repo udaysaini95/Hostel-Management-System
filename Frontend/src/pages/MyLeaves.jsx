@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { buildUploadUrl } from "../config/serviceUrls";
 import { 
   FileText, 
   Plus, 
@@ -68,6 +69,7 @@ const MyLeaves = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {leaves.map((l) => {
             const leaveId = l.id || l._id;
+            const passUrl = buildUploadUrl(l.pdfFile);
             return (
               <div key={leaveId} className="ui-card p-5 rounded-xl bg-white border-slate-200 flex flex-col justify-between space-y-3">
                 
@@ -94,10 +96,10 @@ const MyLeaves = () => {
                   </h3>
                 </div>
 
-                {l.status === "Approved" && l.pdfFile ? (
+                {l.status === "Approved" && passUrl ? (
                   <div className="pt-2">
                     <a
-                      href={`http://localhost:5000/uploads/${l.pdfFile}`}
+                      href={passUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="w-full py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"

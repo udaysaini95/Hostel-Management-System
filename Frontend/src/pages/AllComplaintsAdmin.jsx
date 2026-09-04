@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { buildUploadUrl } from "../config/serviceUrls";
 import { 
   CheckCircle2, 
   ImageIcon, 
@@ -108,6 +109,7 @@ const AllComplaintsAdmin = () => {
         <div className="space-y-3">
           {filteredComplaints.map((c) => {
             const complaintId = c.id || c._id;
+            const attachmentUrl = buildUploadUrl(c.image);
             return (
               <div key={complaintId} className={`ui-card p-5 rounded-xl bg-white border flex flex-col md:flex-row md:items-center justify-between gap-4 ${isSlaBreached(c.slaDeadline, c.status) ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}>
                 
@@ -145,9 +147,9 @@ const AllComplaintsAdmin = () => {
                     </div>
                   )}
 
-                  {c.image && (
+                  {attachmentUrl && (
                     <a
-                      href={`http://localhost:5000/uploads/${c.image}`}
+                      href={attachmentUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline font-semibold pt-0.5"
