@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import api from "../api/axios";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { Button, Input, Panel } from "../components/ui";
 
 const StudentRegister = () => {
   const navigate = useNavigate();
@@ -11,129 +12,138 @@ const StudentRegister = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const res = await api.post("/api/auth/register", {
+      const response = await api.post("/api/auth/register", {
         name,
         email,
         password,
         role: "student",
       });
 
-      if (res.data.token) {
-        localStorage.setItem("token", res.data.token);
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
         localStorage.setItem("role", "student");
-        localStorage.setItem("user", JSON.stringify(res.data.user || { name, email, role: "student" }));
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            response.data.user || { name, email, role: "student" }
+          )
+        );
         navigate("/student/dashboard");
       } else {
         navigate("/student/login");
       }
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || err.response?.data || "Registration failed. Please try again.");
+    } catch (requestError) {
+      console.error("Registration error:", requestError);
+      setError(
+        requestError.response?.data?.message ||
+          requestError.response?.data ||
+          "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.75rem)] flex items-center justify-center p-4 bg-[#f8fafc]">
+    <div className="min-h-[calc(100vh-3.75rem)] flex items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm">
-        
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 transition-colors mb-6 font-medium"
+          className="mb-6 inline-flex items-center gap-1.5 text-small font-medium text-text-secondary transition-colors hover:text-text-primary"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Home</span>
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Back to home</span>
         </Link>
 
-        <div className="ui-panel p-6 sm:p-8 rounded-2xl bg-white border-slate-200 shadow-sm">
-          
+        <Panel>
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              Create Student Account
-            </h2>
-            <p className="text-slate-500 text-xs mt-1">
-              Fill in your details to register
+            <h1 className="text-section-title font-bold text-text-primary">
+              Create student account
+            </h1>
+            <p className="mt-1 text-small text-text-secondary">
+              Register with the student email assigned by your institution.
             </p>
           </div>
 
           {error && (
-            <div className="mb-5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div
+              className="mb-5 flex items-start gap-2 rounded-md border border-danger-border bg-danger-soft p-3 text-small text-danger"
+              role="alert"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Full Name
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Rahul Sharma"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs"
-              />
-            </div>
+            <Input
+              label="Full name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              placeholder="Rahul Sharma"
+              value={name}
+              onChange={(changeEvent) => setName(changeEvent.target.value)}
+              required
+            />
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Email Address
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="student@hostel.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs"
-              />
-            </div>
+            <Input
+              label="Student email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="student@college.edu"
+              value={email}
+              onChange={(changeEvent) => setEmail(changeEvent.target.value)}
+              required
+            />
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs"
-              />
-            </div>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Create a password"
+              hint="Use at least 12 characters."
+              minLength={12}
+              value={password}
+              onChange={(changeEvent) => setPassword(changeEvent.target.value)}
+              required
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              variant="primary"
+              size="form"
+              fullWidth
+              loading={loading}
+              loadingLabel="Creating account"
             >
-              {loading ? "Registering..." : "Create Account"}
-            </button>
-
+              Create account
+            </Button>
           </form>
 
-          <div className="mt-6 text-center border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
+          <div className="mt-6 border-t border-border pt-4 text-center">
+            <p className="text-small text-text-secondary">
               Already registered?{" "}
-              <Link to="/student/login" className="text-indigo-600 hover:underline font-semibold">
+              <Link
+                to="/login"
+                className="font-semibold text-brand hover:underline"
+              >
                 Sign in
               </Link>
             </p>
           </div>
-
-        </div>
+        </Panel>
       </div>
     </div>
   );

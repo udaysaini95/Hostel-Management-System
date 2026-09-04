@@ -21,7 +21,7 @@ import GuardTerminal from "./pages/GuardTerminal";
 
 function App() {
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-canvas text-text-primary flex flex-col font-sans">
       <Navbar />
 
       <div className="flex-1">

@@ -131,10 +131,13 @@ Use semantic tokens rather than raw colors in components.
 | `warning` | `#A85D00` | Pending, expiring, at risk |
 | `warning-soft` | `#FFF4DF` | Warning background |
 | `danger` | `#B42318` | Rejected, invalid, destructive, breached |
+| `danger-hover` | `#912018` | Hover state for a confirmed destructive action |
 | `danger-soft` | `#FDECEA` | Danger background |
+| `danger-border` | `#F2B8B5` | Border for inline errors and destructive warnings |
 | `info` | `#175CD3` | Informational state |
 | `info-soft` | `#EAF2FF` | Informational background |
 | `focus` | `#84ADFF` | Focus ring |
+| `overlay` | `rgba(23, 32, 51, 0.56)` | Modal and drawer scrim |
 
 Rules:
 

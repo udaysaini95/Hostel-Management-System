@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft, Lock, Mail } from "lucide-react";
 import api from "../api/axios";
-import { ArrowLeft, AlertCircle, LogIn, Lock, Mail } from "lucide-react";
+import { Button, Input, Panel } from "../components/ui";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -10,23 +11,25 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const res = await api.post("/api/auth/login", { email, password });
-      
-      const userRole = res.data.role || res.data.user?.role || "student";
-      const token = res.data.token;
-      const user = res.data.user || { name: email.split("@")[0], email, role: userRole };
+      const response = await api.post("/api/auth/login", { email, password });
+      const userRole = response.data.role || response.data.user?.role || "student";
+      const token = response.data.token;
+      const user = response.data.user || {
+        name: email.split("@")[0],
+        email,
+        role: userRole,
+      };
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", userRole);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Smart Dynamic Role-Based Redirect
       if (userRole === "admin" || userRole === "warden") {
         navigate("/admin/dashboard");
       } else if (userRole === "guard") {
@@ -34,104 +37,101 @@ const LoginPage = () => {
       } else {
         navigate("/student/dashboard");
       }
-    } catch (err) {
-      console.error("Login Error:", err);
-      setError(err.response?.data?.message || err.response?.data || "Invalid email or password.");
+    } catch (requestError) {
+      console.error("Login error:", requestError);
+      setError(
+        requestError.response?.data?.message ||
+          requestError.response?.data ||
+          "Invalid email or password."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.75rem)] flex items-center justify-center p-4 bg-[#f8fafc]">
+    <div className="min-h-[calc(100vh-3.75rem)] flex items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm">
-        
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 transition-colors mb-6 font-medium"
+          className="mb-6 inline-flex items-center gap-1.5 text-small font-medium text-text-secondary transition-colors hover:text-text-primary"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Home</span>
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Back to home</span>
         </Link>
 
-        <div className="ui-panel p-6 sm:p-8 rounded-2xl bg-white border-slate-200 shadow-sm space-y-6">
-          
+        <Panel className="space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              Sign In to HostelMate
-            </h2>
-            <p className="text-slate-500 text-xs mt-1">
-              Unified portal for Students, Wardens, and Gate Security
+            <h1 className="text-section-title font-bold text-text-primary">
+              Sign in to HostelMate
+            </h1>
+            <p className="mt-1 text-small text-text-secondary">
+              Use your assigned student or staff email.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div
+              className="flex items-start gap-2 rounded-md border border-danger-border bg-danger-soft p-3 text-small text-danger"
+              role="alert"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@hostel.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-lg ui-input text-xs"
-                />
-              </div>
-            </div>
+            <Input
+              label="Email address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="name@college.edu"
+              value={email}
+              onChange={(changeEvent) => setEmail(changeEvent.target.value)}
+              startIcon={<Mail />}
+              required
+            />
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-lg ui-input text-xs"
-                />
-              </div>
-            </div>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(changeEvent) => setPassword(changeEvent.target.value)}
+              startIcon={<Lock />}
+              required
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              variant="primary"
+              size="form"
+              fullWidth
+              loading={loading}
+              loadingLabel="Signing in"
             >
-              {loading ? "Authenticating..." : "Sign In to Dashboard"}
-            </button>
-
+              Sign in
+            </Button>
           </form>
 
-          <div className="text-center border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
+          <div className="border-t border-border pt-4 text-center">
+            <p className="text-small text-text-secondary">
               New resident student?{" "}
-              <Link to="/register" className="text-indigo-600 hover:underline font-semibold">
-                Create Student Account
+              <Link
+                to="/register"
+                className="font-semibold text-brand hover:underline"
+              >
+                Create student account
               </Link>
             </p>
           </div>
-
-        </div>
+        </Panel>
       </div>
     </div>
   );
