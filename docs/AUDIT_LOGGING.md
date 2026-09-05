@@ -36,13 +36,16 @@ An audit write runs inside the same database transaction as the protected
 business change. If the audit insert fails, the invitation, account-status
 change, or student approval also rolls back.
 
-## Events emitted in this foundation slice
+## Events emitted so far
 
 | Action | Resource | Category |
 | --- | --- | --- |
 | `staff.invitation.created` | Staff invitation | Account |
 | `account.status.changed` | User account | Account |
 | `student.approval.created` | Approved student | Student |
+| `student.approval.revoked` | Approved student | Student |
+| `student.approval.reinstated` | Approved student | Student |
+| `student.activation.reissued` | Approved student | Student |
 
 Complaint, room, leave, gate, mess, and notice slices will add their event types
 when those workflows receive transactional service boundaries. This avoids

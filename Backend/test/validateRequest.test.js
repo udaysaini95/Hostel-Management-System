@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { validateRequest } from "../src/middlewares/validateRequest.js";
 import {
+  approvedStudentRevocationRequestSchema,
+  approvedStudentSearchRequestSchema,
   loginRequestSchema,
   staffInvitationRequestSchema,
 } from "../src/validation/authSchemas.js";
@@ -118,6 +120,48 @@ test("validated query values work with the Express 5 query getter", () => {
   assert.equal(nextCalled, true);
   assert.equal(response.statusCode, null);
   assert.deepEqual(request.query, { page: 2 });
+});
+
+test("approved-student search normalizes pagination and hostel filters", () => {
+  const request = {
+    query: {
+      page: "2",
+      pageSize: "10",
+      search: "  Asha Rao  ",
+      hostelCode: "h2",
+      status: "activation_pending",
+    },
+  };
+
+  const { response, nextCalled } = runValidation(
+    approvedStudentSearchRequestSchema,
+    request
+  );
+
+  assert.equal(nextCalled, true);
+  assert.equal(response.statusCode, null);
+  assert.deepEqual(request.query, {
+    page: 2,
+    pageSize: 10,
+    search: "Asha Rao",
+    hostelCode: "H2",
+    status: "activation_pending",
+  });
+});
+
+test("student-approval revocation validates both ID and reason", () => {
+  const request = { params: { id: "7" }, body: { reason: "no" } };
+  const { response, nextCalled } = runValidation(
+    approvedStudentRevocationRequestSchema,
+    request
+  );
+
+  assert.equal(nextCalled, false);
+  assert.equal(response.statusCode, 422);
+  assert.equal(
+    response.body.fieldErrors["body.reason"],
+    "Revocation reason must contain at least 5 characters"
+  );
 });
 
 test("menu validation accepts the ISO timestamp used by the frontend", () => {

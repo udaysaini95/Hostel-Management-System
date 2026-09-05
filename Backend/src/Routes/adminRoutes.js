@@ -3,6 +3,12 @@ import {
   createStaffInvitation,
   updateAccountStatus,
 } from "../Controllers/staffAccountController.js";
+import {
+  listApprovedStudents,
+  reinstateStudentApproval,
+  reissueStudentActivationEmail,
+  revokeStudentApproval,
+} from "../Controllers/approvedStudentController.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
@@ -10,6 +16,10 @@ import { createStudentApproval } from "../Controllers/studentActivationControlle
 import { validateRequest } from "../middlewares/validateRequest.js";
 import {
   accountStatusRequestSchema,
+  approvedStudentActivationReissueRequestSchema,
+  approvedStudentReinstatementRequestSchema,
+  approvedStudentRevocationRequestSchema,
+  approvedStudentSearchRequestSchema,
   staffInvitationRequestSchema,
   studentApprovalRequestSchema,
 } from "../validation/authSchemas.js";
@@ -38,6 +48,38 @@ router.post(
   requirePermission(PERMISSIONS.STUDENT_APPROVE),
   validateRequest(studentApprovalRequestSchema),
   createStudentApproval
+);
+
+router.get(
+  "/students/approvals",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVAL_MANAGE),
+  validateRequest(approvedStudentSearchRequestSchema),
+  listApprovedStudents
+);
+
+router.patch(
+  "/students/approvals/:id/revoke",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVAL_MANAGE),
+  validateRequest(approvedStudentRevocationRequestSchema),
+  revokeStudentApproval
+);
+
+router.patch(
+  "/students/approvals/:id/reinstate",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVAL_MANAGE),
+  validateRequest(approvedStudentReinstatementRequestSchema),
+  reinstateStudentApproval
+);
+
+router.post(
+  "/students/approvals/:id/activation-email",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVAL_MANAGE),
+  validateRequest(approvedStudentActivationReissueRequestSchema),
+  reissueStudentActivationEmail
 );
 
 export default router;

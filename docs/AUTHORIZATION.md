@@ -15,6 +15,8 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Maintenance users currently have profile and mess participation access. Assigned-complaint permissions will be activated only after complaint assignment data exists.
 - Guards may verify passes, log gate movement, read gate activity, and use shared mess participation features.
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
+- Approved-student search, revocation, reinstatement, and activation-email
+  reissue require the administrator-only `student-approval:manage` permission.
 
 Audit visibility is additionally filtered after the route permission check:
 administrators can read all events, wardens can read operational events for

@@ -31,6 +31,39 @@ Requires an administrator access token with the `student:approve` permission.
 
 The email and roll number must each be unique. The hostel must exist and be active.
 
+### Manage approved students
+
+All management endpoints require an administrator access token with the
+`student-approval:manage` permission.
+
+`GET /api/admin/students/approvals` returns newest records first and accepts:
+
+| Parameter | Meaning |
+| --- | --- |
+| `page` | One-based page number; defaults to `1`. |
+| `pageSize` | Items per page from 1 through 100; defaults to `20`. |
+| `search` | Partial name, email, or roll-number search. |
+| `hostelCode` | Exact normalized hostel code such as `H1`. |
+| `status` | `approved`, `activation_pending`, `activation_expired`, `activated`, or `revoked`. |
+
+Results contain `data` and pagination metadata. Each record includes its hostel,
+lifecycle status, and activation expiry when relevant. Token values and token
+hashes are never returned.
+
+`PATCH /api/admin/students/approvals/:id/revoke` requires a 5–500 character
+reason. Only an unactivated approval may be revoked, and any unused activation
+link is invalidated in the same transaction.
+
+`PATCH /api/admin/students/approvals/:id/reinstate` also requires a reason. It
+restores a revoked, unactivated approval only when the assigned hostel remains
+active and no account now conflicts with the approved identity.
+
+`POST /api/admin/students/approvals/:id/activation-email` invalidates any prior
+unused link, creates a new 30-minute link, and sends it to the approved address.
+The endpoint returns `202` after delivery but never includes the raw link token.
+An email-delivery failure revokes the newly created token and returns a safe
+`503` response.
+
 ### 2. Request an activation email
 
 `POST /api/auth/student-activation/request`
@@ -82,6 +115,10 @@ If email delivery is not configured, activation requests return `503 ACTIVATION_
 - Raw activation tokens exist only in the email-delivery path; the database stores SHA-256 hashes.
 - Tokens are random 256-bit values, expire after 30 minutes, and can be used once.
 - A failed email send revokes the new token.
+- Approval creation, revocation, reinstatement, and administrator activation
+  reissue are recorded in the immutable audit log with hostel scope.
+- Activated approvals cannot be revoked or reissued. Administrators use account
+  suspension when an already activated student must lose access.
 - Passwords follow the shared 12-character and 72-byte bcrypt boundary.
 - Students receive exactly one primary hostel membership from the approved record.
 - The login request never accepts a role or hostel code.
