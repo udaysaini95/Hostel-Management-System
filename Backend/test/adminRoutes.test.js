@@ -19,6 +19,7 @@ test("admin API exposes the approved-student lifecycle routes", () => {
     { path: "/staff/invitations", methods: ["post"] },
     { path: "/accounts/:id/status", methods: ["patch"] },
     { path: "/students/approvals", methods: ["post"] },
+    { path: "/hostels", methods: ["get"] },
     { path: "/students/approvals", methods: ["get"] },
     { path: "/students/approvals/:id/revoke", methods: ["patch"] },
     { path: "/students/approvals/:id/reinstate", methods: ["patch"] },

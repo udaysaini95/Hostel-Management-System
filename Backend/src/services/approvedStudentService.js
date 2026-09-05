@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -269,6 +270,20 @@ const toApprovedStudentView = (record, now) => ({
   createdAt: record.createdAt,
   updatedAt: record.updatedAt,
 });
+
+export const listStudentApprovalHostels = async (database) => {
+  const data = await database
+    .select({
+      id: hostels.id,
+      code: hostels.code,
+      name: hostels.name,
+    })
+    .from(hostels)
+    .where(eq(hostels.isActive, true))
+    .orderBy(asc(hostels.code));
+
+  return { data };
+};
 
 export const searchApprovedStudents = async (
   database,

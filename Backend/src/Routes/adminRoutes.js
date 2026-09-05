@@ -4,6 +4,7 @@ import {
   updateAccountStatus,
 } from "../Controllers/staffAccountController.js";
 import {
+  listApprovalHostels,
   listApprovedStudents,
   reinstateStudentApproval,
   reissueStudentActivationEmail,
@@ -48,6 +49,13 @@ router.post(
   requirePermission(PERMISSIONS.STUDENT_APPROVE),
   validateRequest(studentApprovalRequestSchema),
   createStudentApproval
+);
+
+router.get(
+  "/hostels",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_APPROVE),
+  listApprovalHostels
 );
 
 router.get(

@@ -1,6 +1,7 @@
 import { getStudentActivationEmailConfig } from "../config/studentActivationEmailConfig.js";
 import { db } from "../db/index.js";
 import {
+  listStudentApprovalHostels,
   reinstateApprovedStudent,
   reissueApprovedStudentActivation,
   revokeApprovedStudent,
@@ -22,6 +23,19 @@ export const listApprovedStudents = async (req, res) => {
       res,
       error,
       "List Approved Students Error"
+    );
+  }
+};
+
+export const listApprovalHostels = async (_req, res) => {
+  try {
+    const result = await listStudentApprovalHostels(db);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "List Student Approval Hostels Error"
     );
   }
 };

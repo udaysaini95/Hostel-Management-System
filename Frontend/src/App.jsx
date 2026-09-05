@@ -10,6 +10,7 @@ import { PublicShell } from "./layouts/PublicShell.jsx";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLeaves from "./pages/AdminLeaves";
+import ApprovedStudents from "./pages/ApprovedStudents.jsx";
 import AllComplaintsAdmin from "./pages/AllComplaintsAdmin";
 import ApplyLeave from "./pages/ApplyLeave";
 import GuardTerminal from "./pages/GuardTerminal";
@@ -64,6 +65,13 @@ function App() {
             <Route path="/admin/complaints" element={<AllComplaintsAdmin />} />
             <Route path="/admin/leaves" element={<AdminLeaves />} />
             <Route path="/admin/mess" element={<MessAdmin />} />
+          </Route>
+
+          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.ADMIN} />}>
+            <Route
+              path="/admin/student-approvals"
+              element={<ApprovedStudents />}
+            />
           </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.GATE_TERMINAL} />}>

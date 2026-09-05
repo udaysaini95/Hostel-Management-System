@@ -23,6 +23,12 @@ owns the current route declarations and nests them under the applicable shell.
 Page modules use the shared Axios client in `src/api/axios.js`. Global styles
 enter the bundle once through `src/index.css`, imported by `src/main.jsx`.
 
+Approved-student presentation rules live in
+`src/onboarding/approvedStudentView.js`. The administrator onboarding page uses
+server pagination and filtering, loads active hostel choices from the API, and
+renders the same records as a comparison table on desktop and structured
+records on mobile. It never receives or renders activation tokens.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
@@ -68,6 +74,7 @@ components to justify one, but they must remain reachable from the single
 | Operations | `/admin/complaints` | Complaint operations |
 | Operations | `/admin/leaves` | Leave operations |
 | Operations | `/admin/mess` | Mess operations |
+| Administrator | `/admin/student-approvals` | Student onboarding and activation eligibility |
 | Guard | `/guard/terminal` | Gate terminal |
 | Authenticated | `/unauthorized` | Role-access explanation |
 | Public fallback | `*` | Not-found page with a safe return action |
@@ -77,7 +84,8 @@ login applications. Authentication bootstrap and direct-URL protection are
 active. Student pages accept the student role, operations pages accept admin and
 warden roles, mess reading currently accepts student and maintenance roles, and
 the gate terminal accepts admin and guard roles. The backend remains the final
-authority for every API action.
+authority for every API action. Student onboarding is administrator-only and is
+not included in the warden operations navigation.
 
 ## Removed legacy implementation
 

@@ -39,6 +39,7 @@ test("navigation exposes only the currently implemented destinations per role", 
   ]);
   assert.deepEqual(pathsForRole("admin"), [
     "/admin/dashboard",
+    "/admin/student-approvals",
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
@@ -80,6 +81,10 @@ test("utility-bar titles describe every implemented authenticated route", () => 
   assert.equal(getRouteTitle("/student/dashboard"), "Overview");
   assert.equal(getRouteTitle("/student/complaints/raise"), "Raise complaint");
   assert.equal(getRouteTitle("/admin/complaints"), "Complaint queue");
+  assert.equal(
+    getRouteTitle("/admin/student-approvals"),
+    "Student onboarding"
+  );
   assert.equal(getRouteTitle("/guard/terminal"), "Gate terminal");
   assert.equal(getRouteTitle("/not-yet-defined"), "HostelMate");
 });

@@ -36,6 +36,9 @@ The email and roll number must each be unique. The hostel must exist and be acti
 All management endpoints require an administrator access token with the
 `student-approval:manage` permission.
 
+`GET /api/admin/hostels` returns the active hostel choices available to the
+approval form. It requires the administrator-only `student:approve` permission.
+
 `GET /api/admin/students/approvals` returns newest records first and accepts:
 
 | Parameter | Meaning |
