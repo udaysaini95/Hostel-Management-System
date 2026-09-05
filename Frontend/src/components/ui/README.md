@@ -13,6 +13,10 @@ The tokens live in `src/styles/theme.css`. Component styling lives in
 `danger-secondary` variants. Its sizes are `default`, `form`, `touch`, and
 `icon`.
 
+Use `ButtonLink` when navigation should have the same visual treatment as a
+button. It accepts the same `variant`, `size`, and `fullWidth` props while
+retaining link behavior.
+
 ```jsx
 <Button variant="primary" type="submit" loading={saving} loadingLabel="Saving">
   Save room assignment

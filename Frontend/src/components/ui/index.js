@@ -1,5 +1,6 @@
 export { Badge, StatusBadge } from "./Badge.jsx";
 export { Button } from "./Button.jsx";
+export { ButtonLink } from "./ButtonLink.jsx";
 export { Dialog } from "./Dialog.jsx";
 export { Drawer } from "./Drawer.jsx";
 export { EmptyState, ErrorState, Skeleton, Toast } from "./Feedback.jsx";

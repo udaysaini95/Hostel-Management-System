@@ -51,7 +51,7 @@ const StudentRegister = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.75rem)] flex items-center justify-center bg-canvas p-4">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm">
         <Link
           to="/"

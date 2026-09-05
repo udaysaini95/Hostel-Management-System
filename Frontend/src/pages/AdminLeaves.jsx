@@ -49,7 +49,7 @@ const AdminLeaves = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="hm-page-stack hm-page-stack--medium">
       
       {/* Header */}
       <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex items-center justify-between">

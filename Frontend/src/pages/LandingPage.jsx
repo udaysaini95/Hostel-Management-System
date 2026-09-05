@@ -17,10 +17,10 @@ import {
 
 const LandingPage = () => {
   return (
-    <div className="min-h-[calc(100vh-3.75rem)] flex flex-col justify-between bg-[#f8fafc]">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-between bg-canvas">
       
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 w-full">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 w-full">
         
         {/* Top Architecture Pill */}
         <div className="flex justify-center mb-6">
@@ -208,7 +208,7 @@ const LandingPage = () => {
           </div>
         </div>
 
-      </main>
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white">

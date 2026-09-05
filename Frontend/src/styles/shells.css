@@ -1,0 +1,371 @@
+@layer components {
+  .hm-skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 100;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-surface);
+    background: var(--color-brand);
+    border-radius: var(--radius-md);
+    font-size: var(--text-small);
+    font-weight: 600;
+    transform: translateY(-150%);
+  }
+
+  .hm-skip-link:focus {
+    transform: translateY(0);
+  }
+
+  .hm-product-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+
+  .hm-product-brand__mark {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    color: var(--color-surface);
+    background: var(--color-brand);
+    border-radius: var(--radius-md);
+  }
+
+  .hm-product-brand__mark svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .hm-product-brand__name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .hm-product-brand--compact .hm-product-brand__name {
+    display: none;
+  }
+
+  .hm-public-shell {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    background: var(--color-canvas);
+  }
+
+  .hm-public-header {
+    position: relative;
+    z-index: 40;
+    height: 4rem;
+    flex: 0 0 4rem;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-public-header__inner {
+    display: flex;
+    width: 100%;
+    max-width: 75rem;
+    height: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: 1.5rem;
+    margin-inline: auto;
+  }
+
+  .hm-public-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hm-public-shell__main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .hm-app-shell {
+    min-height: 100vh;
+    background: var(--color-canvas);
+  }
+
+  .hm-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    display: none;
+    width: 14.5rem;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .hm-sidebar__brand {
+    display: flex;
+    height: 4rem;
+    flex: 0 0 4rem;
+    align-items: center;
+    padding-inline: 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-sidebar__context {
+    display: grid;
+    gap: 0.125rem;
+    padding: 1rem 1rem 0.5rem;
+  }
+
+  .hm-sidebar__context span {
+    color: var(--color-text-muted);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hm-sidebar__context strong {
+    color: var(--color-text-secondary);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-weight: 600;
+  }
+
+  .hm-app-navigation {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .hm-app-navigation__link {
+    display: flex;
+    min-height: 2.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-md);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  .hm-app-navigation__link:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-subtle);
+  }
+
+  .hm-app-navigation__link[aria-current="page"] {
+    color: var(--color-brand);
+    background: var(--color-brand-soft);
+  }
+
+  .hm-app-navigation__icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: 0 0 auto;
+  }
+
+  .hm-sidebar__account {
+    padding: 1rem;
+    margin-top: auto;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .hm-account-summary {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .hm-account-summary__avatar {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    place-items: center;
+    color: var(--color-brand);
+    background: var(--color-brand-soft);
+    border-radius: var(--radius-full);
+    font-size: var(--text-small);
+    font-weight: 700;
+  }
+
+  .hm-account-summary__details {
+    display: grid;
+    min-width: 0;
+  }
+
+  .hm-account-summary__details strong,
+  .hm-account-summary__details span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hm-account-summary__details strong {
+    color: var(--color-text-primary);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-weight: 600;
+  }
+
+  .hm-account-summary__details span {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .hm-account-summary--compact .hm-account-summary__avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-basis: 1.75rem;
+  }
+
+  .hm-app-shell__column {
+    min-width: 0;
+    min-height: 100vh;
+  }
+
+  .hm-utility-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    height: 3.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: 1rem;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-utility-bar__context,
+  .hm-utility-bar__account {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hm-utility-bar__title {
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hm-app-shell__main {
+    min-width: 0;
+    padding: 1.5rem;
+  }
+
+  .hm-app-shell__content {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+  }
+
+  .hm-app-shell__content--full {
+    max-width: none;
+  }
+
+  .hm-navigation-drawer {
+    width: min(17.5rem, 88vw);
+  }
+
+  .hm-navigation-drawer .hm-app-navigation {
+    padding: 0;
+  }
+
+  .hm-navigation-drawer__account {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1.25rem;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .hm-page-stack {
+    display: grid;
+    width: 100%;
+    gap: 1.5rem;
+  }
+
+  .hm-page-stack--medium {
+    max-width: 64rem;
+    margin-inline: auto;
+  }
+
+  .hm-page-stack--wide {
+    max-width: 72rem;
+    margin-inline: auto;
+  }
+
+  .hm-page-stack--narrow {
+    max-width: 42rem;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .hm-public-header__inner {
+    padding-inline: 1rem;
+  }
+
+  .hm-public-header__actions .hm-button--secondary {
+    display: none;
+  }
+
+  .hm-public-header__actions .hm-button {
+    min-height: 2.75rem;
+  }
+
+  .hm-utility-bar {
+    height: 3.5rem;
+  }
+
+  .hm-utility-bar__account .hm-account-summary__details {
+    display: none;
+  }
+
+  .hm-app-shell__main {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hm-sidebar {
+    display: flex;
+  }
+
+  .hm-app-shell__column {
+    margin-left: 14.5rem;
+  }
+
+  .hm-utility-bar {
+    padding-inline: 1.5rem;
+  }
+
+  .hm-utility-bar__menu-button {
+    display: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hm-app-shell__main {
+    padding: 2rem;
+  }
+}

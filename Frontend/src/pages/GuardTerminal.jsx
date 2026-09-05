@@ -115,7 +115,7 @@ const GuardTerminal = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="hm-page-stack">
       
       {/* Header Banner */}
       <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
