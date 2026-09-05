@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   let user = null;
   try {
     user = userStr ? JSON.parse(userStr) : null;
-  } catch (e) {
+  } catch {
     user = null;
   }
 
