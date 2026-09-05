@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
 import { buildUploadUrl } from "../config/serviceUrls";
+import {
+  ConfirmationDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
 import { 
   FileText, 
   CheckCircle2, 
@@ -13,16 +21,27 @@ import {
 const AdminLeaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [decision, setDecision] = useState(null);
+  const [decisionLoading, setDecisionLoading] = useState(false);
+  const { showToast } = useToast();
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = async ({ showLoading = true } = {}) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
+      setLoadError("");
       const res = await api.get("/api/leave/admin/all");
       setLeaves(res.data || []);
     } catch (err) {
-      console.error(err);
+      setLoadError(
+        getApiErrorMessage(err, "Leave applications could not be loaded.")
+      );
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -30,21 +49,35 @@ const AdminLeaves = () => {
     fetchLeaves();
   }, []);
 
-  const handleApprove = async (id) => {
-    try {
-      await api.put(`/api/leave/admin/approve/${id}`);
-      fetchLeaves();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to approve leave.");
+  const handleDecision = async () => {
+    if (!decision) {
+      return;
     }
-  };
 
-  const handleReject = async (id) => {
+    const leaveId = decision.leave.id || decision.leave._id;
+    const actionLabel = decision.action === "approve" ? "approved" : "rejected";
+
     try {
-      await api.put(`/api/leave/admin/reject/${id}`);
-      fetchLeaves();
+      setDecisionLoading(true);
+      await api.put(`/api/leave/admin/${decision.action}/${leaveId}`);
+      setDecision(null);
+      showToast({
+        tone: "success",
+        title: `Leave ${actionLabel}`,
+        message:
+          decision.action === "approve"
+            ? "The signed gate pass is ready for the student."
+            : "The student can now see that the request was rejected.",
+      });
+      await fetchLeaves({ showLoading: false });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to reject leave.");
+      showToast({
+        tone: "danger",
+        title: "Leave decision was not saved",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
+    } finally {
+      setDecisionLoading(false);
     }
   };
 
@@ -65,14 +98,19 @@ const AdminLeaves = () => {
 
       {/* Grid */}
       {loading ? (
-        <div className="ui-panel p-8 text-center text-slate-500 text-xs rounded-xl">
-          Loading leave applications...
-        </div>
+        <LoadingState label="Loading leave applications" rows={4} />
+      ) : loadError ? (
+        <ErrorState
+          title="Leave applications are unavailable"
+          description={loadError}
+          onRetry={fetchLeaves}
+        />
       ) : leaves.length === 0 ? (
-        <div className="ui-panel p-8 text-center border border-slate-200 rounded-xl space-y-2">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-          <p className="text-slate-700 font-semibold text-xs">No leave applications pending</p>
-        </div>
+        <EmptyState
+          icon={CheckCircle2}
+          title="No leave applications"
+          description="New student gate-pass requests will appear here for review."
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {leaves.map((l) => {
@@ -113,14 +151,18 @@ const AdminLeaves = () => {
                 {l.status === "Pending" ? (
                   <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => handleApprove(leaveId)}
+                      onClick={() =>
+                        setDecision({ action: "approve", leave: l })
+                      }
                       className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center justify-center gap-1"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Approve & Sign PDF</span>
                     </button>
                     <button
-                      onClick={() => handleReject(leaveId)}
+                      onClick={() =>
+                        setDecision({ action: "reject", leave: l })
+                      }
                       className="py-2 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -148,6 +190,26 @@ const AdminLeaves = () => {
           })}
         </div>
       )}
+
+      <ConfirmationDialog
+        open={Boolean(decision)}
+        title={
+          decision?.action === "approve"
+            ? "Approve this leave request?"
+            : "Reject this leave request?"
+        }
+        description={
+          decision?.action === "approve"
+            ? "HostelMate will issue the student's signed gate pass."
+            : "The student will see the rejected status for this request."
+        }
+        confirmLabel={decision?.action === "approve" ? "Approve leave" : "Reject leave"}
+        loadingLabel={decision?.action === "approve" ? "Approving" : "Rejecting"}
+        tone={decision?.action === "reject" ? "danger" : "default"}
+        loading={decisionLoading}
+        onConfirm={handleDecision}
+        onDismiss={() => setDecision(null)}
+      />
 
     </div>
   );

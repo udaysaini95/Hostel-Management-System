@@ -18,6 +18,7 @@ export const EmptyState = ({
       centered && "hm-feedback-state--centered",
       className
     )}
+    role="status"
   >
     {createElement(Icon, {
       className: "hm-feedback-state__icon",
@@ -31,11 +32,43 @@ export const EmptyState = ({
   </section>
 );
 
+export const LoadingState = ({
+  label = "Loading content",
+  rows = 3,
+  compact = false,
+  className,
+}) => {
+  const visibleRows = Math.max(1, Math.min(Number(rows) || 3, 6));
+
+  return (
+    <section
+      className={joinClassNames(
+        "hm-loading-state",
+        compact && "hm-loading-state--compact",
+        className
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="hm-visually-hidden">{label}</span>
+      <div className="hm-loading-state__rows" aria-hidden="true">
+        {Array.from({ length: visibleRows }, (_, index) => (
+          <span className="hm-loading-state__row" key={index}>
+            <span className="hm-skeleton hm-loading-state__lead" />
+            <span className="hm-skeleton hm-loading-state__line" />
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 export const ErrorState = ({
   title = "This content is unavailable",
   description,
   onRetry,
   retryLabel = "Try again",
+  retrying = false,
   centered = false,
   className,
 }) => (
@@ -53,7 +86,15 @@ export const ErrorState = ({
     {description && (
       <p className="hm-feedback-state__description">{description}</p>
     )}
-    {onRetry && <Button onClick={onRetry}>{retryLabel}</Button>}
+    {onRetry && (
+      <Button
+        onClick={onRetry}
+        loading={retrying}
+        loadingLabel="Trying again"
+      >
+        {retryLabel}
+      </Button>
+    )}
   </section>
 );
 

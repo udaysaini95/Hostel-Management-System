@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
 import { 
   Utensils, 
   CheckCircle2, 
@@ -14,23 +22,26 @@ const MessAdmin = () => {
   const [breakfast, setBreakfast] = useState("Poha, Tea, Milk, Boiled Eggs");
   const [lunch, setLunch] = useState("Rajma, Rice, Chapati, Salad, Curd");
   const [dinner, setDinner] = useState("Paneer Butter Masala, Chapati, Rice, Gulab Jamun");
-  const [menuSuccess, setMenuSuccess] = useState("");
   const [menuLoading, setMenuLoading] = useState(false);
 
   const [issues, setIssues] = useState([]);
-  const [feedbacks, setFeedbacks] = useState([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesError, setIssuesError] = useState("");
+  const [updatingIssueId, setUpdatingIssueId] = useState(null);
+  const { showToast } = useToast();
 
   const fetchData = async () => {
     try {
-      const [issuesRes, feedbacksRes] = await Promise.allSettled([
-        api.get("/api/mess"),
-        api.get("/api/mess/admin"),
-      ]);
-
-      if (issuesRes.status === "fulfilled") setIssues(issuesRes.value.data || []);
-      if (feedbacksRes.status === "fulfilled") setFeedbacks(feedbacksRes.value.data || []);
+      setIssuesLoading(true);
+      setIssuesError("");
+      const response = await api.get("/api/mess");
+      setIssues(response.data || []);
     } catch (err) {
-      console.error(err);
+      setIssuesError(
+        getApiErrorMessage(err, "Reported mess issues could not be loaded.")
+      );
+    } finally {
+      setIssuesLoading(false);
     }
   };
 
@@ -41,7 +52,6 @@ const MessAdmin = () => {
   const handleMenuSubmit = async (e) => {
     e.preventDefault();
     setMenuLoading(true);
-    setMenuSuccess("");
 
     try {
       const breakfastArr = breakfast.split(",").map(s => s.trim());
@@ -55,10 +65,17 @@ const MessAdmin = () => {
         dinner: dinnerArr,
       });
 
-      setMenuSuccess("Today's Mess Menu updated successfully!");
+      showToast({
+        tone: "success",
+        title: "Mess menu published",
+        message: "Students can now view today's breakfast, lunch, and dinner.",
+      });
     } catch (err) {
-      console.error(err);
-      alert("Failed to update mess menu.");
+      showToast({
+        tone: "danger",
+        title: "Mess menu was not published",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
     } finally {
       setMenuLoading(false);
     }
@@ -66,10 +83,28 @@ const MessAdmin = () => {
 
   const handleIssueStatusChange = async (id, newStatus) => {
     try {
+      setUpdatingIssueId(id);
       await api.put(`/api/mess/${id}/status`, { status: newStatus });
-      setIssues(issues.map(i => (i.id || i._id) === id ? { ...i, status: newStatus } : i));
+      setIssues((currentIssues) =>
+        currentIssues.map((issue) =>
+          (issue.id || issue._id) === id
+            ? { ...issue, status: newStatus }
+            : issue
+        )
+      );
+      showToast({
+        tone: "success",
+        title: "Mess issue updated",
+        message: `The issue is now ${newStatus.toLowerCase()}.`,
+      });
     } catch (err) {
-      alert("Failed to update mess issue status.");
+      showToast({
+        tone: "danger",
+        title: "Mess issue was not updated",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
+    } finally {
+      setUpdatingIssueId(null);
     }
   };
 
@@ -91,13 +126,6 @@ const MessAdmin = () => {
         <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
           <Utensils className="w-4 h-4 text-emerald-600" /> Daily Menu Manager
         </h2>
-
-        {menuSuccess && (
-          <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>{menuSuccess}</span>
-          </div>
-        )}
 
         <form onSubmit={handleMenuSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -138,14 +166,15 @@ const MessAdmin = () => {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={menuLoading}
-            className="py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center gap-1.5"
+            variant="primary"
+            loading={menuLoading}
+            loadingLabel="Publishing menu"
+            leadingIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Publish Mess Menu</span>
-          </button>
+            Publish mess menu
+          </Button>
         </form>
       </div>
 
@@ -156,10 +185,20 @@ const MessAdmin = () => {
           <span>Reported Mess Issues</span>
         </h2>
 
-        {issues.length === 0 ? (
-          <div className="ui-panel p-6 text-center text-slate-500 text-xs rounded-xl">
-            No mess issues reported by students.
-          </div>
+        {issuesLoading ? (
+          <LoadingState label="Loading reported mess issues" rows={3} compact />
+        ) : issuesError ? (
+          <ErrorState
+            title="Mess issues are unavailable"
+            description={issuesError}
+            onRetry={fetchData}
+          />
+        ) : issues.length === 0 ? (
+          <EmptyState
+            icon={AlertTriangle}
+            title="No reported mess issues"
+            description="Student food-quality reports will appear here for review."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {issues.map((i) => {
@@ -192,6 +231,7 @@ const MessAdmin = () => {
                       value={i.status}
                       onChange={(e) => handleIssueStatusChange(issueId, e.target.value)}
                       className="px-2.5 py-1 rounded-lg ui-input text-xs"
+                      disabled={updatingIssueId === issueId}
                     >
                       <option value="Pending">Pending</option>
                       <option value="In Progress">In Progress</option>

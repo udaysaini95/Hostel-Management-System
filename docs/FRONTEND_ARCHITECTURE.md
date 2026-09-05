@@ -8,13 +8,14 @@ The frontend has one React application and one route tree:
 index.html
 `-- src/main.jsx
     `-- src/auth/AuthContext.jsx
-        `-- src/App.jsx
-            |-- src/layouts/PublicShell.jsx
-            |   `-- public and not-found pages
-            `-- src/auth/RouteGuards.jsx
-                `-- src/layouts/AuthenticatedShell.jsx
-                    |-- role-aware navigation
-                    `-- authenticated pages
+        `-- src/feedback/ToastProvider.jsx
+            `-- src/App.jsx
+                |-- src/layouts/PublicShell.jsx
+                |   `-- public and not-found pages
+                `-- src/auth/RouteGuards.jsx
+                    `-- src/layouts/AuthenticatedShell.jsx
+                        |-- role-aware navigation
+                        `-- authenticated pages
 ```
 
 `src/main.jsx` owns the browser bootstrap and router provider. `src/App.jsx`
@@ -28,6 +29,13 @@ display cache, but changing its cached `role` value cannot grant a route. A
 stored token is checked before private content renders. Expired or invalid
 sessions are cleared and return to sign-in; a temporary server failure keeps the
 token and provides a retry action.
+
+The feedback layer owns one bounded toast region for non-blocking action
+confirmation. Data-driven pages use distinct `LoadingState`, `EmptyState`, and
+`ErrorState` components, while consequential actions use the focus-managed
+`ConfirmationDialog`. Pages must not use browser `alert`, `confirm`, or `prompt`
+dialogs. API failure messages pass through `src/api/errors.js` so private error
+objects are not rendered to users.
 
 The public shell provides the 64px public header and account-entry actions. The
 authenticated shell provides the 232px desktop sidebar, 56px utility bar,

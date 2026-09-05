@@ -88,16 +88,17 @@ with `actions`.
 
 ## Overlays and feedback
 
-`Dialog` is for focused confirmation or short entry. `Drawer` is for contextual
-details beside a list. Both move focus inside when opened, keep Tab and Shift+Tab
-inside, close on Escape, prevent background scrolling, and return focus to the
-trigger. Dialogs do not close on an overlay click unless `dismissOnOverlay` is
-explicitly enabled; drawers do by default.
+`Dialog` is for focused entry. `ConfirmationDialog` provides consistent cancel,
+confirm, danger, and pending behavior for consequential actions. `Drawer` is for
+contextual details beside a list. These overlays move focus inside when opened,
+keep Tab and Shift+Tab inside, close on Escape when an action is not pending,
+prevent background scrolling, and return focus to the trigger.
 
-`EmptyState`, `ErrorState`, `Skeleton`, and `Toast` provide the visual primitives
-for honest feedback. Feature-level loading/error decisions and toast management
-belong to the later feedback-state slice. A danger toast uses an assertive live
-region; other toast tones use a polite live region.
+`LoadingState`, `EmptyState`, `ErrorState`, `Skeleton`, and `Toast` provide the
+visual primitives for honest feedback. Application pages publish non-blocking
+notifications through `ToastProvider` and `useToast`. A danger toast uses an
+assertive live region; other toast tones use a polite live region. Do not call
+browser `alert`, `confirm`, or `prompt` APIs.
 
 ## Review rules
 

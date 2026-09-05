@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
 import { buildUploadUrl } from "../config/serviceUrls";
+import {
+  Button,
+  ConfirmationDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Textarea,
+} from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
 import { 
   CheckCircle2, 
   ImageIcon, 
@@ -15,15 +25,23 @@ import {
 const AllComplaintsAdmin = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [resolutionDialog, setResolutionDialog] = useState(null);
+  const [resolutionNote, setResolutionNote] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
+  const { showToast } = useToast();
 
   const fetchComplaints = async () => {
     try {
       setLoading(true);
+      setLoadError("");
       const res = await api.get("/api/complaints/admin/complaints");
       setComplaints(res.data || []);
     } catch (err) {
-      console.error(err);
+      setLoadError(
+        getApiErrorMessage(err, "The complaint queue could not be loaded.")
+      );
     } finally {
       setLoading(false);
     }
@@ -33,21 +51,47 @@ const AllComplaintsAdmin = () => {
     fetchComplaints();
   }, []);
 
-  const handleStatusChange = async (id, newStatus) => {
-    let resolutionNote = "";
+  const updateComplaintStatus = async (complaint, newStatus, note = "") => {
+    const id = complaint.id || complaint._id;
+    try {
+      setUpdatingId(id);
+      await api.put(`/api/complaints/status/${id}`, {
+        status: newStatus,
+        resolutionNote: note,
+      });
+      setComplaints((currentComplaints) =>
+        currentComplaints.map((item) =>
+          (item.id || item._id) === id
+            ? { ...item, status: newStatus, resolutionNote: note }
+            : item
+        )
+      );
+      setResolutionDialog(null);
+      setResolutionNote("");
+      showToast({
+        tone: "success",
+        title: "Complaint status updated",
+        message: `The complaint is now ${newStatus.toLowerCase()}.`,
+      });
+    } catch (err) {
+      showToast({
+        tone: "danger",
+        title: "Complaint status was not changed",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleStatusSelection = (complaint, newStatus) => {
     if (newStatus === "Resolved") {
-      resolutionNote = window.prompt("Optional: Add a resolution note for the student:");
-      // If user cancels prompt, it returns null. We can still proceed without a note, 
-      // but let's let them cancel the whole action if they hit cancel.
-      if (resolutionNote === null) return; 
+      setResolutionDialog(complaint);
+      setResolutionNote("");
+      return;
     }
 
-    try {
-      await api.put(`/api/complaints/status/${id}`, { status: newStatus, resolutionNote });
-      setComplaints(complaints.map(c => (c.id || c._id) === id ? { ...c, status: newStatus, resolutionNote } : c));
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update status.");
-    }
+    updateComplaintStatus(complaint, newStatus);
   };
 
   const isSlaBreached = (deadline, status) => {
@@ -97,14 +141,30 @@ const AllComplaintsAdmin = () => {
 
       {/* List */}
       {loading ? (
-        <div className="ui-panel p-8 text-center text-slate-500 text-xs rounded-xl">
-          Loading complaints list...
-        </div>
+        <LoadingState label="Loading the complaint queue" rows={5} />
+      ) : loadError ? (
+        <ErrorState
+          title="Complaint queue is unavailable"
+          description={loadError}
+          onRetry={fetchComplaints}
+        />
       ) : filteredComplaints.length === 0 ? (
-        <div className="ui-panel p-8 text-center border border-slate-200 rounded-xl space-y-2">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-          <p className="text-slate-700 font-semibold text-xs">No complaints found for this filter</p>
-        </div>
+        <EmptyState
+          icon={CheckCircle2}
+          title={filterStatus === "All" ? "No complaints in the queue" : "No matching complaints"}
+          description={
+            filterStatus === "All"
+              ? "New student complaints will appear here for operational review."
+              : "No complaints match the selected status."
+          }
+          action={
+            filterStatus === "All" ? null : (
+              <Button onClick={() => setFilterStatus("All")}>
+                Show all complaints
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="space-y-3">
           {filteredComplaints.map((c) => {
@@ -165,9 +225,9 @@ const AllComplaintsAdmin = () => {
                   <span className="text-xs font-semibold text-slate-500">Update Status:</span>
                   <select
                     value={c.status}
-                    onChange={(e) => handleStatusChange(complaintId, e.target.value)}
+                    onChange={(e) => handleStatusSelection(c, e.target.value)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold ui-input cursor-pointer"
-                    disabled={c.status === "Closed"}
+                    disabled={c.status === "Closed" || updatingId === complaintId}
                   >
                     <option value="Created">Created</option>
                     <option value="In Progress">In Progress</option>
@@ -181,6 +241,34 @@ const AllComplaintsAdmin = () => {
           })}
         </div>
       )}
+
+      <ConfirmationDialog
+        open={Boolean(resolutionDialog)}
+        title="Mark this complaint as resolved?"
+        description="The student will be asked to confirm the completed repair or reopen the complaint."
+        confirmLabel="Mark as resolved"
+        loadingLabel="Updating"
+        loading={Boolean(updatingId)}
+        onConfirm={() =>
+          updateComplaintStatus(
+            resolutionDialog,
+            "Resolved",
+            resolutionNote.trim()
+          )
+        }
+        onDismiss={() => {
+          setResolutionDialog(null);
+          setResolutionNote("");
+        }}
+      >
+        <Textarea
+          label="Resolution note"
+          name="resolutionNote"
+          hint="Optional. Briefly explain the completed work."
+          value={resolutionNote}
+          onChange={(event) => setResolutionNote(event.target.value)}
+        />
+      </ConfirmationDialog>
 
     </div>
   );

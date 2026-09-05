@@ -13,6 +13,7 @@ export const Dialog = ({
   footer,
   onDismiss,
   closeLabel = "Close dialog",
+  dismissDisabled = false,
   dismissOnOverlay = false,
   className,
 }) => {
@@ -26,7 +27,11 @@ export const Dialog = ({
   }
 
   const handleOverlayPointerDown = (event) => {
-    if (dismissOnOverlay && event.target === event.currentTarget) {
+    if (
+      !dismissDisabled &&
+      dismissOnOverlay &&
+      event.target === event.currentTarget
+    ) {
       onDismiss();
     }
   };
@@ -61,6 +66,7 @@ export const Dialog = ({
             variant="quiet"
             size="icon"
             aria-label={closeLabel}
+            disabled={dismissDisabled}
             onClick={onDismiss}
           >
             <X aria-hidden="true" />

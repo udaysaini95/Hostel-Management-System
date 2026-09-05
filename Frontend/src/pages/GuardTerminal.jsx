@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
 import { 
   ShieldCheck, 
   Search, 
@@ -9,12 +12,7 @@ import {
   XCircle, 
   LogOut, 
   LogIn, 
-  User, 
   Calendar, 
-  Phone, 
-  Clock, 
-  AlertTriangle,
-  ArrowRight,
   Users
 } from "lucide-react";
 import { Html5QrcodeScanner } from "html5-qrcode";
@@ -27,26 +25,54 @@ const GuardTerminal = () => {
   const [actionSuccess, setActionSuccess] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [outsideStudents, setOutsideStudents] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
+  const [rosterError, setRosterError] = useState("");
+  const { showToast } = useToast();
 
-  const fetchLiveRoster = async () => {
+  const fetchLiveRoster = useCallback(async () => {
     try {
-      const [outsideRes, logsRes] = await Promise.allSettled([
-        api.get("/api/gate/active-outside"),
-        api.get("/api/gate/logs"),
-      ]);
-
-      if (outsideRes.status === "fulfilled") setOutsideStudents(outsideRes.value.data || []);
-      if (logsRes.status === "fulfilled") setLogs(logsRes.value.data || []);
+      setRosterError("");
+      const response = await api.get("/api/gate/active-outside");
+      setOutsideStudents(response.data || []);
     } catch (err) {
-      console.error(err);
+      setRosterError(
+        getApiErrorMessage(err, "The live outside-campus roster could not be loaded.")
+      );
+    } finally {
+      setRosterLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLiveRoster();
     const interval = setInterval(fetchLiveRoster, 15000); // 15s polling
     return () => clearInterval(interval);
+  }, [fetchLiveRoster]);
+
+  const verifyPass = useCallback(async (searchValue) => {
+    const value = searchValue.trim();
+    if (!value) return;
+
+    setLoading(true);
+    setError("");
+    setActionSuccess("");
+    setResult(null);
+
+    try {
+      const response = await api.post("/api/gate/verify", {
+        identifier: value,
+      });
+      setResult(response.data);
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "No valid pass was found for that roll number or pass code."
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // In-Browser HTML5 Camera Scanner
@@ -57,11 +83,11 @@ const GuardTerminal = () => {
       scanner.render(
         (decodedText) => {
           setQuery(decodedText);
-          handleSearch(decodedText);
+          verifyPass(decodedText);
           scanner.clear();
           setScannerOpen(false);
         },
-        (scanError) => {
+        () => {
           // ignore transient scan frames
         }
       );
@@ -69,29 +95,10 @@ const GuardTerminal = () => {
 
     return () => {
       if (scanner) {
-        scanner.clear().catch((e) => console.log(e));
+        scanner.clear().catch(() => {});
       }
     };
-  }, [scannerOpen]);
-
-  const handleSearch = async (searchVal) => {
-    const val = (searchVal || query).trim();
-    if (!val) return;
-
-    setLoading(true);
-    setError("");
-    setActionSuccess("");
-    setResult(null);
-
-    try {
-      const res = await api.post("/api/gate/verify", { identifier: val });
-      setResult(res.data);
-    } catch (err) {
-      setError(err.response?.data?.message || "No valid pass found for this Roll No or Pass Code.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [scannerOpen, verifyPass]);
 
   const handleLogAction = async (action) => {
     if (!result || !result.leave) return;
@@ -104,11 +111,19 @@ const GuardTerminal = () => {
       });
 
       setActionSuccess(res.data.message);
-      // Re-verify to update state card
-      handleSearch(query);
-      fetchLiveRoster();
+      showToast({
+        tone: "success",
+        title: action === "EXIT" ? "Student exit recorded" : "Student return recorded",
+        message: res.data.message,
+      });
+      await verifyPass(query);
+      await fetchLiveRoster();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to log action.");
+      showToast({
+        tone: "danger",
+        title: "Gate movement was not recorded",
+        message: getApiErrorMessage(err, "Verify the pass state and try again."),
+      });
     } finally {
       setLoading(false);
     }
@@ -160,7 +175,7 @@ const GuardTerminal = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleSearch();
+            verifyPass(query);
           }}
           className="flex flex-col sm:flex-row items-center gap-3"
         >
@@ -293,10 +308,20 @@ const GuardTerminal = () => {
           <span className="text-[11px] text-slate-500 font-mono">Live Sync (15s)</span>
         </div>
 
-        {outsideStudents.length === 0 ? (
-          <div className="ui-panel p-6 rounded-xl text-center text-xs text-slate-500">
-            No students are currently outside campus. All residents accounted for.
-          </div>
+        {rosterLoading ? (
+          <LoadingState label="Loading the outside-campus roster" rows={2} compact />
+        ) : rosterError ? (
+          <ErrorState
+            title="Live roster is unavailable"
+            description={rosterError}
+            onRetry={fetchLiveRoster}
+          />
+        ) : outsideStudents.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No students are outside campus"
+            description="All hostel residents are currently accounted for."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {outsideStudents.map((s) => (
@@ -314,7 +339,7 @@ const GuardTerminal = () => {
                 <button
                   onClick={() => {
                     setQuery(s.passCode || s.student?.rollNo || "");
-                    handleSearch(s.passCode || s.student?.rollNo);
+                    verifyPass(s.passCode || s.student?.rollNo || "");
                   }}
                   className="py-1.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 transition-colors"
                 >

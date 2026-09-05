@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
 import { buildUploadUrl } from "../config/serviceUrls";
+import {
+  ButtonLink,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../components/ui/index.js";
 import { 
   FileText, 
   Plus, 
@@ -15,14 +22,18 @@ import {
 const MyLeaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const fetchLeaves = async () => {
     try {
       setLoading(true);
+      setLoadError("");
       const res = await api.get("/api/leave/mine");
       setLeaves(res.data || []);
     } catch (err) {
-      console.error(err);
+      setLoadError(
+        getApiErrorMessage(err, "Your leave applications could not be loaded.")
+      );
     } finally {
       setLoading(false);
     }
@@ -57,14 +68,24 @@ const MyLeaves = () => {
 
       {/* Grid */}
       {loading ? (
-        <div className="ui-panel p-8 text-center text-slate-500 text-xs rounded-xl">
-          Loading leave passes...
-        </div>
+        <LoadingState label="Loading your leave applications" rows={3} />
+      ) : loadError ? (
+        <ErrorState
+          title="Leave applications are unavailable"
+          description={loadError}
+          onRetry={fetchLeaves}
+        />
       ) : leaves.length === 0 ? (
-        <div className="ui-panel p-8 text-center border border-slate-200 rounded-xl space-y-2">
-          <FileText className="w-8 h-8 text-slate-400 mx-auto" />
-          <p className="text-slate-700 font-semibold text-xs">No leave applications found</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No leave applications"
+          description="When you request a gate pass, its approval status will appear here."
+          action={
+            <ButtonLink to="/student/leaves/apply" variant="primary">
+              Apply for leave
+            </ButtonLink>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {leaves.map((l) => {

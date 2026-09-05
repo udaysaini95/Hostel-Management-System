@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { getApiErrorMessage } from "../api/errors.js";
 import { buildUploadUrl } from "../config/serviceUrls";
+import {
+  Button,
+  ButtonLink,
+  ConfirmationDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Textarea,
+} from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
 import { 
-  AlertCircle, 
   Plus, 
   Trash2, 
   Image as ImageIcon,
@@ -18,15 +28,24 @@ import {
 const MyComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [dialogAction, setDialogAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [reopenNote, setReopenNote] = useState("");
+  const [reopenNoteError, setReopenNoteError] = useState("");
+  const { showToast } = useToast();
 
   const fetchComplaints = async () => {
     try {
       setLoading(true);
+      setLoadError("");
       const res = await api.get("/api/complaints/my");
       setComplaints(res.data || []);
     } catch (err) {
-      console.error(err);
+      setLoadError(
+        getApiErrorMessage(err, "Your complaints could not be loaded.")
+      );
     } finally {
       setLoading(false);
     }
@@ -36,28 +55,86 @@ const MyComplaints = () => {
     fetchComplaints();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this complaint?")) return;
+  const closeDialog = () => {
+    setDialogAction(null);
+    setReopenNote("");
+    setReopenNoteError("");
+  };
+
+  const handleDelete = async (complaint) => {
+    const id = complaint.id || complaint._id;
+
     try {
+      setActionLoading(true);
       await api.delete(`/api/complaints/${id}`);
-      setComplaints(complaints.filter(c => (c.id || c._id) !== id));
+      setComplaints((currentComplaints) =>
+        currentComplaints.filter((item) => (item.id || item._id) !== id)
+      );
+      closeDialog();
+      showToast({
+        tone: "success",
+        title: "Complaint deleted",
+        message: "The complaint was removed from your history.",
+      });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete complaint.");
+      showToast({
+        tone: "danger",
+        title: "Complaint could not be deleted",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleVerify = async (id, newStatus) => {
-    let note = "";
-    if (newStatus === "Created") {
-      note = window.prompt("Please provide a reason for reopening this ticket:");
-      if (note === null) return;
+  const handleVerify = async (id, newStatus, note = "") => {
+    try {
+      setActionLoading(true);
+      await api.put(`/api/complaints/verify/${id}`, { status: newStatus, note });
+      setComplaints((currentComplaints) =>
+        currentComplaints.map((item) =>
+          (item.id || item._id) === id
+            ? { ...item, status: newStatus }
+            : item
+        )
+      );
+      closeDialog();
+      showToast({
+        tone: "success",
+        title: newStatus === "Closed" ? "Complaint closed" : "Complaint reopened",
+        message:
+          newStatus === "Closed"
+            ? "The completed repair has been confirmed."
+            : "The complaint returned to the maintenance queue.",
+      });
+    } catch (err) {
+      showToast({
+        tone: "danger",
+        title: "Complaint status was not changed",
+        message: getApiErrorMessage(err, "Try again in a moment."),
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmDialogAction = () => {
+    if (dialogAction?.type === "delete") {
+      handleDelete(dialogAction.complaint);
+      return;
     }
 
-    try {
-      await api.put(`/api/complaints/verify/${id}`, { status: newStatus, note });
-      setComplaints(complaints.map(c => (c.id || c._id) === id ? { ...c, status: newStatus } : c));
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to verify complaint.");
+    if (dialogAction?.type === "reopen") {
+      const note = reopenNote.trim();
+
+      if (!note) {
+        setReopenNoteError("Explain what is still unresolved.");
+        return;
+      }
+
+      const complaintId =
+        dialogAction.complaint.id || dialogAction.complaint._id;
+      handleVerify(complaintId, "Created", note);
     }
   };
 
@@ -111,14 +188,37 @@ const MyComplaints = () => {
 
       {/* Grid */}
       {loading ? (
-        <div className="ui-panel p-8 text-center text-slate-500 text-xs rounded-xl">
-          Loading complaints...
-        </div>
+        <LoadingState label="Loading your complaints" rows={4} />
+      ) : loadError ? (
+        <ErrorState
+          title="Complaints are unavailable"
+          description={loadError}
+          onRetry={fetchComplaints}
+        />
       ) : filteredComplaints.length === 0 ? (
-        <div className="ui-panel p-8 text-center border border-slate-200 rounded-xl space-y-2">
-          <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
-          <p className="text-slate-700 font-semibold text-xs">No complaints found</p>
-        </div>
+        <EmptyState
+          title={
+            filterStatus === "All"
+              ? "No complaints yet"
+              : `No ${filterStatus.toLowerCase()} complaints`
+          }
+          description={
+            filterStatus === "All"
+              ? "New maintenance complaints and their updates will appear here."
+              : "No complaints match the selected status."
+          }
+          action={
+            filterStatus === "All" ? (
+              <ButtonLink to="/student/complaints/raise" variant="primary">
+                Raise a complaint
+              </ButtonLink>
+            ) : (
+              <Button onClick={() => setFilterStatus("All")}>
+                Show all complaints
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredComplaints.map((c) => {
@@ -181,12 +281,18 @@ const MyComplaints = () => {
                   <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
                     <button
                       onClick={() => handleVerify(complaintId, "Closed")}
+                      disabled={actionLoading}
                       className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5"
                     >
                       <CheckCircle className="w-3.5 h-3.5" /> Confirm Fixed
                     </button>
                     <button
-                      onClick={() => handleVerify(complaintId, "Created")}
+                      onClick={() => {
+                        setDialogAction({ type: "reopen", complaint: c });
+                        setReopenNote("");
+                        setReopenNoteError("");
+                      }}
+                      disabled={actionLoading}
                       className="flex-1 py-2 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[11px] font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Reopen Ticket
@@ -201,9 +307,12 @@ const MyComplaints = () => {
                   </div>
 
                   <button
-                    onClick={() => handleDelete(complaintId)}
+                    onClick={() =>
+                      setDialogAction({ type: "delete", complaint: c })
+                    }
                     className="p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     title="Delete Complaint"
+                    aria-label="Delete complaint"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -214,6 +323,40 @@ const MyComplaints = () => {
           })}
         </div>
       )}
+
+      <ConfirmationDialog
+        open={Boolean(dialogAction)}
+        title={
+          dialogAction?.type === "delete"
+            ? "Delete this complaint?"
+            : "Reopen this complaint?"
+        }
+        description={
+          dialogAction?.type === "delete"
+            ? "This removes the complaint from your history and cannot be undone."
+            : "The complaint will return to the maintenance queue for further work."
+        }
+        confirmLabel={dialogAction?.type === "delete" ? "Delete complaint" : "Reopen complaint"}
+        loadingLabel={dialogAction?.type === "delete" ? "Deleting" : "Reopening"}
+        tone={dialogAction?.type === "delete" ? "danger" : "default"}
+        loading={actionLoading}
+        onConfirm={confirmDialogAction}
+        onDismiss={closeDialog}
+      >
+        {dialogAction?.type === "reopen" && (
+          <Textarea
+            label="Reason for reopening"
+            name="reopenReason"
+            value={reopenNote}
+            onChange={(event) => {
+              setReopenNote(event.target.value);
+              setReopenNoteError("");
+            }}
+            error={reopenNoteError}
+            required
+          />
+        )}
+      </ConfirmationDialog>
 
     </div>
   );
