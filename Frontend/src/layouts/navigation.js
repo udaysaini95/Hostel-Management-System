@@ -5,6 +5,7 @@ import {
   QrCode,
   Utensils,
 } from "lucide-react";
+import { USER_ROLES } from "../auth/roles.js";
 
 const studentNavigation = Object.freeze([
   {
@@ -54,23 +55,23 @@ const adminNavigation = Object.freeze([
 ]);
 
 const roleNavigation = Object.freeze({
-  student: studentNavigation,
-  warden: operationsNavigation,
-  admin: adminNavigation,
-  guard: Object.freeze([
+  [USER_ROLES.STUDENT]: studentNavigation,
+  [USER_ROLES.WARDEN]: operationsNavigation,
+  [USER_ROLES.ADMIN]: adminNavigation,
+  [USER_ROLES.GUARD]: Object.freeze([
     { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },
   ]),
-  maintenance: Object.freeze([
+  [USER_ROLES.MAINTENANCE]: Object.freeze([
     { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
   ]),
 });
 
 export const ROLE_LABELS = Object.freeze({
-  student: "Student",
-  warden: "Warden",
-  maintenance: "Maintenance",
-  guard: "Gate security",
-  admin: "Administrator",
+  [USER_ROLES.STUDENT]: "Student",
+  [USER_ROLES.WARDEN]: "Warden",
+  [USER_ROLES.MAINTENANCE]: "Maintenance",
+  [USER_ROLES.GUARD]: "Gate security",
+  [USER_ROLES.ADMIN]: "Administrator",
 });
 
 export const getNavigationForRole = (role) => roleNavigation[role] ?? [];
@@ -101,6 +102,7 @@ const routeTitles = Object.freeze({
   "/admin/leaves": "Leave requests",
   "/admin/mess": "Mess management",
   "/guard/terminal": "Gate terminal",
+  "/unauthorized": "Access denied",
 });
 
 export const getRouteTitle = (pathname) => routeTitles[pathname] ?? "HostelMate";

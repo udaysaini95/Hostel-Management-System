@@ -1,8 +1,21 @@
 import { Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/authContext.js";
+import { AUTH_STATUS } from "../auth/session.js";
 import { ButtonLink } from "../components/ui";
+import { getRoleHome } from "./navigation.js";
 import { ProductBrand } from "./ProductBrand.jsx";
 
-const getPublicActions = (pathname) => {
+const getPublicActions = (pathname, authStatus, user) => {
+  if (authStatus === AUTH_STATUS.AUTHENTICATED) {
+    return [
+      {
+        label: "Open dashboard",
+        path: getRoleHome(user.role),
+        variant: "primary",
+      },
+    ];
+  }
+
   if (pathname.includes("register")) {
     return [{ label: "Sign in", path: "/login", variant: "primary" }];
   }
@@ -29,7 +42,8 @@ const getPublicActions = (pathname) => {
 
 export const PublicShell = () => {
   const location = useLocation();
-  const actions = getPublicActions(location.pathname);
+  const { status, user } = useAuth();
+  const actions = getPublicActions(location.pathname, status, user);
 
   return (
     <div className="hm-public-shell">

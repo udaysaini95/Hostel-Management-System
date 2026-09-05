@@ -1,5 +1,11 @@
 import axios from "axios";
 import { frontendServiceConfig } from "../config/serviceUrls";
+import {
+  announceSessionEnded,
+  clearStoredSession,
+  getSessionEndMessage,
+  readStoredToken,
+} from "../auth/session.js";
 
 const api = axios.create({
   baseURL: frontendServiceConfig.apiBaseUrl,
@@ -8,10 +14,9 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to automatically attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = readStoredToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -22,19 +27,19 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle unauthorized requests
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear invalid token if unauthorized
-      const currentPath = window.location.pathname;
-      if (currentPath !== "/" && !currentPath.includes("/login") && !currentPath.includes("/register")) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("role");
-      }
+    const requestUsedSession = Boolean(error.config?.headers?.Authorization);
+
+    if (error.response?.status === 401 && requestUsedSession) {
+      const errorCode = error.response?.data?.code;
+      const message = getSessionEndMessage(errorCode);
+
+      clearStoredSession();
+      announceSessionEnded({ code: errorCode, message });
     }
+
     return Promise.reject(error);
   }
 );

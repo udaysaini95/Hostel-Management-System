@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, ArrowLeft, Lock, Mail } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft, Info, Lock, Mail } from "lucide-react";
 import api from "../api/axios";
+import { useAuth } from "../auth/authContext.js";
+import { canRoleAccessPath } from "../auth/routeAccess.js";
 import { Button, Input, Panel } from "../components/ui";
+import { getRoleHome } from "../layouts/navigation.js";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,27 +23,14 @@ const LoginPage = () => {
 
     try {
       const response = await api.post("/api/auth/login", { email, password });
-      const userRole = response.data.role || response.data.user?.role || "student";
-      const token = response.data.token;
-      const user = response.data.user || {
-        name: email.split("@")[0],
-        email,
-        role: userRole,
-      };
+      const user = signIn(response.data);
+      const requestedLocation = location.state?.from;
+      const requestedPath = requestedLocation?.pathname;
+      const destination = canRoleAccessPath(user.role, requestedPath)
+        ? `${requestedPath}${requestedLocation.search || ""}${requestedLocation.hash || ""}`
+        : getRoleHome(user.role);
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (userRole === "admin" || userRole === "warden") {
-        navigate("/admin/dashboard");
-      } else if (userRole === "guard") {
-        navigate("/guard/terminal");
-      } else if (userRole === "maintenance") {
-        navigate("/student/mess");
-      } else {
-        navigate("/student/dashboard");
-      }
+      navigate(destination, { replace: true });
     } catch (requestError) {
       console.error("Login error:", requestError);
       setError(
@@ -82,6 +74,16 @@ const LoginPage = () => {
                 aria-hidden="true"
               />
               <span>{error}</span>
+            </div>
+          )}
+
+          {!error && location.state?.message && (
+            <div
+              className="flex items-start gap-2 rounded-md border border-border bg-info-soft p-3 text-small text-info"
+              role="status"
+            >
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{location.state.message}</span>
             </div>
           )}
 

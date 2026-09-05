@@ -141,6 +141,9 @@ Phase 1 exit gate:
 | FE-05 | Add auth bootstrap, `/me` integration, protected routes, and unauthorized/404 pages | AUTH-06–AUTH-08 | Direct URL and session-expiry route tests pass for every role | `feat(frontend): protect routes by session and role` |
 | FE-06 | Add shared loading, empty, error, unauthorized, toast, and confirmation patterns | Design Sections 8–9 | Component tests distinguish failed data from genuine empty data | `feat(ui): add reusable application feedback states` |
 | FE-07 | Bring the canonical frontend to a clean lint/build baseline | Quality gates 15.3 | Lint and production build pass with no ignored active errors | `fix(frontend): restore clean lint and build baseline` |
+| ONB-01 | Add searchable approved-student lifecycle APIs for listing, revocation, and activation reissue | AUTH-01, AUTH-13, AUTH-15, RES-09 | Permission, hostel scope, state transition, pagination, and audit tests pass | `feat(onboarding): manage approved student records` |
+| ONB-02 | Build the administrator student-approval console and hostel-aware approval form | AUTH-15, RES-09, design 10.2A | Admin can approve and manage records; other roles are blocked; responsive form/list states pass | `feat(frontend): add student approval console` |
+| ONB-03 | Replace legacy registration with activation request and password-setup pages | AUTH-01, AUTH-13, AUTH-16 | Matching, unknown, expired, used, resend, success, and keyboard flows pass without account enumeration | `feat(frontend): complete student account activation` |
 | TEST-02 | Add frontend component test harness and accessibility checks | Testing 15.1, design Section 15 | Shared primitive, protected route, and form tests pass | `test(frontend): add component and accessibility harness` |
 
 Phase 2 exit gate:
@@ -149,6 +152,8 @@ Phase 2 exit gate:
 - Design tokens/primitives control styling.
 - No active localhost-only URLs or fake fallbacks remain.
 - Role routes are protected.
+- Administrators can manage approved-student records through the UI.
+- Students can request and complete verified account activation through the UI.
 - Loading, empty, and error states are distinct.
 - Frontend lint, tests, and build pass.
 
@@ -268,7 +273,7 @@ Phase 7 exit gate:
 
 | PRD area | Primary slices |
 | --- | --- |
-| AUTH-01–AUTH-14 | AUTH-01 through AUTH-06, API-01, API-02, FE-05, TEST-01/03 |
+| AUTH-01–AUTH-16 | AUTH-01 through AUTH-06, API-01, API-02, FE-05, ONB-01 through ONB-03, TEST-01/03 |
 | RES-01–RES-09 | DB-01, RES-01 through RES-06 |
 | CMP-01–CMP-13 | CMP-01 through CMP-08, FILE-01 |
 | LEV-01–LEV-13 | LEV-01 through LEV-05, PASS-01, GATE-01 through GATE-04 |

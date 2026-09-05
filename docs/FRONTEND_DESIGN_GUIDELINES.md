@@ -588,6 +588,24 @@ Purpose: explain the product and provide sign-in/student registration.
 - Public registration copy must clearly say it creates a student account.
 - Do not expose an admin/warden/guard registration link.
 
+### 10.2A Approved-student onboarding
+
+- The administrator view uses a compact searchable table on desktop and
+  structured records on mobile.
+- The approval form requests only name, institutional email, roll number, and
+  assigned hostel. Room allocation remains a separate capacity-controlled
+  workflow.
+- Show approval state with plain labels such as `Approved`, `Activated`,
+  `Expired`, or `Revoked`; never display raw activation tokens.
+- Resend and revoke actions require explicit confirmation and show the affected
+  student identity.
+- The student activation request asks for email and roll number and always shows
+  the same neutral success message, whether or not a record matches.
+- The emailed activation link opens a focused password-setup page that clearly
+  handles invalid, expired, already-used, and successful tokens.
+- Do not imply that HostelMate creates an institutional email address. It only
+  verifies control of an address already approved by the institution.
+
 ### 10.3 Student overview
 
 Information order:

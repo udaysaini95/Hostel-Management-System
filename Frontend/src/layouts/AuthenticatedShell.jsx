@@ -1,6 +1,7 @@
 import { createElement, useState } from "react";
 import { LogOut, Menu } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/authContext.js";
 import { Button, Drawer } from "../components/ui";
 import {
   getNavigationForRole,
@@ -10,21 +11,6 @@ import {
   ROLE_LABELS,
 } from "./navigation.js";
 import { ProductBrand } from "./ProductBrand.jsx";
-
-const readStoredUser = () => {
-  const storedUser = localStorage.getItem("user");
-
-  if (!storedUser) {
-    return null;
-  }
-
-  try {
-    const user = JSON.parse(storedUser);
-    return user && typeof user === "object" ? user : null;
-  } catch {
-    return null;
-  }
-};
 
 const NavigationList = ({ items, pathname, onNavigate }) => (
   <nav className="hm-app-navigation" aria-label="Primary navigation">
@@ -76,19 +62,17 @@ const AccountSummary = ({ user, roleLabel, compact = false }) => {
 export const AuthenticatedShell = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const user = readStoredUser();
-  const role = user?.role || localStorage.getItem("role") || "";
+  const role = user.role;
   const roleLabel = ROLE_LABELS[role] || "Account";
   const navigationItems = getNavigationForRole(role);
   const pageTitle = getRouteTitle(location.pathname);
   const contentIsFullWidth = location.pathname === "/guard/terminal";
 
-  const signOut = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("user");
+  const handleSignOut = () => {
     setNavigationOpen(false);
+    signOut();
     navigate("/login");
   };
 
@@ -138,7 +122,7 @@ export const AuthenticatedShell = () => {
               size="icon"
               aria-label="Sign out"
               title="Sign out"
-              onClick={signOut}
+              onClick={handleSignOut}
             >
               <LogOut aria-hidden="true" />
             </Button>
@@ -177,7 +161,7 @@ export const AuthenticatedShell = () => {
             variant="secondary"
             fullWidth
             leadingIcon={<LogOut aria-hidden="true" />}
-            onClick={signOut}
+            onClick={handleSignOut}
           >
             Sign out
           </Button>

@@ -318,6 +318,94 @@
     max-width: 42rem;
     margin-inline: auto;
   }
+
+  .hm-session-gate {
+    display: grid;
+    min-height: 100vh;
+    place-content: center;
+    justify-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--color-canvas);
+  }
+
+  .hm-session-gate--embedded {
+    min-height: calc(100vh - 4rem);
+  }
+
+  .hm-session-gate__panel,
+  .hm-route-message {
+    display: grid;
+    width: min(100%, 34rem);
+    justify-items: start;
+    gap: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .hm-session-gate__panel h1,
+  .hm-route-message h1 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-section-title);
+    line-height: var(--text-section-title--line-height);
+    font-weight: 700;
+  }
+
+  .hm-session-gate__panel p,
+  .hm-route-message > p:not(.hm-route-message__eyebrow) {
+    max-width: 54ch;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .hm-session-gate__spinner,
+  .hm-session-gate__icon,
+  .hm-route-message__icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--color-brand);
+  }
+
+  .hm-session-gate__spinner {
+    animation: hm-spin 700ms linear infinite;
+  }
+
+  .hm-session-gate__actions,
+  .hm-route-message__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .hm-route-message__icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    color: var(--color-brand);
+    background: var(--color-brand-soft);
+    border-radius: var(--radius-md);
+  }
+
+  .hm-route-message__eyebrow {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hm-public-status-page {
+    display: grid;
+    min-height: calc(100vh - 4rem);
+    place-items: center;
+    padding: 1.5rem;
+  }
 }
 
 @media (max-width: 767px) {
@@ -343,6 +431,18 @@
 
   .hm-app-shell__main {
     padding: 1rem;
+  }
+
+  .hm-session-gate,
+  .hm-public-status-page {
+    padding: 1rem;
+  }
+
+  .hm-session-gate__actions,
+  .hm-session-gate__actions > *,
+  .hm-route-message__actions,
+  .hm-route-message__actions > * {
+    width: 100%;
   }
 }
 

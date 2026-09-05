@@ -103,7 +103,8 @@ Primary success condition: an invalid, expired, or reused pass cannot produce an
 
 ### 6.5 System administrator
 
-Needs to provision staff accounts, manage roles, configure hostel data, review audit activity, and deactivate access.
+Needs to approve student identities, provision staff accounts, manage roles,
+configure hostel and room data, review audit activity, and deactivate access.
 
 Primary success condition: privileged access is controlled without public staff registration.
 
@@ -205,6 +206,8 @@ Priority definitions:
 | AUTH-12 | P1 | Administrators may issue expiring staff invitations. | Invitations can be accepted once and create only the pre-authorized role. |
 | AUTH-13 | P0 | New users must verify ownership of their email address before account activation. | Verification tokens are hashed, single-use, expire, and successful verification records `email_verified_at`. |
 | AUTH-14 | P0 | All roles use one email-and-password sign-in flow. | The server derives role and hostel access from stored records; neither is selected or trusted from the login request. |
+| AUTH-15 | P0 | Administrators may search and manage approved-student records. | The UI and API expose approval, activation, expiry, and revocation state without exposing activation tokens; actions are audited. |
+| AUTH-16 | P0 | Students can request and complete approved-account activation through the frontend. | Matching email and roll number produce a neutral response, emailed links open a password-setup page, and invalid, expired, or used tokens show a safe recovery path. |
 
 ### 10.2 Student profiles and room management
 
@@ -458,18 +461,20 @@ PENDING ──→ REJECTED
 
 ### 15.2 Required end-to-end scenarios
 
-1. Student registers and completes a profile.
-2. Warden allocates the student to a room.
-3. Student submits a complaint with evidence.
-4. Warden assigns it to maintenance.
-5. Maintenance resolves it with a note.
-6. Student confirms closure or reopens it.
-7. Student applies for leave.
-8. Warden approves and issues the secure pass.
-9. Guard records exit.
-10. A duplicate exit request is rejected without a duplicate event.
-11. Guard records return.
-12. Audit history shows the complete sequence and actors.
+1. Administrator approves a student email, roll number, and hostel.
+2. Student requests the activation email and creates a password from the single-use link.
+3. Student completes a profile.
+4. Warden allocates the student to a room without exceeding capacity.
+5. Student submits a complaint with evidence.
+6. Warden assigns it to maintenance.
+7. Maintenance resolves it with a note.
+8. Student confirms closure or reopens it.
+9. Student applies for leave.
+10. Warden approves and issues the secure pass.
+11. Guard records exit.
+12. A duplicate exit request is rejected without a duplicate event.
+13. Guard records return.
+14. Audit history shows the complete sequence and actors.
 
 ### 15.3 Quality gates
 
