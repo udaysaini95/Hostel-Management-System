@@ -25,6 +25,10 @@ test("permission matrix covers every supported role with known unique permission
 
 test("permission matrix enforces critical role boundaries", () => {
   const expectations = [
+    [USER_ROLES.STUDENT, PERMISSIONS.STUDENT_PROFILE_READ_SELF, true],
+    [USER_ROLES.STUDENT, PERMISSIONS.STUDENT_PROFILE_UPDATE_SELF, true],
+    [USER_ROLES.WARDEN, PERMISSIONS.STUDENT_PROFILE_READ_SELF, false],
+    [USER_ROLES.ADMIN, PERMISSIONS.STUDENT_PROFILE_UPDATE_SELF, false],
     [USER_ROLES.STUDENT, PERMISSIONS.LEAVE_CREATE_OWN, true],
     [USER_ROLES.ADMIN, PERMISSIONS.LEAVE_CREATE_OWN, false],
     [USER_ROLES.WARDEN, PERMISSIONS.LEAVE_REVIEW, true],

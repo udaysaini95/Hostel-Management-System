@@ -11,6 +11,9 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 ## Current role boundaries
 
 - Students operate on their own profile, complaints, leave applications, and mess submissions.
+- Only students receive the `student-profile:read:self` and
+  `student-profile:update:self` permissions. The profile API derives ownership
+  from the authenticated subject and has no ID-based student route.
 - Wardens may review operational complaints, leaves, mess records, and read gate activity, but cannot log gate movements.
 - Maintenance users currently have profile and mess participation access. Assigned-complaint permissions will be activated only after complaint assignment data exists.
 - Guards may verify passes, log gate movement, read gate activity, and use shared mess participation features.
@@ -26,6 +29,7 @@ the audit API.
 
 Staff provisioning and suspension rules are documented in [Staff Account Lifecycle](./STAFF_ACCOUNT_LIFECYCLE.md).
 The student identity and email-verification flow is documented in [Approved Student Activation](./STUDENT_ACTIVATION.md).
+The private profile response and editable fields are documented in [Student Profile API](./STUDENT_PROFILES.md).
 The append-only audit model is documented in [Audit Logging](./AUDIT_LOGGING.md).
 
 Protected endpoints return `AUTHENTICATION_REQUIRED` when no valid actor exists and `PERMISSION_DENIED` when the authenticated role lacks the requested capability. Ownership failures return `RESOURCE_ACCESS_DENIED`.

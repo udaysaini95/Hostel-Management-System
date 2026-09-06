@@ -2,6 +2,8 @@ import { USER_ROLES } from "./roles.js";
 
 export const PERMISSIONS = Object.freeze({
   PROFILE_READ_SELF: "profile:read:self",
+  STUDENT_PROFILE_READ_SELF: "student-profile:read:self",
+  STUDENT_PROFILE_UPDATE_SELF: "student-profile:update:self",
   COMPLAINT_CREATE: "complaint:create",
   COMPLAINT_READ_OWN: "complaint:read:own",
   COMPLAINT_READ_MANAGED: "complaint:read:managed",
@@ -35,6 +37,8 @@ const permissionsFor = (...permissions) => Object.freeze(permissions);
 export const ROLE_PERMISSIONS = Object.freeze({
   [USER_ROLES.STUDENT]: permissionsFor(
     PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.STUDENT_PROFILE_READ_SELF,
+    PERMISSIONS.STUDENT_PROFILE_UPDATE_SELF,
     PERMISSIONS.COMPLAINT_CREATE,
     PERMISSIONS.COMPLAINT_READ_OWN,
     PERMISSIONS.COMPLAINT_DELETE_OWN,

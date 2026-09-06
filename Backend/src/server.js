@@ -10,11 +10,8 @@ import messRoutes from "./Routes/messRoutes.js";
 import gateRoutes from "./Routes/gateRoutes.js";
 import adminRoutes from "./Routes/adminRoutes.js";
 import auditRoutes from "./Routes/auditRoutes.js";
-import { protect } from "./middlewares/authMiddleware.js";
-import { requirePermission } from "./middlewares/authorizationMiddleware.js";
-import { getProfile } from "./Controllers/authController.js";
+import studentProfileRoutes from "./Routes/studentProfileRoutes.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
-import { PERMISSIONS } from "./domain/permissions.js";
 import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
 import {
   errorHandler,
@@ -34,12 +31,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/audit-events", auditRoutes);
-app.use(
-  "/api/student/profile",
-  protect,
-  requirePermission(PERMISSIONS.PROFILE_READ_SELF),
-  getProfile
-);
+app.use("/api/student/profile", studentProfileRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/mess", messRoutes);

@@ -13,6 +13,10 @@ import {
   menuRequestSchema,
   resourceIdSchema,
 } from "../src/validation/operationalSchemas.js";
+import {
+  studentProfileReadRequestSchema,
+  studentProfileUpdateRequestSchema,
+} from "../src/validation/studentProfileSchemas.js";
 
 const createResponse = () => ({
   statusCode: null,
@@ -161,6 +165,73 @@ test("student-approval revocation validates both ID and reason", () => {
   assert.equal(
     response.body.fieldErrors["body.reason"],
     "Revocation reason must contain at least 5 characters"
+  );
+});
+
+test("student profile updates normalize editable contact fields", () => {
+  const request = {
+    body: {
+      phone: "  +91 98765 43210  ",
+      guardianName: "  Asha Rao  ",
+      guardianPhone: "  011 2345 6789 ",
+    },
+  };
+  const { response, nextCalled } = runValidation(
+    studentProfileUpdateRequestSchema,
+    request
+  );
+
+  assert.equal(nextCalled, true);
+  assert.equal(response.statusCode, null);
+  assert.deepEqual(request.body, {
+    phone: "+91 98765 43210",
+    guardianName: "Asha Rao",
+    guardianPhone: "011 2345 6789",
+  });
+});
+
+test("student profile routes reject cross-profile selectors and identity changes", () => {
+  const readRequest = { query: { userId: "42" } };
+  const readResult = runValidation(
+    studentProfileReadRequestSchema,
+    readRequest
+  );
+  const updateRequest = {
+    body: {
+      rollNo: "NEW-ROLL-NUMBER",
+      hostelCode: "H2",
+    },
+  };
+  const updateResult = runValidation(
+    studentProfileUpdateRequestSchema,
+    updateRequest
+  );
+
+  assert.equal(readResult.nextCalled, false);
+  assert.equal(readResult.response.statusCode, 422);
+  assert.ok(readResult.response.body.fieldErrors.query);
+  assert.equal(updateResult.nextCalled, false);
+  assert.equal(updateResult.response.statusCode, 422);
+  assert.ok(updateResult.response.body.fieldErrors.body);
+});
+
+test("student profile updates reject empty bodies and invalid phone values", () => {
+  const emptyResult = runValidation(studentProfileUpdateRequestSchema, {
+    body: {},
+  });
+  const phoneResult = runValidation(studentProfileUpdateRequestSchema, {
+    body: { phone: "call-me" },
+  });
+
+  assert.equal(emptyResult.nextCalled, false);
+  assert.equal(
+    emptyResult.response.body.fieldErrors.body,
+    "Provide at least one profile field to update"
+  );
+  assert.equal(phoneResult.nextCalled, false);
+  assert.equal(
+    phoneResult.response.body.fieldErrors["body.phone"],
+    "Phone number must contain 7 to 20 valid phone characters"
   );
 });
 

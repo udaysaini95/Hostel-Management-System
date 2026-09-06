@@ -54,6 +54,15 @@ export const rollNoSchema = z
     "Enter a valid student roll number"
   );
 
+export const phoneSchema = (label = "Phone number") =>
+  z
+    .string(`${label} must be text`)
+    .trim()
+    .regex(
+      /^[0-9+() -]{7,20}$/,
+      `${label} must contain 7 to 20 valid phone characters`
+    );
+
 export const secureTokenSchema = z
   .string("Token must be text")
   .regex(/^[A-Za-z0-9_-]{43}$/, "Enter a valid activation token");
