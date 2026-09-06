@@ -22,8 +22,9 @@ import MyComplaints from "./pages/MyComplaints";
 import MyLeaves from "./pages/MyLeaves";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import RaiseComplaint from "./pages/RaiseComplaint";
+import StudentActivationComplete from "./pages/StudentActivationComplete.jsx";
+import StudentActivationRequest from "./pages/StudentActivationRequest.jsx";
 import StudentDashboard from "./pages/StudentDashboard";
-import StudentRegister from "./pages/StudentRegister";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 
 function App() {
@@ -33,11 +34,18 @@ function App() {
         <Route index element={<LandingPage />} />
         <Route element={<GuestOnly />}>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<StudentRegister />} />
+          <Route path="/register" element={<StudentActivationRequest />} />
           <Route path="/student/login" element={<LoginPage />} />
-          <Route path="/student/register" element={<StudentRegister />} />
+          <Route
+            path="/student/register"
+            element={<StudentActivationRequest />}
+          />
           <Route path="/admin/login" element={<LoginPage />} />
         </Route>
+        <Route
+          path="/activate-student"
+          element={<StudentActivationComplete />}
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

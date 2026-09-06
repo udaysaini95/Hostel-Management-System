@@ -16,14 +16,17 @@ const getPublicActions = (pathname, authStatus, user) => {
     ];
   }
 
-  if (pathname.includes("register")) {
+  if (
+    pathname.includes("register") ||
+    pathname.includes("activate-student")
+  ) {
     return [{ label: "Sign in", path: "/login", variant: "primary" }];
   }
 
   if (pathname.includes("login")) {
     return [
       {
-        label: "Create student account",
+        label: "Activate student account",
         path: "/register",
         variant: "secondary",
       },
@@ -33,7 +36,7 @@ const getPublicActions = (pathname, authStatus, user) => {
   return [
     { label: "Sign in", path: "/login", variant: "primary" },
     {
-      label: "Student registration",
+      label: "Student activation",
       path: "/register",
       variant: "secondary",
     },

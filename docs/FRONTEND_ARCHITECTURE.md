@@ -29,6 +29,14 @@ server pagination and filtering, loads active hostel choices from the API, and
 renders the same records as a comparison table on desktop and structured
 records on mobile. It never receives or renders activation tokens.
 
+Student activation validation and privacy-safe copy live in
+`src/onboarding/studentActivation.js`. `/register` now requests an activation
+email using an already-approved email and roll number; it shows the same result
+whether a record matches or not. `/activate-student` reads the single-use token
+from the emailed URL into component memory, removes it from the visible address,
+and submits it only to the completion endpoint. Successful completion enters the
+normal auth context instead of maintaining a second login state.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
@@ -60,9 +68,10 @@ components to justify one, but they must remain reachable from the single
 | --- | --- | --- |
 | Public | `/` | Landing page |
 | Public | `/login` | Unified login |
-| Public | `/register` | Legacy student registration screen; replaced in ONB-03 |
+| Public guest | `/register` | Student activation-email request |
+| Public | `/activate-student` | Single-use student password setup and activation |
 | Compatibility | `/student/login` | Unified login |
-| Compatibility | `/student/register` | Legacy registration alias |
+| Compatibility | `/student/register` | Student activation-email request alias |
 | Compatibility | `/admin/login` | Unified login |
 | Student | `/student/dashboard` | Student dashboard |
 | Student | `/student/complaints` | Student complaints |

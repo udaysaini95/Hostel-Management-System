@@ -1,0 +1,197 @@
+@layer components {
+  .hm-activation-page {
+    display: grid;
+    min-height: calc(100vh - 4rem);
+    place-items: center;
+    padding: 2rem 1.5rem;
+    background: var(--color-canvas);
+  }
+
+  .hm-activation-page__container {
+    width: min(100%, 25rem);
+  }
+
+  .hm-activation-page__back {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-small);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .hm-activation-page__back:hover {
+    color: var(--color-text-primary);
+  }
+
+  .hm-activation-page__back svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .hm-activation-card {
+    display: grid;
+    gap: 1.25rem;
+    width: 100%;
+    padding: 1.5rem;
+  }
+
+  .hm-activation-card--result {
+    width: min(100%, 30rem);
+  }
+
+  .hm-activation-card__heading,
+  .hm-activation-result {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .hm-activation-card__heading h1,
+  .hm-activation-result h1 {
+    margin: 0;
+    font-size: var(--text-section-title);
+    line-height: var(--text-section-title--line-height);
+    font-weight: 700;
+  }
+
+  .hm-activation-card__heading > p:not(.hm-activation-card__eyebrow),
+  .hm-activation-result > div > p:not(.hm-activation-card__eyebrow) {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+  }
+
+  .hm-activation-card__eyebrow {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .hm-activation-card__heading-icon,
+  .hm-activation-result__icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    color: var(--color-brand);
+    background: var(--color-brand-soft);
+    border-radius: var(--radius-md);
+  }
+
+  .hm-activation-card__heading-icon svg,
+  .hm-activation-result__icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .hm-activation-result__icon--success {
+    color: var(--color-success);
+    background: var(--color-success-soft);
+  }
+
+  .hm-activation-result__icon--danger {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+  }
+
+  .hm-activation-card__notice,
+  .hm-activation-result__note {
+    padding: 0.75rem;
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .hm-activation-card__error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+  }
+
+  .hm-activation-card__error svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin-top: 0.0625rem;
+  }
+
+  .hm-activation-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-activation-card__footer {
+    display: flex;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-top: 1rem;
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border);
+    font-size: var(--text-small);
+  }
+
+  .hm-activation-card__footer a,
+  .hm-activation-card__text-link {
+    color: var(--color-brand);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .hm-activation-card__footer a:hover,
+  .hm-activation-card__text-link:hover {
+    text-decoration: underline;
+  }
+
+  .hm-activation-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .hm-activation-page {
+    place-items: start center;
+    padding: 1rem;
+  }
+
+  .hm-activation-page__back,
+  .hm-activation-card .hm-button {
+    min-height: 2.75rem;
+  }
+
+  .hm-activation-card {
+    padding: 1.25rem;
+  }
+
+  .hm-activation-card__actions,
+  .hm-activation-card__actions > * {
+    width: 100%;
+  }
+
+  .hm-activation-card__text-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+  }
+}

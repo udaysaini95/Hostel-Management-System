@@ -80,6 +80,11 @@ An email-delivery failure revokes the newly created token and returns a safe
 
 The public response is deliberately the same whether the details match or not. This prevents the endpoint from revealing which students have been approved. A matching request revokes any earlier unused token, creates a new 30-minute token, and sends the activation link to the approved address.
 
+The frontend exposes this flow at `/register`; it is an activation request, not
+open registration. The form asks only for the existing institutional email and
+roll number. After any accepted request it displays the same neutral confirmation
+and allows another request, which safely replaces an earlier unused link.
+
 ### 3. Complete activation
 
 `POST /api/auth/student-activation/complete`
@@ -92,6 +97,13 @@ The public response is deliberately the same whether the details match or not. T
 ```
 
 Successful completion performs one transaction that creates the student account, creates the primary hostel membership, records email verification, links the approval to the new user, and consumes the token. The response includes a normal expiring access session.
+
+The emailed link opens `/activate-student?token=...`. The frontend keeps the
+token only in component memory, removes it from the visible address, and asks
+the student to create and confirm a password. Invalid, expired, and already-used
+tokens share one recovery state that links back to `/register`. A successful
+activation starts the normal student session and provides a direct dashboard
+action.
 
 The old `POST /api/auth/register` route no longer creates accounts. It returns `410 STUDENT_ACTIVATION_REQUIRED` so older clients receive a clear migration response.
 

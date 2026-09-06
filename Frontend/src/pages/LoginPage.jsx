@@ -131,7 +131,7 @@ const LoginPage = () => {
                 to="/register"
                 className="font-semibold text-brand hover:underline"
               >
-                Create student account
+                Activate your account
               </Link>
             </p>
           </div>
