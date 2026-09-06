@@ -51,6 +51,12 @@ confirmation. Data-driven pages use distinct `LoadingState`, `EmptyState`, and
 dialogs. API failure messages pass through `src/api/errors.js` so private error
 objects are not rendered to users.
 
+Frontend verification has two complementary layers. Node's built-in runner
+keeps pure-function and source-boundary checks fast, while Vitest, jsdom, and
+Testing Library render components and exercise them through accessible roles.
+axe-core runs against critical component states. `npm.cmd test` executes both
+layers so component coverage cannot be skipped accidentally.
+
 The public shell provides the 64px public header and account-entry actions. The
 authenticated shell provides the 232px desktop sidebar, 56px utility bar,
 role-aware navigation, mobile drawer, account context, and sign-out action.

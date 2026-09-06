@@ -1,4 +1,42 @@
-# Backend testing workflow
+# Automated testing workflow
+
+## Frontend testing workflow
+
+Run these commands from `Frontend/`:
+
+```powershell
+npm.cmd test
+npm.cmd run test:unit
+npm.cmd run test:components
+npm.cmd run test:components:watch
+```
+
+`npm.cmd test` is the complete frontend test command. It runs the existing fast
+Node tests first, followed by the jsdom component suite. The watch command is
+intended for local development and is not a CI quality gate.
+
+### Frontend test organization
+
+- `Frontend/test/*.test.js` contains source-boundary and pure-function tests
+  executed by Node's built-in test runner.
+- `Frontend/test/components/*.test.jsx` contains rendered React tests executed
+  by Vitest and Testing Library.
+- `Frontend/test/setup/componentTestSetup.js` owns shared jsdom cleanup and
+  browser API shims.
+- `Frontend/test/support/accessibility.js` runs axe-core checks and formats
+  failures consistently.
+
+Component tests do not call a live API. Network clients are mocked at the module
+boundary so route, form, loading, error, and success behavior remains
+deterministic. Prefer user-visible roles and labels over CSS selectors when
+driving a component.
+
+axe-core checks semantic markup, accessible names, form relationships, ARIA,
+and other DOM-level rules. Its color-contrast rule is disabled in jsdom because
+jsdom does not calculate layout or rendered colors. Contrast remains part of
+design-token review and browser-level visual verification.
+
+## Backend testing workflow
 
 ## Purpose
 

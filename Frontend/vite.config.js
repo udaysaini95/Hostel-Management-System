@@ -12,5 +12,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    test: {
+      environment: 'jsdom',
+      setupFiles: './test/setup/componentTestSetup.js',
+      include: ['test/components/**/*.test.jsx'],
+      clearMocks: true,
+      restoreMocks: true,
+    },
   }
 })
