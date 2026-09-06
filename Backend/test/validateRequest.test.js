@@ -17,6 +17,7 @@ import {
   studentProfileReadRequestSchema,
   studentProfileUpdateRequestSchema,
 } from "../src/validation/studentProfileSchemas.js";
+import { residentDirectoryRequestSchema } from "../src/validation/residentSchemas.js";
 
 const createResponse = () => ({
   statusCode: null,
@@ -233,6 +234,48 @@ test("student profile updates reject empty bodies and invalid phone values", () 
     phoneResult.response.body.fieldErrors["body.phone"],
     "Phone number must contain 7 to 20 valid phone characters"
   );
+});
+
+test("resident directory query validation normalizes every supported filter", () => {
+  const request = {
+    query: {
+      page: "2",
+      pageSize: "10",
+      search: "  Kavya  ",
+      hostelCode: "h1",
+      blockCode: "a",
+      roomNumber: "101",
+      accountStatus: "active",
+    },
+  };
+  const { response, nextCalled } = runValidation(
+    residentDirectoryRequestSchema,
+    request
+  );
+
+  assert.equal(nextCalled, true);
+  assert.equal(response.statusCode, null);
+  assert.deepEqual(request.query, {
+    page: 2,
+    pageSize: 10,
+    search: "Kavya",
+    hostelCode: "H1",
+    blockCode: "A",
+    roomNumber: "101",
+    accountStatus: "active",
+  });
+});
+
+test("resident directory query validation rejects unknown selectors", () => {
+  const request = { query: { studentId: "42" } };
+  const { response, nextCalled } = runValidation(
+    residentDirectoryRequestSchema,
+    request
+  );
+
+  assert.equal(nextCalled, false);
+  assert.equal(response.statusCode, 422);
+  assert.ok(response.body.fieldErrors.query);
 });
 
 test("menu validation accepts the ISO timestamp used by the frontend", () => {

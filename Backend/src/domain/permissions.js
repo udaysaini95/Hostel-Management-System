@@ -4,6 +4,7 @@ export const PERMISSIONS = Object.freeze({
   PROFILE_READ_SELF: "profile:read:self",
   STUDENT_PROFILE_READ_SELF: "student-profile:read:self",
   STUDENT_PROFILE_UPDATE_SELF: "student-profile:update:self",
+  RESIDENT_DIRECTORY_READ: "resident-directory:read",
   COMPLAINT_CREATE: "complaint:create",
   COMPLAINT_READ_OWN: "complaint:read:own",
   COMPLAINT_READ_MANAGED: "complaint:read:managed",
@@ -52,6 +53,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
   ),
   [USER_ROLES.WARDEN]: permissionsFor(
     PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.RESIDENT_DIRECTORY_READ,
     PERMISSIONS.COMPLAINT_CREATE,
     PERMISSIONS.COMPLAINT_READ_OWN,
     PERMISSIONS.COMPLAINT_DELETE_OWN,
@@ -91,6 +93,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
   ),
   [USER_ROLES.ADMIN]: permissionsFor(
     PERMISSIONS.PROFILE_READ_SELF,
+    PERMISSIONS.RESIDENT_DIRECTORY_READ,
     PERMISSIONS.COMPLAINT_CREATE,
     PERMISSIONS.COMPLAINT_READ_OWN,
     PERMISSIONS.COMPLAINT_READ_MANAGED,

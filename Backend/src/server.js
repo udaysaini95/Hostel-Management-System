@@ -11,6 +11,7 @@ import gateRoutes from "./Routes/gateRoutes.js";
 import adminRoutes from "./Routes/adminRoutes.js";
 import auditRoutes from "./Routes/auditRoutes.js";
 import studentProfileRoutes from "./Routes/studentProfileRoutes.js";
+import residentRoutes from "./Routes/residentRoutes.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
 import {
@@ -32,6 +33,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/audit-events", auditRoutes);
 app.use("/api/student/profile", studentProfileRoutes);
+app.use("/api/residents", residentRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/mess", messRoutes);
