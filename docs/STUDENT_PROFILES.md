@@ -32,6 +32,7 @@ Example response:
       "name": "North Residence Hall"
     },
     "currentAllocation": {
+      "id": 25,
       "allocatedAt": "2026-01-01T00:00:00.000Z",
       "block": {
         "code": "A",
@@ -54,6 +55,10 @@ Example response:
 `currentAllocation` is `null` until a warden or administrator assigns a room.
 `profileComplete` becomes true when the student has supplied a phone number,
 guardian name, and guardian phone number.
+
+The authenticated frontend exposes this data at `/student/profile`. It keeps
+institutional identity and room information read-only and submits only phone and
+guardian fields to the update endpoint.
 
 ## Update contact details
 

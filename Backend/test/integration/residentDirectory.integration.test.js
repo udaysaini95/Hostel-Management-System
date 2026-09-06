@@ -251,6 +251,7 @@ test("directory rows expose operational fields without private guardian data", a
   const [resident] = result.data;
 
   assert.equal(resident.phone, "+91 90000 00001");
+  assert.ok(Number.isSafeInteger(resident.currentAllocation.id));
   assert.equal(resident.currentAllocation.room.label, "A-101");
   assert.equal(resident.profileComplete, true);
   assert.equal(Object.hasOwn(resident, "guardian"), false);

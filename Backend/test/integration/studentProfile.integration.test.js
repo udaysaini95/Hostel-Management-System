@@ -138,6 +138,7 @@ test("a student reads only their normalized profile and current room", async () 
     code: "SP1",
     name: "Student Profile Test Hostel",
   });
+  assert.ok(Number.isSafeInteger(profile.currentAllocation.id));
   assert.deepEqual(profile.currentAllocation.room, {
     number: "301",
     label: "A-301",

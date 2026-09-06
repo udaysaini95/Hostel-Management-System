@@ -70,7 +70,9 @@ test("session users require a real identity and a supported server role", () => 
 test("route policy matches the current role boundaries", () => {
   assert.equal(canRoleAccessPath("student", "/student/dashboard"), true);
   assert.equal(canRoleAccessPath("student", "/admin/dashboard"), false);
+  assert.equal(canRoleAccessPath("student", "/student/profile"), true);
   assert.equal(canRoleAccessPath("warden", "/admin/leaves"), true);
+  assert.equal(canRoleAccessPath("warden", "/admin/residents"), true);
   assert.equal(
     canRoleAccessPath("warden", "/admin/student-approvals"),
     false

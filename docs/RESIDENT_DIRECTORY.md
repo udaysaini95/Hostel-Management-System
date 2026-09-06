@@ -29,7 +29,9 @@ Results are ordered by student name and then roll number. The response contains
 
 Each result includes the student's user ID, name, email, roll number, phone,
 account status, hostel, profile-completion state, and current allocation. An
-unallocated student has `currentAllocation: null`.
+unallocated student has `currentAllocation: null`. An allocated student's
+current allocation includes its ID so an authorized room-management client can
+request vacancy without guessing a history record.
 
 ## Authorization and hostel scope
 

@@ -3,7 +3,9 @@ import {
   FileCheck2,
   LayoutDashboard,
   QrCode,
+  UserRound,
   UserCheck,
+  UsersRound,
   Utensils,
 } from "lucide-react";
 import { USER_ROLES } from "../auth/roles.js";
@@ -26,6 +28,7 @@ const studentNavigation = Object.freeze([
     icon: FileCheck2,
   },
   { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
+  { label: "Profile", path: "/student/profile", icon: UserRound, exact: true },
 ]);
 
 const operationsNavigation = Object.freeze([
@@ -33,6 +36,12 @@ const operationsNavigation = Object.freeze([
     label: "Overview",
     path: "/admin/dashboard",
     icon: LayoutDashboard,
+    exact: true,
+  },
+  {
+    label: "Residents and rooms",
+    path: "/admin/residents",
+    icon: UsersRound,
     exact: true,
   },
   {
@@ -105,7 +114,9 @@ const routeTitles = Object.freeze({
   "/student/leaves": "Leave and gate pass",
   "/student/leaves/apply": "Apply for leave",
   "/student/mess": "Mess",
+  "/student/profile": "My profile",
   "/admin/dashboard": "Operations overview",
+  "/admin/residents": "Residents and rooms",
   "/admin/student-approvals": "Student onboarding",
   "/admin/complaints": "Complaint queue",
   "/admin/leaves": "Leave requests",

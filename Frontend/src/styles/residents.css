@@ -1,0 +1,512 @@
+@layer components {
+  .hm-profile__summary,
+  .hm-profile__form {
+    padding: 1.25rem;
+  }
+
+  .hm-profile__section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .hm-profile__section-heading h2,
+  .hm-profile__section-heading p {
+    margin: 0;
+  }
+
+  .hm-profile__section-heading h2 {
+    font-size: var(--text-section-title);
+    line-height: var(--text-section-title--line-height);
+  }
+
+  .hm-profile__section-heading p {
+    margin-top: 0.125rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-small);
+  }
+
+  .hm-profile__section-heading > svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-text-muted);
+  }
+
+  .hm-profile__identity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 0;
+  }
+
+  .hm-profile__identity-grid > div {
+    min-width: 0;
+  }
+
+  .hm-profile__identity-grid dt,
+  .hm-residents__record-details dt {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    font-weight: 500;
+  }
+
+  .hm-profile__identity-grid dd,
+  .hm-residents__record-details dd {
+    margin: 0.25rem 0 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    overflow-wrap: anywhere;
+  }
+
+  .hm-profile__identity-grid dd {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .hm-profile__identity-grid dd > svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin-top: 0.0625rem;
+    color: var(--color-text-muted);
+  }
+
+  .hm-profile__allocation {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding-top: 1.25rem;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .hm-profile__allocation-icon {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    place-items: center;
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .hm-profile__allocation-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .hm-profile__allocation h2,
+  .hm-profile__allocation p {
+    margin: 0;
+  }
+
+  .hm-profile__allocation h2 {
+    font-size: var(--text-card-title);
+    line-height: var(--text-card-title--line-height);
+  }
+
+  .hm-profile__allocation p {
+    margin-top: 0.125rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+  }
+
+  .hm-profile__allocation .hm-profile__room-label {
+    margin-top: 0.375rem;
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-body);
+    font-weight: 600;
+  }
+
+  .hm-profile__form {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .hm-profile__form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .hm-profile__form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .hm-profile__form-footer > span {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hm-residents__tabs {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-residents__tabs button {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.125rem;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    font-size: var(--text-small);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .hm-residents__tabs button:hover {
+    color: var(--color-text-primary);
+  }
+
+  .hm-residents__tabs button[aria-selected="true"] {
+    color: var(--color-brand);
+    border-bottom-color: var(--color-brand);
+  }
+
+  .hm-residents__tabs svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .hm-residents__view,
+  .hm-residents__results {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-residents__view[hidden] {
+    display: none;
+  }
+
+  .hm-residents__filters {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: end;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .hm-residents__filters > :first-child {
+    grid-column: span 2;
+  }
+
+  .hm-residents__filter-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .hm-residents__filters--rooms {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  }
+
+  .hm-residents__filters--rooms > :first-child,
+  .hm-residents__filters--rooms .hm-residents__filter-actions {
+    grid-column: auto;
+  }
+
+  .hm-residents__notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .hm-residents__notice > div {
+    display: grid;
+    gap: 0.125rem;
+  }
+
+  .hm-residents__notice strong {
+    color: var(--color-text-primary);
+    font-size: var(--text-small);
+  }
+
+  .hm-residents__notice span,
+  .hm-residents__refreshing {
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+  }
+
+  .hm-residents__refreshing {
+    margin: -0.5rem 0;
+  }
+
+  .hm-residents__results-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .hm-residents__results-heading h2,
+  .hm-residents__results-heading p {
+    margin: 0;
+  }
+
+  .hm-residents__results-heading h2 {
+    font-size: var(--text-section-title);
+    line-height: var(--text-section-title--line-height);
+  }
+
+  .hm-residents__results-heading p {
+    margin-top: 0.125rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+  }
+
+  .hm-residents__entity-name,
+  .hm-residents__entity-meta {
+    display: block;
+  }
+
+  .hm-residents__entity-name {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .hm-residents__entity-meta {
+    max-width: 18rem;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hm-residents__mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hm-residents__room,
+  .hm-residents__availability {
+    display: grid;
+    justify-items: start;
+    gap: 0.125rem;
+  }
+
+  .hm-residents__room strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .hm-residents__room small,
+  .hm-residents__availability small,
+  .hm-residents__muted {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+  }
+
+  .hm-residents__mobile-list {
+    display: none;
+  }
+
+  .hm-residents__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+
+  .hm-residents__pagination > span {
+    color: var(--color-text-secondary);
+    font-size: var(--text-small);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hm-residents__pagination > div {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .hm-residents__record {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-residents__record-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .hm-residents__record-heading h3,
+  .hm-residents__record-heading p {
+    margin: 0;
+  }
+
+  .hm-residents__record-heading h3 {
+    font-size: var(--text-card-title);
+    line-height: var(--text-card-title--line-height);
+  }
+
+  .hm-residents__record-heading p {
+    margin-top: 0.125rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+    overflow-wrap: anywhere;
+  }
+
+  .hm-residents__record-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .hm-residents__allocation-form,
+  .hm-residents__vacancy-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-residents__room-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.75rem;
+  }
+
+  .hm-residents__selection-note {
+    margin: -0.5rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+  }
+
+  .hm-residents__form-error {
+    margin: 0;
+    padding: 0.75rem;
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-small);
+  }
+}
+
+@media (max-width: 1100px) {
+  .hm-profile__form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hm-residents__filters,
+  .hm-residents__filters--rooms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hm-residents__filters > :first-child,
+  .hm-residents__filters--rooms > :first-child {
+    grid-column: auto;
+  }
+
+  .hm-residents__filters--rooms .hm-residents__filter-actions,
+  .hm-residents__filter-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .hm-profile__summary,
+  .hm-profile__form {
+    padding: 1rem;
+  }
+
+  .hm-profile__identity-grid,
+  .hm-profile__form-grid,
+  .hm-residents__filters,
+  .hm-residents__filters--rooms,
+  .hm-residents__record-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hm-profile__form-footer,
+  .hm-residents__notice,
+  .hm-residents__results-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hm-profile__form-footer .hm-button,
+  .hm-residents__notice .hm-button,
+  .hm-residents__record > .hm-button {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+
+  .hm-residents__tabs {
+    gap: 1rem;
+  }
+
+  .hm-residents__tabs button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .hm-residents__filters,
+  .hm-residents__filters--rooms {
+    padding: 1rem;
+  }
+
+  .hm-residents__filters--rooms .hm-residents__filter-actions,
+  .hm-residents__filter-actions {
+    grid-column: auto;
+  }
+
+  .hm-residents__filter-actions,
+  .hm-residents__filter-actions > * {
+    width: 100%;
+  }
+
+  .hm-residents__desktop-list {
+    display: none;
+  }
+
+  .hm-residents__mobile-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .hm-residents__pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hm-residents__pagination > div,
+  .hm-residents__pagination .hm-button {
+    flex: 1;
+  }
+
+  .hm-residents__room-filter {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hm-residents__room-filter .hm-button {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+}

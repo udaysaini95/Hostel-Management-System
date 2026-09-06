@@ -22,9 +22,11 @@ import MyComplaints from "./pages/MyComplaints";
 import MyLeaves from "./pages/MyLeaves";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import RaiseComplaint from "./pages/RaiseComplaint";
+import ResidentRoomManagement from "./pages/ResidentRoomManagement.jsx";
 import StudentActivationComplete from "./pages/StudentActivationComplete.jsx";
 import StudentActivationRequest from "./pages/StudentActivationRequest.jsx";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentProfile from "./pages/StudentProfile.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 
 function App() {
@@ -62,6 +64,7 @@ function App() {
             />
             <Route path="/student/leaves" element={<MyLeaves />} />
             <Route path="/student/leaves/apply" element={<ApplyLeave />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
           </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.MESS_READER} />}>
@@ -70,6 +73,10 @@ function App() {
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.OPERATIONS} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route
+              path="/admin/residents"
+              element={<ResidentRoomManagement />}
+            />
             <Route path="/admin/complaints" element={<AllComplaintsAdmin />} />
             <Route path="/admin/leaves" element={<AdminLeaves />} />
             <Route path="/admin/mess" element={<MessAdmin />} />

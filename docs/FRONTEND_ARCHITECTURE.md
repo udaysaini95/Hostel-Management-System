@@ -37,6 +37,13 @@ from the emailed URL into component memory, removes it from the visible address,
 and submits it only to the completion endpoint. Successful completion enters the
 normal auth context instead of maintaining a second login state.
 
+Resident presentation and validation rules live in `src/residents`. The student
+profile page reads only the signed-in student's profile and edits the three
+server-approved contact fields. The operations page keeps resident actions and
+room inventory as two URL-backed peer views, uses server pagination, and opens
+focused dialogs for allocation and vacancy instead of editing crowded rows.
+Desktop tables have structured mobile record alternatives.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
@@ -85,7 +92,9 @@ components to justify one, but they must remain reachable from the single
 | Student | `/student/leaves` | Student leave requests |
 | Student | `/student/leaves/apply` | Leave application |
 | Student | `/student/mess` | Mess menu and feedback |
+| Student | `/student/profile` | Own profile, contact details, and current room |
 | Operations | `/admin/dashboard` | Warden/admin dashboard |
+| Operations | `/admin/residents` | Resident directory, allocations, and room occupancy |
 | Operations | `/admin/complaints` | Complaint operations |
 | Operations | `/admin/leaves` | Leave operations |
 | Operations | `/admin/mess` | Mess operations |
@@ -96,11 +105,12 @@ components to justify one, but they must remain reachable from the single
 
 The compatibility routes are aliases in the canonical route tree, not separate
 login applications. Authentication bootstrap and direct-URL protection are
-active. Student pages accept the student role, operations pages accept admin and
-warden roles, mess reading currently accepts student and maintenance roles, and
-the gate terminal accepts admin and guard roles. The backend remains the final
-authority for every API action. Student onboarding is administrator-only and is
-not included in the warden operations navigation.
+active. Student pages, including the own-profile page, accept the student role.
+Resident and room operations accept admin and warden roles. Mess reading
+currently accepts student and maintenance roles, and the gate terminal accepts
+admin and guard roles. The backend remains the final authority for every API
+action. Student onboarding is administrator-only and is not included in the
+warden operations navigation.
 
 ## Removed legacy implementation
 

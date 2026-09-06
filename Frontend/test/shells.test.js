@@ -30,9 +30,11 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/student/complaints",
     "/student/leaves",
     "/student/mess",
+    "/student/profile",
   ]);
   assert.deepEqual(pathsForRole("warden"), [
     "/admin/dashboard",
+    "/admin/residents",
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
@@ -40,6 +42,7 @@ test("navigation exposes only the currently implemented destinations per role", 
   assert.deepEqual(pathsForRole("admin"), [
     "/admin/dashboard",
     "/admin/student-approvals",
+    "/admin/residents",
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
@@ -80,6 +83,8 @@ test("role homes and nested navigation selection remain deterministic", () => {
 test("utility-bar titles describe every implemented authenticated route", () => {
   assert.equal(getRouteTitle("/student/dashboard"), "Overview");
   assert.equal(getRouteTitle("/student/complaints/raise"), "Raise complaint");
+  assert.equal(getRouteTitle("/student/profile"), "My profile");
+  assert.equal(getRouteTitle("/admin/residents"), "Residents and rooms");
   assert.equal(getRouteTitle("/admin/complaints"), "Complaint queue");
   assert.equal(
     getRouteTitle("/admin/student-approvals"),

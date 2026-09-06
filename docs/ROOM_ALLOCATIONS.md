@@ -75,3 +75,11 @@ kept synchronized for screens that have not yet moved to the normalized model.
 Room transfer remains a separate P1 workflow. It will close the current
 allocation and create the new one atomically instead of asking clients to chain
 two independent requests.
+
+## Frontend workflow
+
+Administrators and wardens use `/admin/residents`. The resident view provides
+server-backed search and filters plus explicit allocation or vacancy actions.
+The room-inventory peer view shows configured capacity, active occupancy, and
+open beds. The selected view is stored in the URL, and both tables become
+structured records on narrow screens.

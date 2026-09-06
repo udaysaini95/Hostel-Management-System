@@ -189,6 +189,7 @@ const toResidentListItem = (record) => ({
   },
   currentAllocation: record.allocationId
     ? {
+        id: record.allocationId,
         allocatedAt: record.allocatedAt,
         block: {
           code: record.blockCode,
