@@ -151,8 +151,8 @@ const buildDirectoryWhereClause = (database, actor, filters) => {
     conditions.push(eq(users.accountStatus, filters.accountStatus));
   }
 
-  // RES-04 will prevent cross-hostel allocations transactionally. Until then,
-  // a malformed allocation is excluded rather than leaking another hostel's room.
+  // Keep this defensive boundary even though the allocation service now rejects
+  // cross-hostel assignments transactionally. It protects reads from old data.
   conditions.push(
     or(
       isNull(roomAllocations.id),
