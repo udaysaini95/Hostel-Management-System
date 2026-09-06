@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { USER_ROLES } from "../src/domain/roles.js";
 import {
+  DEMO_BLOCKS,
   DEMO_HOSTELS,
+  DEMO_ROOMS,
   DEMO_USERS,
   assertDemoSeedAllowed,
   seedDemoData,
@@ -44,6 +46,45 @@ test("demo hostel codes and memberships are internally consistent", () => {
         user.role !== USER_ROLES.ADMIN && user.hostelCodes.length > 1
     )
   );
+});
+
+test("demo rooms and profile details use the normalized hostel structure", () => {
+  const blockKeys = new Set(
+    DEMO_BLOCKS.map((block) => `${block.hostelCode}:${block.code}`)
+  );
+  const roomKeys = DEMO_ROOMS.map(
+    (room) => `${room.hostelCode}:${room.blockCode}:${room.roomNumber}`
+  );
+
+  assert.equal(new Set(roomKeys).size, roomKeys.length);
+  assert.ok(
+    DEMO_ROOMS.every((room) =>
+      blockKeys.has(`${room.hostelCode}:${room.blockCode}`)
+    )
+  );
+  assert.ok(
+    DEMO_ROOMS.every(
+      (room) => room.capacity >= 1 && room.capacity <= 20 && room.floor >= 0
+    )
+  );
+
+  for (const user of DEMO_USERS) {
+    if (user.role === USER_ROLES.STUDENT) {
+      assert.ok(user.rollNo);
+      assert.ok(user.guardianName);
+      assert.ok(user.guardianPhone);
+      assert.ok(user.room);
+      assert.ok(
+        roomKeys.includes(
+          `${user.primaryHostelCode}:${user.room.blockCode}:${user.room.roomNumber}`
+        )
+      );
+      continue;
+    }
+
+    assert.ok(user.employeeNo);
+    assert.ok(user.jobTitle);
+  }
 });
 
 test("demo seeding requires explicit non-production configuration", () => {

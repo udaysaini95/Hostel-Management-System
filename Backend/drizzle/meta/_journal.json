@@ -36,6 +36,13 @@
       "when": 1788462062763,
       "tag": "0004_immutable_audit_events",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788711867882,
+      "tag": "0005_resident_room_foundation",
+      "breakpoints": true
     }
   ]
 }

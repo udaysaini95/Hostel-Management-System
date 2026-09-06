@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -56,6 +57,8 @@ export const users = pgTable(
       .notNull(),
     emailVerifiedAt: timestamp("email_verified_at"),
     lastLoginAt: timestamp("last_login_at"),
+    // Temporary compatibility fields for legacy complaint, leave, and gate
+    // queries. New resident work must use student_profiles/room_allocations.
     rollNo: varchar("roll_no", { length: 50 }).unique(),
     phone: varchar("phone", { length: 50 }),
     roomNo: varchar("room_no", { length: 50 }),
@@ -88,6 +91,210 @@ export const hostelMemberships = pgTable(
       .on(table.userId)
       .where(sql`${table.isPrimary} = true`),
     index("hostel_memberships_hostel_id_idx").on(table.hostelId),
+  ]
+);
+
+// Student-specific details live outside the account record. The hostel is kept
+// on the profile because a resident has one home hostel, while staff can belong
+// to several hostels through hostel_memberships.
+export const studentProfiles = pgTable(
+  "student_profiles",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "restrict" }),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    rollNo: varchar("roll_no", { length: 50 }).notNull().unique(),
+    phone: varchar("phone", { length: 20 }),
+    guardianName: varchar("guardian_name", { length: 255 }),
+    guardianPhone: varchar("guardian_phone", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "student_profiles_roll_no_format_check",
+      sql`${table.rollNo} ~ '^[A-Z0-9][A-Z0-9 /-]{1,49}$'`
+    ),
+    check(
+      "student_profiles_phone_format_check",
+      sql`${table.phone} is null or ${table.phone} ~ '^[0-9+() -]{7,20}$'`
+    ),
+    check(
+      "student_profiles_guardian_name_not_blank_check",
+      sql`${table.guardianName} is null or length(trim(${table.guardianName})) > 0`
+    ),
+    check(
+      "student_profiles_guardian_phone_format_check",
+      sql`${table.guardianPhone} is null or ${table.guardianPhone} ~ '^[0-9+() -]{7,20}$'`
+    ),
+    foreignKey({
+      name: "student_profiles_membership_fk",
+      columns: [table.userId, table.hostelId],
+      foreignColumns: [hostelMemberships.userId, hostelMemberships.hostelId],
+    }).onDelete("restrict"),
+    index("student_profiles_hostel_id_idx").on(table.hostelId),
+  ]
+);
+
+export const staffProfiles = pgTable(
+  "staff_profiles",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "restrict" }),
+    employeeNo: varchar("employee_no", { length: 50 }).unique(),
+    phone: varchar("phone", { length: 20 }),
+    jobTitle: varchar("job_title", { length: 100 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "staff_profiles_employee_no_not_blank_check",
+      sql`${table.employeeNo} is null or length(trim(${table.employeeNo})) > 0`
+    ),
+    check(
+      "staff_profiles_phone_format_check",
+      sql`${table.phone} is null or ${table.phone} ~ '^[0-9+() -]{7,20}$'`
+    ),
+    check(
+      "staff_profiles_job_title_not_blank_check",
+      sql`${table.jobTitle} is null or length(trim(${table.jobTitle})) > 0`
+    ),
+  ]
+);
+
+export const hostelBlocks = pgTable(
+  "hostel_blocks",
+  {
+    id: serial("id").primaryKey(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    code: varchar("code", { length: 20 }).notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "hostel_blocks_code_format_check",
+      sql`${table.code} ~ '^[A-Z][A-Z0-9-]{0,19}$'`
+    ),
+    check(
+      "hostel_blocks_name_not_blank_check",
+      sql`length(trim(${table.name})) > 0`
+    ),
+    uniqueIndex("hostel_blocks_hostel_code_unique").on(
+      table.hostelId,
+      table.code
+    ),
+    index("hostel_blocks_hostel_id_idx").on(table.hostelId),
+  ]
+);
+
+export const rooms = pgTable(
+  "rooms",
+  {
+    id: serial("id").primaryKey(),
+    blockId: integer("block_id")
+      .notNull()
+      .references(() => hostelBlocks.id, { onDelete: "restrict" }),
+    roomNumber: varchar("room_number", { length: 20 }).notNull(),
+    floor: integer("floor").notNull(),
+    capacity: integer("capacity").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "rooms_number_format_check",
+      sql`${table.roomNumber} ~ '^[A-Z0-9][A-Z0-9-]{0,19}$'`
+    ),
+    check("rooms_floor_bounds_check", sql`${table.floor} between 0 and 99`),
+    check(
+      "rooms_capacity_bounds_check",
+      sql`${table.capacity} between 1 and 20`
+    ),
+    uniqueIndex("rooms_block_number_unique").on(
+      table.blockId,
+      table.roomNumber
+    ),
+    index("rooms_block_id_idx").on(table.blockId),
+  ]
+);
+
+// An allocation is current while vacated_at is null. Closing the row instead
+// of replacing it keeps a complete room history for the resident.
+export const roomAllocations = pgTable(
+  "room_allocations",
+  {
+    id: serial("id").primaryKey(),
+    studentProfileId: integer("student_profile_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "restrict" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "restrict" }),
+    allocatedByUserId: integer("allocated_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    allocatedAt: timestamp("allocated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    vacatedAt: timestamp("vacated_at", { withTimezone: true }),
+    vacatedByUserId: integer("vacated_by_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    vacateReason: varchar("vacate_reason", { length: 500 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "room_allocations_dates_check",
+      sql`${table.vacatedAt} is null or ${table.vacatedAt} > ${table.allocatedAt}`
+    ),
+    check(
+      "room_allocations_vacancy_details_check",
+      sql`(${table.vacatedAt} is null and ${table.vacatedByUserId} is null and ${table.vacateReason} is null) or (${table.vacatedAt} is not null and ${table.vacatedByUserId} is not null and length(trim(${table.vacateReason})) > 0)`
+    ),
+    uniqueIndex("room_allocations_one_active_per_student")
+      .on(table.studentProfileId)
+      .where(sql`${table.vacatedAt} is null`),
+    index("room_allocations_active_room_idx")
+      .on(table.roomId)
+      .where(sql`${table.vacatedAt} is null`),
+    index("room_allocations_student_history_idx").on(
+      table.studentProfileId,
+      table.allocatedAt
+    ),
   ]
 );
 

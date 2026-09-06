@@ -8,11 +8,16 @@ import {
   approvedStudents,
   auditEventHostels,
   auditEvents,
+  hostelBlocks,
   hostelMemberships,
   hostels,
+  roomAllocations,
+  rooms,
   staffInvitationHostels,
   staffInvitations,
+  staffProfiles,
   studentActivationTokens,
+  studentProfiles,
   userRoleEnum,
   users,
 } from "../src/db/schema.js";
@@ -68,6 +73,99 @@ test("hostel memberships prevent duplicate and multiple-primary assignments", ()
   );
   assert.equal(primaryIndex.config.unique, true);
   assert.ok(primaryIndex.config.where);
+});
+
+test("resident profiles keep institutional identity separate from login accounts", () => {
+  const config = getTableConfig(studentProfiles);
+
+  assert.equal(studentProfiles.userId.notNull, true);
+  assert.equal(studentProfiles.userId.isUnique, true);
+  assert.equal(studentProfiles.hostelId.notNull, true);
+  assert.equal(studentProfiles.rollNo.notNull, true);
+  assert.equal(studentProfiles.rollNo.isUnique, true);
+  assert.equal(config.foreignKeys.length, 3);
+  assert.ok(
+    config.foreignKeys.some(
+      (entry) => entry.reference().name === "student_profiles_membership_fk"
+    )
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "student_profiles_roll_no_format_check"
+    )
+  );
+});
+
+test("staff profiles support one optional institutional record per account", () => {
+  const config = getTableConfig(staffProfiles);
+
+  assert.equal(staffProfiles.userId.notNull, true);
+  assert.equal(staffProfiles.userId.isUnique, true);
+  assert.equal(staffProfiles.employeeNo.isUnique, true);
+  assert.equal(config.foreignKeys.length, 1);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "staff_profiles_employee_no_not_blank_check"
+    )
+  );
+});
+
+test("hostel blocks and rooms have scoped identities and bounded capacity", () => {
+  const blockConfig = getTableConfig(hostelBlocks);
+  const roomConfig = getTableConfig(rooms);
+  const blockIdentity = findIndex(
+    hostelBlocks,
+    "hostel_blocks_hostel_code_unique"
+  );
+  const roomIdentity = findIndex(rooms, "rooms_block_number_unique");
+
+  assert.equal(blockConfig.foreignKeys.length, 1);
+  assert.equal(blockIdentity.config.unique, true);
+  assert.deepEqual(
+    blockIdentity.config.columns.map((column) => column.name),
+    ["hostel_id", "code"]
+  );
+  assert.equal(roomConfig.foreignKeys.length, 1);
+  assert.equal(roomIdentity.config.unique, true);
+  assert.deepEqual(
+    roomIdentity.config.columns.map((column) => column.name),
+    ["block_id", "room_number"]
+  );
+  assert.ok(
+    roomConfig.checks.some(
+      (entry) => entry.name === "rooms_capacity_bounds_check"
+    )
+  );
+});
+
+test("room allocations preserve history and allow one current room per student", () => {
+  const config = getTableConfig(roomAllocations);
+  const currentAllocation = findIndex(
+    roomAllocations,
+    "room_allocations_one_active_per_student"
+  );
+  const historyIndex = findIndex(
+    roomAllocations,
+    "room_allocations_student_history_idx"
+  );
+
+  assert.equal(config.foreignKeys.length, 4);
+  assert.equal(currentAllocation.config.unique, true);
+  assert.ok(currentAllocation.config.where);
+  assert.deepEqual(
+    historyIndex.config.columns.map((column) => column.name),
+    ["student_profile_id", "allocated_at"]
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "room_allocations_dates_check"
+    )
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "room_allocations_vacancy_details_check"
+    )
+  );
 });
 
 test("staff invitations store only hashed one-time tokens with constrained roles", () => {

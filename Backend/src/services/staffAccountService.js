@@ -5,6 +5,7 @@ import {
   hostels,
   staffInvitationHostels,
   staffInvitations,
+  staffProfiles,
   users,
 } from "../db/schema.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
@@ -380,6 +381,12 @@ export const acceptStaffInvitation = async (
         createdAt: now,
       }))
     );
+
+    await transaction.insert(staffProfiles).values({
+      userId: user.id,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     await transaction
       .update(staffInvitations)

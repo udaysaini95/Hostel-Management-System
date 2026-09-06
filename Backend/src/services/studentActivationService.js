@@ -5,6 +5,7 @@ import {
   hostelMemberships,
   hostels,
   studentActivationTokens,
+  studentProfiles,
   users,
 } from "../db/schema.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
@@ -443,6 +444,14 @@ export const completeStudentActivation = async (
       hostelId: hostel.id,
       isPrimary: true,
       createdAt: now,
+    });
+
+    await transaction.insert(studentProfiles).values({
+      userId: user.id,
+      hostelId: hostel.id,
+      rollNo: approval.rollNo,
+      createdAt: now,
+      updatedAt: now,
     });
 
     await transaction

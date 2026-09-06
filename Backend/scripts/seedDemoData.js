@@ -33,7 +33,7 @@ const run = async () => {
     });
 
     console.log(
-      `Demo seed complete: ${result.hostels} hostels, ${result.users} users, ${result.memberships} memberships.`
+      `Demo seed complete: ${result.hostels} hostels, ${result.blocks} blocks, ${result.rooms} rooms, ${result.users} users, ${result.profiles} profiles, ${result.memberships} memberships, ${result.allocations} allocations.`
     );
   } finally {
     await pool.end();

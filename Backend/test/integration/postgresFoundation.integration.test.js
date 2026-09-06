@@ -75,6 +75,11 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
         'users',
         'hostels',
         'hostel_memberships',
+        'student_profiles',
+        'staff_profiles',
+        'hostel_blocks',
+        'rooms',
+        'room_allocations',
         'approved_students',
         'audit_events'
       )
@@ -90,12 +95,17 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
     [
       "approved_students",
       "audit_events",
+      "hostel_blocks",
       "hostel_memberships",
       "hostels",
+      "room_allocations",
+      "rooms",
+      "staff_profiles",
+      "student_profiles",
       "users",
     ]
   );
-  assert.equal(migrationsResult.rows[0].count, 5);
+  assert.equal(migrationsResult.rows[0].count, 6);
 });
 
 test("PostgreSQL enforces hostel and primary-membership constraints", async () => {
@@ -145,6 +155,245 @@ test("PostgreSQL enforces hostel and primary-membership constraints", async () =
       postgresErrorCode(error) === "23505" &&
       error.constraint === "hostel_memberships_one_primary_per_user"
   );
+});
+
+test("PostgreSQL enforces profile, room, and allocation-history constraints", async () => {
+  const firstStudentResult = await pool.query(
+    `
+      INSERT INTO users (name, email, password, role, account_status, roll_no)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+    `,
+    [
+      "First Resident",
+      "resident.one@integration.test",
+      "not-a-real-password-hash",
+      USER_ROLES.STUDENT,
+      ACCOUNT_STATUSES.ACTIVE,
+      "INT-RES-001",
+    ]
+  );
+  const secondStudentResult = await pool.query(
+    `
+      INSERT INTO users (name, email, password, role, account_status, roll_no)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+    `,
+    [
+      "Second Resident",
+      "resident.two@integration.test",
+      "not-a-real-password-hash",
+      USER_ROLES.STUDENT,
+      ACCOUNT_STATUSES.ACTIVE,
+      "INT-RES-002",
+    ]
+  );
+  const firstStudentId = firstStudentResult.rows[0].id;
+  const secondStudentId = secondStudentResult.rows[0].id;
+
+  await pool.query(
+    `
+      INSERT INTO hostel_memberships (user_id, hostel_id, is_primary)
+      VALUES ($1, $2, true), ($3, $2, true)
+    `,
+    [firstStudentId, firstHostel.id, secondStudentId]
+  );
+
+  const firstProfileResult = await pool.query(
+    `
+      INSERT INTO student_profiles (user_id, hostel_id, roll_no)
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `,
+    [firstStudentId, firstHostel.id, "INT-RES-001"]
+  );
+  const firstProfileId = firstProfileResult.rows[0].id;
+
+  await assert.rejects(
+    pool.query(
+      `
+        INSERT INTO student_profiles (user_id, hostel_id, roll_no)
+        VALUES ($1, $2, $3)
+      `,
+      [secondStudentId, firstHostel.id, "INT-RES-001"]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23505" &&
+      error.constraint === "student_profiles_roll_no_unique"
+  );
+
+  await assert.rejects(
+    pool.query(
+      `
+        INSERT INTO student_profiles (user_id, hostel_id, roll_no)
+        VALUES ($1, $2, $3)
+      `,
+      [secondStudentId, secondHostel.id, "INT-RES-002"]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23503" &&
+      error.constraint === "student_profiles_membership_fk"
+  );
+
+  await assert.rejects(
+    pool.query(
+      `
+        INSERT INTO student_profiles (user_id, hostel_id, roll_no)
+        VALUES ($1, $2, $3)
+      `,
+      [adminUser.id, firstHostel.id, "INT-ADMIN-001"]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23514" &&
+      error.message.includes("student account")
+  );
+
+  const firstBlockResult = await pool.query(
+    `
+      INSERT INTO hostel_blocks (hostel_id, code, name)
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `,
+    [firstHostel.id, "A", "Hostel One - A Block"]
+  );
+  const secondBlockResult = await pool.query(
+    `
+      INSERT INTO hostel_blocks (hostel_id, code, name)
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `,
+    [secondHostel.id, "A", "Hostel Two - A Block"]
+  );
+  const firstBlockId = firstBlockResult.rows[0].id;
+  const secondBlockId = secondBlockResult.rows[0].id;
+
+  await assert.rejects(
+    pool.query(
+      "INSERT INTO hostel_blocks (hostel_id, code, name) VALUES ($1, $2, $3)",
+      [firstHostel.id, "A", "Duplicate A Block"]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23505" &&
+      error.constraint === "hostel_blocks_hostel_code_unique"
+  );
+
+  const firstRoomResult = await pool.query(
+    `
+      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `,
+    [firstBlockId, "101", 1, 2]
+  );
+  await pool.query(
+    `
+      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      VALUES ($1, $2, $3, $4)
+    `,
+    [secondBlockId, "101", 1, 2]
+  );
+
+  await assert.rejects(
+    pool.query(
+      "INSERT INTO rooms (block_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
+      [firstBlockId, "101", 1, 2]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23505" &&
+      error.constraint === "rooms_block_number_unique"
+  );
+  await assert.rejects(
+    pool.query(
+      "INSERT INTO rooms (block_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
+      [firstBlockId, "999", 9, 0]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23514" &&
+      error.constraint === "rooms_capacity_bounds_check"
+  );
+
+  const secondRoomResult = await pool.query(
+    `
+      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `,
+    [firstBlockId, "102", 1, 2]
+  );
+  const firstRoomId = firstRoomResult.rows[0].id;
+  const secondRoomId = secondRoomResult.rows[0].id;
+  const firstAllocationResult = await pool.query(
+    `
+      INSERT INTO room_allocations
+        (student_profile_id, room_id, allocated_by_user_id, allocated_at)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `,
+    [
+      firstProfileId,
+      firstRoomId,
+      adminUser.id,
+      new Date("2026-08-01T09:00:00.000Z"),
+    ]
+  );
+
+  await assert.rejects(
+    pool.query(
+      `
+        INSERT INTO room_allocations
+          (student_profile_id, room_id, allocated_by_user_id, allocated_at)
+        VALUES ($1, $2, $3, $4)
+      `,
+      [
+        firstProfileId,
+        secondRoomId,
+        adminUser.id,
+        new Date("2026-08-02T09:00:00.000Z"),
+      ]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23505" &&
+      error.constraint === "room_allocations_one_active_per_student"
+  );
+
+  await pool.query(
+    `
+      UPDATE room_allocations
+      SET vacated_at = $1, vacated_by_user_id = $2, vacate_reason = $3
+      WHERE id = $4
+    `,
+    [
+      new Date("2026-08-15T09:00:00.000Z"),
+      adminUser.id,
+      "Moved to a quieter room",
+      firstAllocationResult.rows[0].id,
+    ]
+  );
+  await pool.query(
+    `
+      INSERT INTO room_allocations
+        (student_profile_id, room_id, allocated_by_user_id, allocated_at)
+      VALUES ($1, $2, $3, $4)
+    `,
+    [
+      firstProfileId,
+      secondRoomId,
+      adminUser.id,
+      new Date("2026-08-15T09:01:00.000Z"),
+    ]
+  );
+
+  const historyResult = await pool.query(
+    `
+      SELECT count(*)::integer AS total,
+             count(*) FILTER (WHERE vacated_at IS NULL)::integer AS active
+      FROM room_allocations
+      WHERE student_profile_id = $1
+    `,
+    [firstProfileId]
+  );
+
+  assert.deepEqual(historyResult.rows[0], { total: 2, active: 1 });
 });
 
 test("a failed transaction leaves none of its earlier writes behind", async () => {
