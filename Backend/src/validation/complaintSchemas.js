@@ -102,6 +102,34 @@ export const complaintAssignmentRequestSchema = {
 
 export const complaintDetailRequestSchema = { params: idParamsSchema };
 
+export const complaintResolutionRequestSchema = {
+  body: z.strictObject({
+    resolutionNote: requiredText("Resolution note", 1000).pipe(
+      z.string().min(10, "Resolution note must contain at least 10 characters")
+    ),
+  }),
+};
+
+export const complaintVerificationRequestSchema = {
+  params: idParamsSchema,
+  body: z
+    .strictObject({
+      action: z.enum(["close", "reopen"]),
+      reason: requiredText("Reason", 1000)
+        .pipe(z.string().min(10, "Reason must contain at least 10 characters"))
+        .optional(),
+    })
+    .superRefine((value, context) => {
+      if (value.action === "reopen" && !value.reason) {
+        context.addIssue({
+          code: "custom",
+          path: ["reason"],
+          message: "Explain why the complaint needs to be reopened",
+        });
+      }
+    }),
+};
+
 export const complaintAttachmentRequestSchema = {
   params: z.strictObject({
     id: z.coerce.number().int().positive("Complaint ID must be positive"),

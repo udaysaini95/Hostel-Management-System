@@ -18,10 +18,14 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Wardens may search resident directory rows only for hostels in their explicit
   memberships. Administrators may search the institution-wide directory.
 - Maintenance users can read only complaints with an active assignment to their
-  account. They cannot assign work or read another technician's queue.
+  account. They can start and resolve only their own active assignments. They
+  cannot assign work or read another technician's queue.
 - Wardens can assign and reassign complaints only inside their hostel
   memberships. Administrators can assign across hostels. In both cases, the
   assignee must be an active maintenance user in the complaint hostel.
+- Only the student who reported a resolved complaint can close it or reopen it.
+  Reopening requires a reason. Closing ends the technician's active assignment;
+  the database permits this student action only after the complaint is closed.
 - Guards may verify passes, log gate movement, read gate activity, and use shared mess participation features.
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
 - Approved-student search, revocation, reinstatement, and activation-email

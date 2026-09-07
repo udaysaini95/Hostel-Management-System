@@ -15,15 +15,20 @@ import {
   listMaintenanceWorkQueue,
   listOwnComplaints,
   myComplaints,
+  resolveMaintenanceComplaint,
+  startMaintenanceComplaint,
   studentVerifyComplaint,
   updateStatus,
   uploadComplaintAttachment,
+  verifyMaintenanceComplaint,
 } from "../Controllers/complaintController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import upload from "../middlewares/upload.js";
-import complaintAttachmentUpload from "../middlewares/complaintAttachmentUpload.js";
+import complaintAttachmentUpload, {
+  complaintResolutionUpload,
+} from "../middlewares/complaintAttachmentUpload.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import {
   complaintCreationSchema,
@@ -38,6 +43,8 @@ import {
   complaintCreateRequestSchema,
   complaintDetailRequestSchema,
   complaintListRequestSchema,
+  complaintResolutionRequestSchema,
+  complaintVerificationRequestSchema,
   complaintWorkQueueRequestSchema,
 } from "../validation/complaintSchemas.js";
 
@@ -92,6 +99,29 @@ router.post(
   requirePermission(PERMISSIONS.COMPLAINT_ASSIGN_MANAGED),
   validateRequest(complaintAssignmentRequestSchema),
   assignMaintenanceComplaint
+);
+router.post(
+  "/:id/start",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_UPDATE_ASSIGNED),
+  validateRequest(complaintDetailRequestSchema),
+  startMaintenanceComplaint
+);
+router.post(
+  "/:id/resolve",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_UPDATE_ASSIGNED),
+  validateRequest(complaintDetailRequestSchema),
+  complaintResolutionUpload.single("file"),
+  validateRequest(complaintResolutionRequestSchema),
+  resolveMaintenanceComplaint
+);
+router.post(
+  "/:id/verification",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_VERIFY_OWN),
+  validateRequest(complaintVerificationRequestSchema),
+  verifyMaintenanceComplaint
 );
 router.post(
   "/:id/attachments",

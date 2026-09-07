@@ -31,6 +31,11 @@ import {
   assignComplaint,
   listMaintenanceAssignees as getMaintenanceAssignees,
 } from "../services/complaintAssignmentService.js";
+import {
+  resolveComplaint,
+  startComplaintWork,
+  verifyComplaintResolution,
+} from "../services/complaintResolutionService.js";
 
 const getContentDisposition = (filename) => {
   const fallback = filename
@@ -107,6 +112,51 @@ export const assignMaintenanceComplaint = async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     return handleControllerError(res, error, "Assign Complaint Error");
+  }
+};
+
+export const startMaintenanceComplaint = async (req, res) => {
+  try {
+    const complaint = await startComplaintWork(
+      db,
+      req.user,
+      req.params.id
+    );
+
+    return res.json({ complaint });
+  } catch (error) {
+    return handleControllerError(res, error, "Start Complaint Work Error");
+  }
+};
+
+export const resolveMaintenanceComplaint = async (req, res) => {
+  try {
+    const result = await resolveComplaint(
+      db,
+      req.user,
+      req.params.id,
+      req.body,
+      req.file
+    );
+
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "Resolve Complaint Error");
+  }
+};
+
+export const verifyMaintenanceComplaint = async (req, res) => {
+  try {
+    const complaint = await verifyComplaintResolution(
+      db,
+      req.user,
+      req.params.id,
+      req.body
+    );
+
+    return res.json({ complaint });
+  } catch (error) {
+    return handleControllerError(res, error, "Verify Complaint Resolution Error");
   }
 };
 

@@ -6,8 +6,30 @@ import {
   complaintAssignmentRequestSchema,
   complaintCreateRequestSchema,
   complaintListRequestSchema,
+  complaintResolutionRequestSchema,
+  complaintVerificationRequestSchema,
   complaintWorkQueueRequestSchema,
 } from "../src/validation/complaintSchemas.js";
+
+test("resolution and verification requests enforce meaningful notes", () => {
+  const resolution = complaintResolutionRequestSchema.body.safeParse({
+    resolutionNote: "  Replaced the faulty switch and tested it.  ",
+  });
+  const reopen = complaintVerificationRequestSchema.body.safeParse({
+    action: "reopen",
+  });
+  const close = complaintVerificationRequestSchema.body.safeParse({
+    action: "close",
+  });
+
+  assert.equal(resolution.success, true);
+  assert.equal(
+    resolution.data.resolutionNote,
+    "Replaced the faulty switch and tested it."
+  );
+  assert.equal(reopen.success, false);
+  assert.equal(close.success, true);
+});
 
 test("complaint request validation normalizes the public API body", () => {
   const result = complaintCreateRequestSchema.body.safeParse({

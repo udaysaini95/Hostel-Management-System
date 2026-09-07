@@ -24,6 +24,10 @@ export const AUDIT_ACTIONS = Object.freeze({
   COMPLAINT_REASSIGNED: "complaint.reassigned",
   COMPLAINT_ATTACHMENT_ADDED: "complaint.attachment.added",
   COMPLAINT_ATTACHMENT_DELETED: "complaint.attachment.deleted",
+  COMPLAINT_WORK_STARTED: "complaint.work.started",
+  COMPLAINT_RESOLVED: "complaint.resolved",
+  COMPLAINT_REOPENED: "complaint.reopened",
+  COMPLAINT_CLOSED: "complaint.closed",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({

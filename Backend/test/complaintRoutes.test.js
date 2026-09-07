@@ -97,3 +97,32 @@ test("complaints expose scoped assignment and maintenance queue routes", () => {
     )
   );
 });
+
+test("complaints expose maintenance resolution and student verification routes", () => {
+  const routes = describeRoutes(complaintRoutes);
+
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/:id/start" &&
+        route.methods.includes("post") &&
+        route.middlewareCount === 4
+    )
+  );
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/:id/resolve" &&
+        route.methods.includes("post") &&
+        route.middlewareCount === 6
+    )
+  );
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/:id/verification" &&
+        route.methods.includes("post") &&
+        route.middlewareCount === 4
+    )
+  );
+});

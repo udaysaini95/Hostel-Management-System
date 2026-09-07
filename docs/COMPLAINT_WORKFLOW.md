@@ -63,7 +63,8 @@ and delete request before reading the file.
 JPEG, PNG, and WebP are the only accepted formats. Both the declared MIME type
 and the file signature are checked, each image is limited to 5 MB, and a
 complaint may have up to five submission images. Generated storage names do not
-contain the user-supplied filename.
+contain the user-supplied filename. Resolution evidence uses the same limits
+and allows up to five historical images across reopen cycles.
 
 ## Staged migration
 
@@ -86,6 +87,9 @@ All routes below require a valid access token.
 | `GET` | `/api/complaints/assignees?hostelCode=H1` | List active maintenance staff and workloads for an authorized hostel |
 | `GET` | `/api/complaints/work-queue` | Paginate the current maintenance user's active assignments |
 | `POST` | `/api/complaints/:id/assignments` | Assign or reassign a complaint |
+| `POST` | `/api/complaints/:id/start` | Let the active maintenance assignee start work |
+| `POST` | `/api/complaints/:id/resolve` | Resolve assigned work with a note and optional private image |
+| `POST` | `/api/complaints/:id/verification` | Let the reporting student close or reopen a resolution |
 | `GET` | `/api/complaints/:id` | Read an authorized complaint and its timeline |
 | `POST` | `/api/complaints/:id/attachments` | Upload one private image using the multipart field `file` |
 | `GET` | `/api/complaints/:id/attachments` | List authorized attachment metadata |
@@ -114,6 +118,20 @@ assignments. It defaults to critical-first ordering, then earliest SLA deadline,
 and supports priority, status, SLA, category, hostel, search, creation-date,
 sorting, and pagination filters. Resolved and closed complaints are treated as
 completed for SLA calculations.
+
+Only the active maintenance assignee can move `assigned` work to `in_progress`
+or resolve `in_progress` work. Resolution requires a 10–1000 character note.
+The resolve route accepts `multipart/form-data`: `resolutionNote` is required
+and one `file` image is optional. Resolution evidence is private, checksum
+verified, and linked to the immutable `resolved` timeline event.
+
+Only the student who originally reported the complaint can use the verification
+route. `{ "action": "close" }` confirms the work and ends the active assignment.
+`{ "action": "reopen", "reason": "..." }` returns it to `in_progress`; the
+reason is required and the same active technician remains responsible. Every
+successful transition appends both a participant-facing timeline event and an
+operational audit event. Invalid or repeated transitions return a conflict and
+leave the complaint unchanged.
 
 The reporter may add or remove submission evidence only while the complaint is
 in `created`. This freezes student evidence when staff work begins. Authorized

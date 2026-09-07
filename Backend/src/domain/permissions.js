@@ -12,6 +12,7 @@ export const PERMISSIONS = Object.freeze({
   COMPLAINT_READ_MANAGED: "complaint:read:managed",
   COMPLAINT_READ_ASSIGNED: "complaint:read:assigned",
   COMPLAINT_ASSIGN_MANAGED: "complaint:assign:managed",
+  COMPLAINT_UPDATE_ASSIGNED: "complaint:update:assigned",
   COMPLAINT_DELETE_OWN: "complaint:delete:own",
   COMPLAINT_DELETE_ANY: "complaint:delete:any",
   COMPLAINT_UPDATE_MANAGED: "complaint:update:managed",
@@ -83,6 +84,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
   [USER_ROLES.MAINTENANCE]: permissionsFor(
     PERMISSIONS.PROFILE_READ_SELF,
     PERMISSIONS.COMPLAINT_READ_ASSIGNED,
+    PERMISSIONS.COMPLAINT_UPDATE_ASSIGNED,
     PERMISSIONS.MESS_MENU_READ,
     PERMISSIONS.MESS_FEEDBACK_CREATE,
     PERMISSIONS.MESS_ISSUE_CREATE,

@@ -50,6 +50,7 @@ const requireOperationTime = (value) => {
 const attachmentSelection = {
   id: complaintAttachments.id,
   complaintId: complaintAttachments.complaintId,
+  eventId: complaintAttachments.eventId,
   uploadedByUserId: complaintAttachments.uploadedByUserId,
   purpose: complaintAttachments.purpose,
   storageKey: complaintAttachments.storageKey,
@@ -63,6 +64,7 @@ const attachmentSelection = {
 const toAttachmentView = (attachment) => ({
   id: attachment.id,
   complaintId: attachment.complaintId,
+  eventId: attachment.eventId,
   purpose: attachment.purpose,
   originalName: attachment.originalName,
   mimeType: attachment.mimeType,

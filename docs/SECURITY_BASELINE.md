@@ -50,6 +50,10 @@ complaint authorization check. Reporter deletion closes when staff work begins;
 wardens cannot erase student evidence, while administrators retain a moderated,
 audited deletion path.
 
+The resolution route uses the same file controls and accepts only one additional
+multipart field: the required resolution note. Resolution evidence is linked to
+the immutable resolution event rather than exposed through a public file URL.
+
 ## Deployment checklist
 
 1. Set `NODE_ENV=production`.
