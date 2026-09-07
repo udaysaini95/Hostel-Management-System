@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   complaintAttachmentRequestSchema,
+  complaintAssigneeListRequestSchema,
+  complaintAssignmentRequestSchema,
   complaintCreateRequestSchema,
   complaintListRequestSchema,
+  complaintWorkQueueRequestSchema,
 } from "../src/validation/complaintSchemas.js";
 
 test("complaint request validation normalizes the public API body", () => {
@@ -25,6 +28,52 @@ test("complaint request validation normalizes the public API body", () => {
     hostelCode: "H1",
     roomId: 5,
   });
+});
+
+test("assignment requests require a maintenance user and bounded reason", () => {
+  const valid = complaintAssignmentRequestSchema.body.safeParse({
+    assigneeUserId: "9",
+    reason: "Covering the morning shift",
+  });
+  const unknownField = complaintAssignmentRequestSchema.body.safeParse({
+    assigneeUserId: 9,
+    role: "maintenance",
+  });
+
+  assert.equal(valid.success, true);
+  assert.deepEqual(valid.data, {
+    assigneeUserId: 9,
+    reason: "Covering the morning shift",
+  });
+  assert.equal(unknownField.success, false);
+});
+
+test("work queue validation supports required filters and risk defaults", () => {
+  const result = complaintWorkQueueRequestSchema.query.safeParse({
+    priority: "high",
+    status: "assigned",
+    slaState: "breached",
+    categoryCode: " Electrical ",
+    createdFrom: "2026-09-01T00:00:00.000Z",
+    createdTo: "2026-09-08T23:59:59.000Z",
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.sortBy, "priority");
+  assert.equal(result.data.sortOrder, "asc");
+  assert.equal(result.data.categoryCode, "electrical");
+});
+
+test("assignee lookup requires one valid hostel code", () => {
+  assert.equal(
+    complaintAssigneeListRequestSchema.query.safeParse({ hostelCode: "h1" })
+      .success,
+    true
+  );
+  assert.equal(
+    complaintAssigneeListRequestSchema.query.safeParse({}).success,
+    false
+  );
 });
 
 test("complaint attachment validation requires both positive resource IDs", () => {

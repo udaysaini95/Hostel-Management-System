@@ -5,16 +5,19 @@ import {
   desc,
   eq,
   exists,
+  gte,
   ilike,
   isNull,
+  lte,
   lt,
   ne,
   or,
   sql,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
-  complaintCategories,
   complaintAssignments,
+  complaintCategories,
   complaintEvents,
   complaints,
   hostelBlocks,
@@ -49,6 +52,10 @@ const complaintCreatorRoles = new Set([
 const complaintManagerRoles = new Set([
   USER_ROLES.WARDEN,
   USER_ROLES.ADMIN,
+]);
+const completedComplaintStatuses = new Set([
+  COMPLAINT_STATUSES.RESOLVED,
+  COMPLAINT_STATUSES.CLOSED,
 ]);
 const knownStatuses = new Set(Object.values(COMPLAINT_STATUSES));
 const knownPriorities = new Set(Object.values(COMPLAINT_PRIORITIES));
@@ -137,6 +144,8 @@ export const normalizeComplaintFilters = (input = {}) => {
   const slaState = normalizeCode(input.slaState) || "all";
   const sortBy = normalizeCode(input.sortBy) || "createdAt";
   const sortOrder = normalizeCode(input.sortOrder) || "desc";
+  const createdFrom = normalizeCode(input.createdFrom);
+  const createdTo = normalizeCode(input.createdTo);
 
   if (!Number.isSafeInteger(page) || page < 1) {
     fail(400, "INVALID_PAGE", "Page must be a positive integer");
@@ -169,6 +178,23 @@ export const normalizeComplaintFilters = (input = {}) => {
     fail(400, "INVALID_SORT_ORDER", "Complaint sort order is invalid");
   }
 
+  const createdFromDate = createdFrom ? new Date(createdFrom) : null;
+  const createdToDate = createdTo ? new Date(createdTo) : null;
+
+  if (createdFrom && Number.isNaN(createdFromDate.getTime())) {
+    fail(400, "INVALID_DATE_FILTER", "Created-from timestamp is invalid");
+  }
+  if (createdTo && Number.isNaN(createdToDate.getTime())) {
+    fail(400, "INVALID_DATE_FILTER", "Created-to timestamp is invalid");
+  }
+  if (createdFromDate && createdToDate && createdFromDate > createdToDate) {
+    fail(
+      400,
+      "INVALID_DATE_RANGE",
+      "Created-from timestamp cannot be after created-to timestamp"
+    );
+  }
+
   return Object.freeze({
     page,
     pageSize,
@@ -180,8 +206,17 @@ export const normalizeComplaintFilters = (input = {}) => {
     slaState,
     sortBy,
     sortOrder,
+    createdFrom: createdFromDate,
+    createdTo: createdToDate,
   });
 };
+
+export const normalizeWorkQueueFilters = (input = {}) =>
+  normalizeComplaintFilters({
+    ...input,
+    sortBy: input.sortBy ?? "priority",
+    sortOrder: input.sortOrder ?? "asc",
+  });
 
 export const normalizeComplaintInput = (input = {}) => {
   const categoryCode = normalizeCode(input.categoryCode, (value) =>
@@ -420,6 +455,8 @@ const resolveRoomId = async (database, context, requestedRoomId) => {
 
 // Shared API response shape ------------------------------------------------
 
+const assigneeUsers = alias(users, "complaint_assignee");
+
 const complaintSelection = {
   id: complaints.id,
   hostelId: complaints.hostelId,
@@ -444,6 +481,10 @@ const complaintSelection = {
   closedAt: complaints.closedAt,
   createdAt: complaints.createdAt,
   updatedAt: complaints.updatedAt,
+  assignmentId: complaintAssignments.id,
+  assigneeUserId: complaintAssignments.assigneeUserId,
+  assigneeName: assigneeUsers.name,
+  assignedAt: complaintAssignments.assignedAt,
 };
 
 const addComplaintJoins = (query) =>
@@ -455,10 +496,21 @@ const addComplaintJoins = (query) =>
       eq(complaints.categoryId, complaintCategories.id)
     )
     .leftJoin(rooms, eq(complaints.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id));
+    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
+    .leftJoin(
+      complaintAssignments,
+      and(
+        eq(complaintAssignments.complaintId, complaints.id),
+        isNull(complaintAssignments.endedAt)
+      )
+    )
+    .leftJoin(
+      assigneeUsers,
+      eq(complaintAssignments.assigneeUserId, assigneeUsers.id)
+    );
 
 const getSlaView = (record, now) => {
-  const open = record.status !== COMPLAINT_STATUSES.CLOSED;
+  const open = !completedComplaintStatuses.has(record.status);
   const millisecondsRemaining = new Date(record.slaDeadline).getTime() - now.getTime();
   const breached = open && millisecondsRemaining < 0;
 
@@ -494,6 +546,16 @@ const toComplaintView = (record, now) => ({
   closedAt: record.closedAt,
   createdAt: record.createdAt,
   updatedAt: record.updatedAt,
+  assignment: record.assignmentId
+    ? {
+        id: record.assignmentId,
+        assignee: {
+          id: record.assigneeUserId,
+          name: record.assigneeName,
+        },
+        assignedAt: record.assignedAt,
+      }
+    : null,
 });
 
 // Transactional creation ---------------------------------------------------
@@ -579,7 +641,7 @@ export const createComplaint = async (
   return getComplaintById(database, requestActor, complaintId, { now });
 };
 
-// Paginated own and managed queues ----------------------------------------
+// Paginated own, managed, and assigned queues ------------------------------
 
 const addManagedScope = (database, actor, conditions) => {
   if (actor.role === USER_ROLES.ADMIN) {
@@ -603,8 +665,11 @@ const buildComplaintConditions = (database, actor, filters, scope, now) => {
 
   if (scope === "own") {
     conditions.push(eq(complaints.reportedByUserId, actor.id));
-  } else {
+  } else if (scope === "managed") {
     addManagedScope(database, actor, conditions);
+  } else {
+    conditions.push(eq(complaintAssignments.assigneeUserId, actor.id));
+    conditions.push(isNull(complaintAssignments.endedAt));
   }
 
   if (filters.search) {
@@ -631,11 +696,19 @@ const buildComplaintConditions = (database, actor, filters, scope, now) => {
     conditions.push(eq(complaints.priority, filters.priority));
   }
   if (filters.slaState === "open") {
+    conditions.push(ne(complaints.status, COMPLAINT_STATUSES.RESOLVED));
     conditions.push(ne(complaints.status, COMPLAINT_STATUSES.CLOSED));
   }
   if (filters.slaState === "breached") {
+    conditions.push(ne(complaints.status, COMPLAINT_STATUSES.RESOLVED));
     conditions.push(ne(complaints.status, COMPLAINT_STATUSES.CLOSED));
     conditions.push(lt(complaints.slaDeadline, now));
+  }
+  if (filters.createdFrom) {
+    conditions.push(gte(complaints.createdAt, filters.createdFrom));
+  }
+  if (filters.createdTo) {
+    conditions.push(lte(complaints.createdAt, filters.createdTo));
   }
 
   return and(...conditions);
@@ -666,7 +739,10 @@ const searchComplaints = async (
   { now = new Date() } = {}
 ) => {
   const operationTime = requireOperationTime(now);
-  const filters = normalizeComplaintFilters(input);
+  const filters =
+    scope === "assigned"
+      ? normalizeWorkQueueFilters(input)
+      : normalizeComplaintFilters(input);
   const actor = await loadComplaintActor(database, requestActor);
 
   if (scope === "managed" && !complaintManagerRoles.has(actor.role)) {
@@ -683,6 +759,13 @@ const searchComplaints = async (
       "You do not have access to personal complaints"
     );
   }
+  if (scope === "assigned" && actor.role !== USER_ROLES.MAINTENANCE) {
+    fail(
+      403,
+      "COMPLAINT_WORK_QUEUE_DENIED",
+      "You do not have access to a maintenance work queue"
+    );
+  }
 
   const whereClause = buildComplaintConditions(
     database,
@@ -695,14 +778,18 @@ const searchComplaints = async (
     database.select({ total: count() }).from(complaints)
   ).where(whereClause);
   const direction = filters.sortOrder === "asc" ? asc : desc;
+  const orderBy = [direction(getSortExpression(filters.sortBy))];
+
+  if (scope === "assigned" && filters.sortBy === "priority") {
+    orderBy.push(asc(complaints.slaDeadline));
+  }
+  orderBy.push(direction(complaints.id));
+
   const records = await addComplaintJoins(
     database.select(complaintSelection).from(complaints)
   )
     .where(whereClause)
-    .orderBy(
-      direction(getSortExpression(filters.sortBy)),
-      direction(complaints.id)
-    )
+    .orderBy(...orderBy)
     .limit(filters.pageSize)
     .offset((filters.page - 1) * filters.pageSize);
   const total = Number(countResult?.total ?? 0);
@@ -723,6 +810,9 @@ export const searchOwnComplaints = (database, actor, input, options) =>
 
 export const searchManagedComplaints = (database, actor, input, options) =>
   searchComplaints(database, actor, input, "managed", options);
+
+export const searchAssignedComplaints = (database, actor, input, options) =>
+  searchComplaints(database, actor, input, "assigned", options);
 
 // Authorized detail and reference data ------------------------------------
 

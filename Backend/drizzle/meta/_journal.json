@@ -50,6 +50,13 @@
       "when": 1788778877929,
       "tag": "0006_complaint_workflow_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788865200000,
+      "tag": "0007_assignment_history_guard",
+      "breakpoints": true
     }
   ]
 }

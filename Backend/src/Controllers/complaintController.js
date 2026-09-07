@@ -17,6 +17,7 @@ import {
   createComplaint as createNormalizedComplaint,
   getComplaintById,
   listComplaintCategories as getComplaintCategories,
+  searchAssignedComplaints,
   searchManagedComplaints,
   searchOwnComplaints,
 } from "../services/complaintService.js";
@@ -26,6 +27,10 @@ import {
   listComplaintAttachments as getComplaintAttachments,
   uploadComplaintAttachment as saveComplaintAttachment,
 } from "../services/complaintAttachmentService.js";
+import {
+  assignComplaint,
+  listMaintenanceAssignees as getMaintenanceAssignees,
+} from "../services/complaintAssignmentService.js";
 
 const getContentDisposition = (filename) => {
   const fallback = filename
@@ -69,6 +74,39 @@ export const listManagedComplaints = async (req, res) => {
     return res.json(result);
   } catch (error) {
     return handleControllerError(res, error, "List Managed Complaints Error");
+  }
+};
+
+export const listMaintenanceWorkQueue = async (req, res) => {
+  try {
+    const result = await searchAssignedComplaints(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Maintenance Work Error");
+  }
+};
+
+export const listComplaintAssignees = async (req, res) => {
+  try {
+    const result = await getMaintenanceAssignees(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Complaint Assignees Error");
+  }
+};
+
+export const assignMaintenanceComplaint = async (req, res) => {
+  try {
+    const result = await assignComplaint(
+      db,
+      req.user,
+      req.params.id,
+      req.body
+    );
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "Assign Complaint Error");
   }
 };
 

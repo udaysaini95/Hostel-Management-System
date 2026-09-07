@@ -68,3 +68,32 @@ test("complaint attachments use authenticated collection and resource routes", (
     },
   ]);
 });
+
+test("complaints expose scoped assignment and maintenance queue routes", () => {
+  const routes = describeRoutes(complaintRoutes);
+
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/assignees" &&
+        route.methods.includes("get") &&
+        route.middlewareCount === 4
+    )
+  );
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/work-queue" &&
+        route.methods.includes("get") &&
+        route.middlewareCount === 4
+    )
+  );
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/:id/assignments" &&
+        route.methods.includes("post") &&
+        route.middlewareCount === 4
+    )
+  );
+});

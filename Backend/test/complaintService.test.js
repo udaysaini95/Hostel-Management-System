@@ -8,6 +8,7 @@ import {
   determineComplaintPriority,
   normalizeComplaintFilters,
   normalizeComplaintInput,
+  normalizeWorkQueueFilters,
   searchOwnComplaints,
 } from "../src/services/complaintService.js";
 
@@ -74,6 +75,32 @@ test("complaint list filters normalize paging, scope, and sorting", () => {
       slaState: "breached",
       sortBy: "slaDeadline",
       sortOrder: "asc",
+      createdFrom: null,
+      createdTo: null,
+    }
+  );
+});
+
+test("maintenance work queues default to priority and SLA-risk ordering", () => {
+  assert.deepEqual(
+    normalizeWorkQueueFilters({
+      categoryCode: " Plumbing ",
+      createdFrom: "2026-09-01T00:00:00.000Z",
+      createdTo: "2026-09-08T23:59:59.000Z",
+    }),
+    {
+      page: 1,
+      pageSize: 20,
+      search: null,
+      hostelCode: null,
+      categoryCode: "plumbing",
+      status: null,
+      priority: null,
+      slaState: "all",
+      sortBy: "priority",
+      sortOrder: "asc",
+      createdFrom: new Date("2026-09-01T00:00:00.000Z"),
+      createdTo: new Date("2026-09-08T23:59:59.000Z"),
     }
   );
 });
@@ -117,6 +144,14 @@ test("complaint inputs reject unsafe values before database access", () => {
   assert.throws(
     () => normalizeComplaintFilters({ status: "waiting" }),
     (error) => error.code === "INVALID_COMPLAINT_STATUS"
+  );
+  assert.throws(
+    () =>
+      normalizeComplaintFilters({
+        createdFrom: "2026-09-08T00:00:00.000Z",
+        createdTo: "2026-09-01T00:00:00.000Z",
+      }),
+    (error) => error.code === "INVALID_DATE_RANGE"
   );
 });
 

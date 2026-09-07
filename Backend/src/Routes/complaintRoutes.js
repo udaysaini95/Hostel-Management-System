@@ -1,15 +1,18 @@
 import express from "express";
 import {
   allComplaints,
+  assignMaintenanceComplaint,
   createComplaint,
   createMaintenanceComplaint,
   deleteComplaintAttachment,
   deleteComplaint,
   downloadComplaintAttachment,
   getComplaintDetails,
-  listComplaintCategories,
   listComplaintAttachments,
+  listComplaintAssignees,
+  listComplaintCategories,
   listManagedComplaints,
+  listMaintenanceWorkQueue,
   listOwnComplaints,
   myComplaints,
   studentVerifyComplaint,
@@ -29,10 +32,13 @@ import {
   resourceIdSchema,
 } from "../validation/operationalSchemas.js";
 import {
-  complaintCreateRequestSchema,
   complaintAttachmentRequestSchema,
+  complaintAssigneeListRequestSchema,
+  complaintAssignmentRequestSchema,
+  complaintCreateRequestSchema,
   complaintDetailRequestSchema,
   complaintListRequestSchema,
+  complaintWorkQueueRequestSchema,
 } from "../validation/complaintSchemas.js";
 
 const router = express.Router();
@@ -65,6 +71,27 @@ router.get(
   requirePermission(PERMISSIONS.COMPLAINT_READ_MANAGED),
   validateRequest(complaintListRequestSchema),
   listManagedComplaints
+);
+router.get(
+  "/assignees",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_ASSIGN_MANAGED),
+  validateRequest(complaintAssigneeListRequestSchema),
+  listComplaintAssignees
+);
+router.get(
+  "/work-queue",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_READ_ASSIGNED),
+  validateRequest(complaintWorkQueueRequestSchema),
+  listMaintenanceWorkQueue
+);
+router.post(
+  "/:id/assignments",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_ASSIGN_MANAGED),
+  validateRequest(complaintAssignmentRequestSchema),
+  assignMaintenanceComplaint
 );
 router.post(
   "/:id/attachments",

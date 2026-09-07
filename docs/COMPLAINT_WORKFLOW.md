@@ -43,6 +43,11 @@ staff actions must remain inside the same hostel. Wardens assign work;
 maintenance staff receive assignments. Administrators may operate across
 hostels.
 
+Only an active maintenance account with membership in the complaint hostel can
+be assigned. A warden can act only inside their hostel memberships; an
+administrator can work across hostels. Reassignment requires a reason and ends
+the previous row instead of overwriting it.
+
 ## History and attachments
 
 Assignments are historical rows with an optional end time. A partial unique
@@ -78,6 +83,9 @@ All routes below require a valid access token.
 | `GET` | `/api/complaints/categories` | List active category policies |
 | `GET` | `/api/complaints/mine` | Paginate complaints reported by the current user |
 | `GET` | `/api/complaints/managed` | Paginate a warden/admin hostel-scoped queue |
+| `GET` | `/api/complaints/assignees?hostelCode=H1` | List active maintenance staff and workloads for an authorized hostel |
+| `GET` | `/api/complaints/work-queue` | Paginate the current maintenance user's active assignments |
+| `POST` | `/api/complaints/:id/assignments` | Assign or reassign a complaint |
 | `GET` | `/api/complaints/:id` | Read an authorized complaint and its timeline |
 | `POST` | `/api/complaints/:id/attachments` | Upload one private image using the multipart field `file` |
 | `GET` | `/api/complaints/:id/attachments` | List authorized attachment metadata |
@@ -90,9 +98,22 @@ accept an SLA deadline. Student hostel and profile ownership come from the
 authenticated account, not from request data.
 
 List endpoints return `{ data, pagination }`. Supported filters are `search`,
-`hostelCode`, `categoryCode`, `status`, `priority`, and `slaState`. The supported
-sort fields are `createdAt`, `slaDeadline`, and `priority`. Page sizes are capped
-at 100 records.
+`hostelCode`, `categoryCode`, `status`, `priority`, `slaState`, `createdFrom`,
+and `createdTo`. Date filters use ISO timestamps. The supported sort fields are
+`createdAt`, `slaDeadline`, and `priority`. Page sizes are capped at 100 records.
+
+Assignment requests contain `assigneeUserId` and an optional `reason`. A reason
+is mandatory when an active assignee is replaced. Initial assignment changes
+the complaint from `created` to `assigned`; reassignment keeps an `assigned` or
+`in_progress` complaint in its current state. Both operations append timeline
+and audit events. PostgreSQL advisory locking and the unique active-assignment
+index prevent concurrent requests from creating two active assignees.
+
+The maintenance queue includes only the authenticated technician's active
+assignments. It defaults to critical-first ordering, then earliest SLA deadline,
+and supports priority, status, SLA, category, hostel, search, creation-date,
+sorting, and pagination filters. Resolved and closed complaints are treated as
+completed for SLA calculations.
 
 The reporter may add or remove submission evidence only while the complaint is
 in `created`. This freezes student evidence when staff work begins. Authorized

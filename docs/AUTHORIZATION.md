@@ -17,7 +17,11 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Wardens may review operational complaints, leaves, mess records, and read gate activity, but cannot log gate movements.
 - Wardens may search resident directory rows only for hostels in their explicit
   memberships. Administrators may search the institution-wide directory.
-- Maintenance users currently have profile and mess participation access. Assigned-complaint permissions will be activated only after complaint assignment data exists.
+- Maintenance users can read only complaints with an active assignment to their
+  account. They cannot assign work or read another technician's queue.
+- Wardens can assign and reassign complaints only inside their hostel
+  memberships. Administrators can assign across hostels. In both cases, the
+  assignee must be an active maintenance user in the complaint hostel.
 - Guards may verify passes, log gate movement, read gate activity, and use shared mess participation features.
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
 - Approved-student search, revocation, reinstatement, and activation-email
@@ -43,4 +47,8 @@ Protected endpoints return `AUTHENTICATION_REQUIRED` when no valid actor exists 
 
 ## Multi-hostel isolation boundary
 
-Role and record-ownership enforcement is active now. Complete assigned-hostel isolation is not yet complete because legacy complaint, leave, gate, and mess records do not all contain an authoritative hostel foreign key. The normalized resident/resource schema must add those relationships before managed-list queries can guarantee cross-hostel isolation. Role checks must not be mistaken for hostel-membership checks.
+Role and record-ownership enforcement is active now. Normalized resident,
+room, and complaint APIs enforce assigned-hostel isolation. Complete isolation
+is not yet available for legacy leave, gate, and mess records because they do
+not all contain an authoritative hostel foreign key. Role checks must not be
+mistaken for hostel-membership checks.

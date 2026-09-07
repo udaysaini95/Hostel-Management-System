@@ -20,6 +20,8 @@ export const AUDIT_ACTIONS = Object.freeze({
   ROOM_ALLOCATION_CREATED: "room.allocation.created",
   ROOM_ALLOCATION_VACATED: "room.allocation.vacated",
   COMPLAINT_CREATED: "complaint.created",
+  COMPLAINT_ASSIGNED: "complaint.assigned",
+  COMPLAINT_REASSIGNED: "complaint.reassigned",
   COMPLAINT_ATTACHMENT_ADDED: "complaint.attachment.added",
   COMPLAINT_ATTACHMENT_DELETED: "complaint.attachment.deleted",
 });
@@ -31,5 +33,6 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   STUDENT_IMPORT: "student_import",
   ROOM_ALLOCATION: "room_allocation",
   COMPLAINT: "complaint",
+  COMPLAINT_ASSIGNMENT: "complaint_assignment",
   COMPLAINT_ATTACHMENT: "complaint_attachment",
 });

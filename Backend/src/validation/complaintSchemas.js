@@ -25,6 +25,40 @@ const searchSchema = z
   .max(100, "Search must contain at most 100 characters")
   .optional();
 
+const timestampSchema = z.iso.datetime({ offset: true });
+
+const createComplaintListQuery = ({
+  defaultSortBy = "createdAt",
+  defaultSortOrder = "desc",
+} = {}) =>
+  z
+    .strictObject({
+      page: z.coerce.number().int().positive().default(1),
+      pageSize: z.coerce.number().int().min(1).max(100).default(20),
+      search: searchSchema,
+      hostelCode: hostelCodeSchema.optional(),
+      categoryCode: categoryCodeSchema.optional(),
+      status: z.enum(Object.values(COMPLAINT_STATUSES)).optional(),
+      priority: z.enum(Object.values(COMPLAINT_PRIORITIES)).optional(),
+      slaState: z.enum(["all", "open", "breached"]).default("all"),
+      sortBy: z
+        .enum(["createdAt", "slaDeadline", "priority"])
+        .default(defaultSortBy),
+      sortOrder: z.enum(["asc", "desc"]).default(defaultSortOrder),
+      createdFrom: timestampSchema.optional(),
+      createdTo: timestampSchema.optional(),
+    })
+    .refine(
+      (value) =>
+        !value.createdFrom ||
+        !value.createdTo ||
+        new Date(value.createdFrom) <= new Date(value.createdTo),
+      {
+        path: ["createdTo"],
+        message: "Created-to timestamp must not be before created-from",
+      }
+    );
+
 export const complaintCreateRequestSchema = {
   body: z.strictObject({
     categoryCode: categoryCodeSchema,
@@ -38,22 +72,33 @@ export const complaintCreateRequestSchema = {
   }),
 };
 
-const complaintListQuery = z.strictObject({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  search: searchSchema,
-  hostelCode: hostelCodeSchema.optional(),
-  categoryCode: categoryCodeSchema.optional(),
-  status: z.enum(Object.values(COMPLAINT_STATUSES)).optional(),
-  priority: z.enum(Object.values(COMPLAINT_PRIORITIES)).optional(),
-  slaState: z.enum(["all", "open", "breached"]).default("all"),
-  sortBy: z
-    .enum(["createdAt", "slaDeadline", "priority"])
-    .default("createdAt"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-});
+const complaintListQuery = createComplaintListQuery();
 
 export const complaintListRequestSchema = { query: complaintListQuery };
+
+export const complaintWorkQueueRequestSchema = {
+  query: createComplaintListQuery({
+    defaultSortBy: "priority",
+    defaultSortOrder: "asc",
+  }),
+};
+
+export const complaintAssigneeListRequestSchema = {
+  query: z.strictObject({ hostelCode: hostelCodeSchema }),
+};
+
+export const complaintAssignmentRequestSchema = {
+  params: idParamsSchema,
+  body: z.strictObject({
+    assigneeUserId: z.coerce
+      .number()
+      .int()
+      .positive("Assignee user ID must be positive"),
+    reason: requiredText("Reason", 500)
+      .pipe(z.string().min(5, "Reason must contain at least 5 characters"))
+      .optional(),
+  }),
+};
 
 export const complaintDetailRequestSchema = { params: idParamsSchema };
 
