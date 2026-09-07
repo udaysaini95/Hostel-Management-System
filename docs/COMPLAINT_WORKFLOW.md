@@ -59,6 +59,33 @@ slice.
 
 CMP-01 renames the original tables to `legacy_complaints` and
 `legacy_complaint_timelines`, preserving their rows and keeping the existing UI
-usable. CMP-02 will move complaint creation and reads to the normalized model.
-Later complaint slices will move every remaining handler before the legacy
-tables are retired.
+usable. CMP-02 adds normalized creation and read APIs beside those compatibility
+routes. The frontend complaint slices will switch screens to the new contract
+before the legacy tables and handlers are retired.
+
+## Normalized API
+
+All routes below require a valid access token.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/complaints` | Create a complaint without an attachment |
+| `GET` | `/api/complaints/categories` | List active category policies |
+| `GET` | `/api/complaints/mine` | Paginate complaints reported by the current user |
+| `GET` | `/api/complaints/managed` | Paginate a warden/admin hostel-scoped queue |
+| `GET` | `/api/complaints/:id` | Read an authorized complaint and its timeline |
+
+Create requests accept `categoryCode`, `location`, `description`, optional
+`requestedPriority`, optional `roomId`, and—for staff—`hostelCode`. They never
+accept an SLA deadline. Student hostel and profile ownership come from the
+authenticated account, not from request data.
+
+List endpoints return `{ data, pagination }`. Supported filters are `search`,
+`hostelCode`, `categoryCode`, `status`, `priority`, and `slaState`. The supported
+sort fields are `createdAt`, `slaDeadline`, and `priority`. Page sizes are capped
+at 100 records.
+
+The old named endpoints remain temporarily connected to the legacy tables so
+the current frontend is usable. They will be removed after the complaint UI is
+moved to this contract. Attachment upload is intentionally deferred to FILE-01,
+where storage and downloads will be private and authorized.

@@ -1,11 +1,16 @@
 import express from "express";
-import { 
-  createComplaint, 
-  myComplaints, 
-  deleteComplaint, 
-  allComplaints, 
+import {
+  allComplaints,
+  createComplaint,
+  createMaintenanceComplaint,
+  deleteComplaint,
+  getComplaintDetails,
+  listComplaintCategories,
+  listManagedComplaints,
+  listOwnComplaints,
+  myComplaints,
+  studentVerifyComplaint,
   updateStatus,
-  studentVerifyComplaint
 } from "../Controllers/complaintController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
@@ -18,8 +23,43 @@ import {
   complaintVerificationSchema,
   resourceIdSchema,
 } from "../validation/operationalSchemas.js";
+import {
+  complaintCreateRequestSchema,
+  complaintDetailRequestSchema,
+  complaintListRequestSchema,
+} from "../validation/complaintSchemas.js";
 
 const router = express.Router();
+
+// Normalized complaint API. The named legacy routes below remain available
+// until the complaint frontend is rebuilt in CMP-05.
+router.post(
+  "/",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_CREATE),
+  validateRequest(complaintCreateRequestSchema),
+  createMaintenanceComplaint
+);
+router.get(
+  "/categories",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_CREATE),
+  listComplaintCategories
+);
+router.get(
+  "/mine",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_READ_OWN),
+  validateRequest(complaintListRequestSchema),
+  listOwnComplaints
+);
+router.get(
+  "/managed",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_READ_MANAGED),
+  validateRequest(complaintListRequestSchema),
+  listManagedComplaints
+);
 
 // ================= STUDENT ROUTES =================
 router.post(
@@ -64,6 +104,15 @@ router.put(
   requirePermission(PERMISSIONS.COMPLAINT_UPDATE_MANAGED),
   validateRequest(complaintStatusSchema),
   updateStatus
+);
+
+// Keep the dynamic detail route last so named compatibility routes such as
+// /my are never interpreted as complaint IDs.
+router.get(
+  "/:id",
+  protect,
+  validateRequest(complaintDetailRequestSchema),
+  getComplaintDetails
 );
 
 export default router;

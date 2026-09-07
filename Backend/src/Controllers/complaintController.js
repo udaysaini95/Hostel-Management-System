@@ -13,7 +13,63 @@ import {
   handleControllerError,
   sendApiError,
 } from "../utils/apiErrors.js";
+import {
+  createComplaint as createNormalizedComplaint,
+  getComplaintById,
+  listComplaintCategories as getComplaintCategories,
+  searchManagedComplaints,
+  searchOwnComplaints,
+} from "../services/complaintService.js";
 
+export const createMaintenanceComplaint = async (req, res) => {
+  try {
+    const complaint = await createNormalizedComplaint(
+      db,
+      req.user,
+      req.body
+    );
+
+    return res.status(201).json({ complaint });
+  } catch (error) {
+    return handleControllerError(res, error, "Create Complaint Error");
+  }
+};
+
+export const listOwnComplaints = async (req, res) => {
+  try {
+    const result = await searchOwnComplaints(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Own Complaints Error");
+  }
+};
+
+export const listManagedComplaints = async (req, res) => {
+  try {
+    const result = await searchManagedComplaints(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Managed Complaints Error");
+  }
+};
+
+export const getComplaintDetails = async (req, res) => {
+  try {
+    const complaint = await getComplaintById(db, req.user, req.params.id);
+    return res.json({ complaint });
+  } catch (error) {
+    return handleControllerError(res, error, "Get Complaint Details Error");
+  }
+};
+
+export const listComplaintCategories = async (req, res) => {
+  try {
+    const categories = await getComplaintCategories(db, req.user);
+    return res.json({ data: categories });
+  } catch (error) {
+    return handleControllerError(res, error, "List Complaint Categories Error");
+  }
+};
 
 // ================= CREATE COMPLAINT =================
 export const createComplaint = async (req, res) => {

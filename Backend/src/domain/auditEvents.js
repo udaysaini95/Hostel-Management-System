@@ -19,6 +19,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   STUDENT_ACTIVATION_REISSUED: "student.activation.reissued",
   ROOM_ALLOCATION_CREATED: "room.allocation.created",
   ROOM_ALLOCATION_VACATED: "room.allocation.vacated",
+  COMPLAINT_CREATED: "complaint.created",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
@@ -27,4 +28,5 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   APPROVED_STUDENT: "approved_student",
   STUDENT_IMPORT: "student_import",
   ROOM_ALLOCATION: "room_allocation",
+  COMPLAINT: "complaint",
 });
