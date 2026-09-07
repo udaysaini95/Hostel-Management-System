@@ -46,3 +46,25 @@ test("named compatibility routes are registered before the dynamic detail route"
       routes.findIndex((route) => route.path === "/admin/complaints")
   );
 });
+
+test("complaint attachments use authenticated collection and resource routes", () => {
+  const routes = describeRoutes(complaintRoutes);
+  const attachmentRoutes = routes.filter((route) =>
+    route.path.includes("/attachments")
+  );
+
+  assert.deepEqual(attachmentRoutes, [
+    { path: "/:id/attachments", methods: ["post"], middlewareCount: 5 },
+    { path: "/:id/attachments", methods: ["get"], middlewareCount: 3 },
+    {
+      path: "/:id/attachments/:attachmentId",
+      methods: ["get"],
+      middlewareCount: 3,
+    },
+    {
+      path: "/:id/attachments/:attachmentId",
+      methods: ["delete"],
+      middlewareCount: 3,
+    },
+  ]);
+});

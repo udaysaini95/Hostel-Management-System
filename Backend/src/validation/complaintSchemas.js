@@ -56,3 +56,13 @@ const complaintListQuery = z.strictObject({
 export const complaintListRequestSchema = { query: complaintListQuery };
 
 export const complaintDetailRequestSchema = { params: idParamsSchema };
+
+export const complaintAttachmentRequestSchema = {
+  params: z.strictObject({
+    id: z.coerce.number().int().positive("Complaint ID must be positive"),
+    attachmentId: z.coerce
+      .number()
+      .int()
+      .positive("Attachment ID must be positive"),
+  }),
+};

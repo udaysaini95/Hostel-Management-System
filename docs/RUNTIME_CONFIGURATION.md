@@ -14,6 +14,11 @@ The API validates its runtime configuration before accepting requests. Missing c
 
 `PORT` is optional and defaults to `5000`. When provided, it must be an integer from `1` through `65535`. `NODE_ENV` defaults to `development` and accepts only `development`, `test`, or `production`.
 
+`PRIVATE_FILE_STORAGE_PATH` is optional and selects the durable private volume
+used for complaint evidence. It defaults to `Backend/private-storage` for local
+development and must never point to `Backend/uploads` or one of its children,
+because that directory is publicly served for temporary legacy compatibility.
+
 An origin contains only the protocol, host, and optional port—for example,
 `https://hostel.example` or `http://localhost:5173`. Do not include routes.
 Set `TRUST_PROXY_HOPS=1` only when exactly one trusted load balancer or reverse

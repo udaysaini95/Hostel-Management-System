@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import http from "http";
+import { fileURLToPath } from "node:url";
 
 import connectDB from "./config/db.js";
 import authRoutes from "./Routes/authRoutes.js";
@@ -24,11 +25,14 @@ import { applySecurityMiddleware } from "./middlewares/securityMiddleware.js";
 
 const runtimeConfig = getRuntimeConfig();
 getStudentActivationEmailConfig();
+const legacyUploadsDirectory = fileURLToPath(
+  new URL("../uploads/", import.meta.url)
+);
 
 const app = express();
 
 applySecurityMiddleware(app, runtimeConfig);
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(legacyUploadsDirectory));
 
 // Routes
 app.use("/api/auth", authRoutes);

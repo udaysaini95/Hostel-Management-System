@@ -3,4 +3,6 @@ node_modules/
 .env.test
 uploads/*
 !uploads/.gitkeep
+private-storage/*
+!private-storage/.gitkeep
 .drizzle/

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  complaintAttachmentRequestSchema,
   complaintCreateRequestSchema,
   complaintListRequestSchema,
 } from "../src/validation/complaintSchemas.js";
@@ -24,6 +25,21 @@ test("complaint request validation normalizes the public API body", () => {
     hostelCode: "H1",
     roomId: 5,
   });
+});
+
+test("complaint attachment validation requires both positive resource IDs", () => {
+  const valid = complaintAttachmentRequestSchema.params.safeParse({
+    id: "10",
+    attachmentId: "4",
+  });
+  const invalid = complaintAttachmentRequestSchema.params.safeParse({
+    id: "10",
+    attachmentId: "../4",
+  });
+
+  assert.equal(valid.success, true);
+  assert.deepEqual(valid.data, { id: 10, attachmentId: 4 });
+  assert.equal(invalid.success, false);
 });
 
 test("complaint list validation supplies bounded pagination defaults", () => {

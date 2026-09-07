@@ -51,9 +51,14 @@ append-only and store actor name and role snapshots. PostgreSQL rejects updates
 and deletes to those events.
 
 Attachments store a private `storage_key`, original filename, MIME type, size,
-and SHA-256 checksum. No public URL is stored. The API must authorize each
-download before reading the object; that endpoint is part of a later complaint
-slice.
+and SHA-256 checksum. No public URL is stored. FILE-01 keeps uploaded bytes
+outside the public `/uploads` directory and authorizes every list, download,
+and delete request before reading the file.
+
+JPEG, PNG, and WebP are the only accepted formats. Both the declared MIME type
+and the file signature are checked, each image is limited to 5 MB, and a
+complaint may have up to five submission images. Generated storage names do not
+contain the user-supplied filename.
 
 ## Staged migration
 
@@ -74,6 +79,10 @@ All routes below require a valid access token.
 | `GET` | `/api/complaints/mine` | Paginate complaints reported by the current user |
 | `GET` | `/api/complaints/managed` | Paginate a warden/admin hostel-scoped queue |
 | `GET` | `/api/complaints/:id` | Read an authorized complaint and its timeline |
+| `POST` | `/api/complaints/:id/attachments` | Upload one private image using the multipart field `file` |
+| `GET` | `/api/complaints/:id/attachments` | List authorized attachment metadata |
+| `GET` | `/api/complaints/:id/attachments/:attachmentId` | View an authorized private image |
+| `DELETE` | `/api/complaints/:id/attachments/:attachmentId` | Delete an allowed attachment |
 
 Create requests accept `categoryCode`, `location`, `description`, optional
 `requestedPriority`, optional `roomId`, and—for staff—`hostelCode`. They never
@@ -85,7 +94,19 @@ List endpoints return `{ data, pagination }`. Supported filters are `search`,
 sort fields are `createdAt`, `slaDeadline`, and `priority`. Page sizes are capped
 at 100 records.
 
-The old named endpoints remain temporarily connected to the legacy tables so
-the current frontend is usable. They will be removed after the complaint UI is
-moved to this contract. Attachment upload is intentionally deferred to FILE-01,
-where storage and downloads will be private and authorized.
+The reporter may add or remove submission evidence only while the complaint is
+in `created`. This freezes student evidence when staff work begins. Authorized
+hostel wardens can view evidence but cannot erase it; an active assignee can
+view it, and administrators can remove it when moderation is necessary. Added
+and deleted files create audit events. A SHA-256 check also prevents corrupted
+stored bytes from being served.
+
+`PRIVATE_FILE_STORAGE_PATH` optionally selects the private storage directory.
+Development defaults to `Backend/private-storage`, which is ignored by Git. A
+deployment should mount durable private storage at that path; the storage
+adapter can later be replaced with a managed object-store implementation
+without changing the complaint API.
+
+The old named endpoints remain temporarily connected to the legacy tables and
+the public `/uploads` directory so the current frontend is usable. They will be
+removed after the complaint UI is moved to this contract in CMP-05.

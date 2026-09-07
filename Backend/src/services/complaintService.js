@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm";
 import {
   complaintCategories,
+  complaintAssignments,
   complaintEvents,
   complaints,
   hostelBlocks,
@@ -228,7 +229,7 @@ export const normalizeComplaintInput = (input = {}) => {
 
 // Authenticated actor and creation context --------------------------------
 
-const loadComplaintActor = async (database, requestActor) => {
+export const loadComplaintActor = async (database, requestActor) => {
   const actorId = requireActorId(requestActor?.id);
   const [actor] = await database
     .select({
@@ -725,7 +726,7 @@ export const searchManagedComplaints = (database, actor, input, options) =>
 
 // Authorized detail and reference data ------------------------------------
 
-const assertComplaintVisibility = async (database, actor, complaint) => {
+export const assertComplaintVisibility = async (database, actor, complaint) => {
   if (actor.role === USER_ROLES.ADMIN) {
     return;
   }
@@ -748,6 +749,23 @@ const assertComplaintVisibility = async (database, actor, complaint) => {
       .limit(1);
 
     if (membership) {
+      return;
+    }
+  }
+  if (actor.role === USER_ROLES.MAINTENANCE) {
+    const [assignment] = await database
+      .select({ id: complaintAssignments.id })
+      .from(complaintAssignments)
+      .where(
+        and(
+          eq(complaintAssignments.complaintId, complaint.id),
+          eq(complaintAssignments.assigneeUserId, actor.id),
+          isNull(complaintAssignments.endedAt)
+        )
+      )
+      .limit(1);
+
+    if (assignment) {
       return;
     }
   }

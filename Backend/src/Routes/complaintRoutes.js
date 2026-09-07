@@ -3,19 +3,24 @@ import {
   allComplaints,
   createComplaint,
   createMaintenanceComplaint,
+  deleteComplaintAttachment,
   deleteComplaint,
+  downloadComplaintAttachment,
   getComplaintDetails,
   listComplaintCategories,
+  listComplaintAttachments,
   listManagedComplaints,
   listOwnComplaints,
   myComplaints,
   studentVerifyComplaint,
   updateStatus,
+  uploadComplaintAttachment,
 } from "../Controllers/complaintController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import upload from "../middlewares/upload.js";
+import complaintAttachmentUpload from "../middlewares/complaintAttachmentUpload.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import {
   complaintCreationSchema,
@@ -25,6 +30,7 @@ import {
 } from "../validation/operationalSchemas.js";
 import {
   complaintCreateRequestSchema,
+  complaintAttachmentRequestSchema,
   complaintDetailRequestSchema,
   complaintListRequestSchema,
 } from "../validation/complaintSchemas.js";
@@ -59,6 +65,32 @@ router.get(
   requirePermission(PERMISSIONS.COMPLAINT_READ_MANAGED),
   validateRequest(complaintListRequestSchema),
   listManagedComplaints
+);
+router.post(
+  "/:id/attachments",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_CREATE),
+  validateRequest(complaintDetailRequestSchema),
+  complaintAttachmentUpload.single("file"),
+  uploadComplaintAttachment
+);
+router.get(
+  "/:id/attachments",
+  protect,
+  validateRequest(complaintDetailRequestSchema),
+  listComplaintAttachments
+);
+router.get(
+  "/:id/attachments/:attachmentId",
+  protect,
+  validateRequest(complaintAttachmentRequestSchema),
+  downloadComplaintAttachment
+);
+router.delete(
+  "/:id/attachments/:attachmentId",
+  protect,
+  validateRequest(complaintAttachmentRequestSchema),
+  deleteComplaintAttachment
 );
 
 // ================= STUDENT ROUTES =================

@@ -20,6 +20,25 @@ import {
   searchManagedComplaints,
   searchOwnComplaints,
 } from "../services/complaintService.js";
+import {
+  deleteComplaintAttachment as removeComplaintAttachment,
+  downloadComplaintAttachment as readComplaintAttachment,
+  listComplaintAttachments as getComplaintAttachments,
+  uploadComplaintAttachment as saveComplaintAttachment,
+} from "../services/complaintAttachmentService.js";
+
+const getContentDisposition = (filename) => {
+  const fallback = filename
+    .replace(/[^\x20-\x7e]/g, "_")
+    .replace(/["\\]/g, "_");
+  const encoded = encodeURIComponent(filename).replace(
+    /[!'()*]/g,
+    (character) =>
+      `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+
+  return `inline; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+};
 
 export const createMaintenanceComplaint = async (req, res) => {
   try {
@@ -68,6 +87,91 @@ export const listComplaintCategories = async (req, res) => {
     return res.json({ data: categories });
   } catch (error) {
     return handleControllerError(res, error, "List Complaint Categories Error");
+  }
+};
+
+export const uploadComplaintAttachment = async (req, res) => {
+  try {
+    const attachment = await saveComplaintAttachment(
+      db,
+      req.user,
+      req.params.id,
+      req.file
+    );
+
+    return res.status(201).json({ attachment });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Upload Complaint Attachment Error"
+    );
+  }
+};
+
+export const listComplaintAttachments = async (req, res) => {
+  try {
+    const attachments = await getComplaintAttachments(
+      db,
+      req.user,
+      req.params.id
+    );
+
+    return res.json({ data: attachments });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "List Complaint Attachments Error"
+    );
+  }
+};
+
+export const downloadComplaintAttachment = async (req, res) => {
+  try {
+    const attachment = await readComplaintAttachment(
+      db,
+      req.user,
+      req.params.id,
+      req.params.attachmentId
+    );
+
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": getContentDisposition(attachment.originalName),
+      "Content-Length": String(attachment.contents.length),
+      "Content-Type": attachment.mimeType,
+      "X-Content-Type-Options": "nosniff",
+    });
+    return res.send(attachment.contents);
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Download Complaint Attachment Error"
+    );
+  }
+};
+
+export const deleteComplaintAttachment = async (req, res) => {
+  try {
+    const attachment = await removeComplaintAttachment(
+      db,
+      req.user,
+      req.params.id,
+      req.params.attachmentId
+    );
+
+    return res.json({
+      message: "Complaint attachment deleted",
+      attachment,
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Delete Complaint Attachment Error"
+    );
   }
 };
 

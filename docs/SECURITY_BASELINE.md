@@ -34,7 +34,7 @@ Redis-compatible store so every instance enforces one common quota.
 
 ## Upload resource limits
 
-The complaint upload route accepts at most:
+The legacy complaint upload route accepts at most:
 
 - one file;
 - 5 MiB per file;
@@ -42,9 +42,13 @@ The complaint upload route accepts at most:
 - 50 KiB per text field; and
 - eleven multipart sections in total.
 
-Only an image MIME type is accepted at this stage. Content-signature checking,
-private object storage, generated filenames, and authenticated file delivery
-remain part of the later `FILE-01` slice.
+The normalized complaint evidence route is stricter. It accepts one JPEG, PNG,
+or WebP file in memory, limits it to 5 MiB, verifies its signature, assigns a
+generated storage key, and records a SHA-256 checksum. Files live outside the
+public upload directory and every list, view, or delete operation repeats the
+complaint authorization check. Reporter deletion closes when staff work begins;
+wardens cannot erase student evidence, while administrators retain a moderated,
+audited deletion path.
 
 ## Deployment checklist
 
@@ -53,5 +57,7 @@ remain part of the later `FILE-01` slice.
 3. Keep `TRUST_PROXY_HOPS=0` for a directly exposed API, or set the exact proxy
    count for the chosen hosting topology.
 4. Confirm the production dependency audit reports zero known vulnerabilities.
-5. Re-run the security middleware and rate-limit tests after infrastructure
+5. Mount durable private storage at `PRIVATE_FILE_STORAGE_PATH` and confirm it
+   is not below the public `uploads` directory.
+6. Re-run the security middleware and rate-limit tests after infrastructure
    changes.
