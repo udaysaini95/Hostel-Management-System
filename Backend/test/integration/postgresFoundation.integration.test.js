@@ -81,7 +81,12 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
         'rooms',
         'room_allocations',
         'approved_students',
-        'audit_events'
+        'audit_events',
+        'complaint_categories',
+        'complaints',
+        'complaint_assignments',
+        'complaint_events',
+        'complaint_attachments'
       )
     ORDER BY table_name
   `);
@@ -95,6 +100,11 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
     [
       "approved_students",
       "audit_events",
+      "complaint_assignments",
+      "complaint_attachments",
+      "complaint_categories",
+      "complaint_events",
+      "complaints",
       "hostel_blocks",
       "hostel_memberships",
       "hostels",
@@ -105,7 +115,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "users",
     ]
   );
-  assert.equal(migrationsResult.rows[0].count, 6);
+  assert.equal(migrationsResult.rows[0].count, 7);
 });
 
 test("PostgreSQL enforces hostel and primary-membership constraints", async () => {

@@ -43,6 +43,13 @@
       "when": 1788711867882,
       "tag": "0005_resident_room_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788778877929,
+      "tag": "0006_complaint_workflow_foundation",
+      "breakpoints": true
     }
   ]
 }

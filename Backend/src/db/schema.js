@@ -15,12 +15,34 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
+import {
+  COMPLAINT_ATTACHMENT_PURPOSES,
+  COMPLAINT_EVENT_TYPES,
+  COMPLAINT_PRIORITIES,
+  COMPLAINT_STATUSES,
+} from "../domain/complaintWorkflow.js";
 import { USER_ROLES } from "../domain/roles.js";
 
 export const userRoleEnum = pgEnum("user_role", Object.values(USER_ROLES));
 export const accountStatusEnum = pgEnum(
   "account_status",
   Object.values(ACCOUNT_STATUSES)
+);
+export const complaintStatusEnum = pgEnum(
+  "complaint_status",
+  Object.values(COMPLAINT_STATUSES)
+);
+export const complaintPriorityEnum = pgEnum(
+  "complaint_priority",
+  Object.values(COMPLAINT_PRIORITIES)
+);
+export const complaintEventTypeEnum = pgEnum(
+  "complaint_event_type",
+  Object.values(COMPLAINT_EVENT_TYPES)
+);
+export const complaintAttachmentPurposeEnum = pgEnum(
+  "complaint_attachment_purpose",
+  Object.values(COMPLAINT_ATTACHMENT_PURPOSES)
 );
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
@@ -499,8 +521,10 @@ export const auditEventHostels = pgTable(
   ]
 );
 
-// 2. Complaints Table
-export const complaints = pgTable("complaints", {
+// The old complaint API remains connected to these tables until CMP-02 switches
+// its handlers to the normalized workflow below. Keeping the legacy names
+// explicit prevents new code from accidentally building on the old model.
+export const legacyComplaints = pgTable("legacy_complaints", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
     .notNull()
@@ -517,16 +541,279 @@ export const complaints = pgTable("complaints", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 3. Complaint Timelines Table
-export const complaintTimelines = pgTable("complaint_timelines", {
+export const legacyComplaintTimelines = pgTable("legacy_complaint_timelines", {
   id: serial("id").primaryKey(),
   complaintId: integer("complaint_id")
     .notNull()
-    .references(() => complaints.id, { onDelete: "cascade" }),
+    .references(() => legacyComplaints.id, { onDelete: "cascade" }),
   status: varchar("status", { length: 50 }).notNull(),
   note: text("note"),
   time: timestamp("time").defaultNow(),
 });
+
+export const complaintCategories = pgTable(
+  "complaint_categories",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull().unique(),
+    defaultPriority: complaintPriorityEnum("default_priority").notNull(),
+    slaMinutes: integer("sla_minutes").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "complaint_categories_code_format_check",
+      sql`${table.code} ~ '^[a-z][a-z0-9_]{1,49}$'`
+    ),
+    check(
+      "complaint_categories_name_not_blank_check",
+      sql`length(trim(${table.name})) > 0`
+    ),
+    check(
+      "complaint_categories_sla_bounds_check",
+      sql`${table.slaMinutes} between 15 and 43200`
+    ),
+  ]
+);
+
+export const complaints = pgTable(
+  "complaints",
+  {
+    id: serial("id").primaryKey(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    reportedByUserId: integer("reported_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    studentProfileId: integer("student_profile_id").references(
+      () => studentProfiles.id,
+      { onDelete: "restrict" }
+    ),
+    categoryId: integer("category_id")
+      .notNull()
+      .references(() => complaintCategories.id, { onDelete: "restrict" }),
+    roomId: integer("room_id").references(() => rooms.id, {
+      onDelete: "restrict",
+    }),
+    location: varchar("location", { length: 255 }).notNull(),
+    description: text("description").notNull(),
+    requestedPriority: complaintPriorityEnum("requested_priority"),
+    priority: complaintPriorityEnum("priority").notNull(),
+    slaPolicyMinutes: integer("sla_policy_minutes").notNull(),
+    slaDeadline: timestamp("sla_deadline", { withTimezone: true }).notNull(),
+    status: complaintStatusEnum("status")
+      .default(COMPLAINT_STATUSES.CREATED)
+      .notNull(),
+    resolutionNote: text("resolution_note"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "complaints_location_not_blank_check",
+      sql`length(trim(${table.location})) > 0`
+    ),
+    check(
+      "complaints_description_length_check",
+      sql`length(trim(${table.description})) between 10 and 2000`
+    ),
+    check(
+      "complaints_sla_policy_bounds_check",
+      sql`${table.slaPolicyMinutes} between 15 and 43200`
+    ),
+    check(
+      "complaints_sla_deadline_check",
+      sql`${table.slaDeadline} > ${table.createdAt}`
+    ),
+    check(
+      "complaints_resolution_details_check",
+      sql`(${table.resolvedAt} is null and ${table.resolutionNote} is null) or (${table.resolvedAt} is not null and ${table.resolvedAt} >= ${table.createdAt} and length(trim(${table.resolutionNote})) > 0)`
+    ),
+    check(
+      "complaints_resolved_state_check",
+      sql`${table.status} not in ('resolved', 'closed') or ${table.resolvedAt} is not null`
+    ),
+    check(
+      "complaints_closed_state_check",
+      sql`(${table.status} = 'closed' and ${table.closedAt} is not null and ${table.closedAt} >= ${table.resolvedAt}) or (${table.status} <> 'closed' and ${table.closedAt} is null)`
+    ),
+    check(
+      "complaints_updated_at_check",
+      sql`${table.updatedAt} >= ${table.createdAt}`
+    ),
+    index("complaints_hostel_status_created_idx").on(
+      table.hostelId,
+      table.status,
+      table.createdAt
+    ),
+    index("complaints_open_sla_idx")
+      .on(table.hostelId, table.slaDeadline)
+      .where(sql`${table.status} <> 'closed'`),
+    index("complaints_student_profile_idx").on(
+      table.studentProfileId,
+      table.createdAt
+    ),
+    index("complaints_reporter_idx").on(table.reportedByUserId),
+    index("complaints_category_idx").on(table.categoryId),
+  ]
+);
+
+// Assignment rows are closed instead of replaced, which keeps every hand-off.
+export const complaintAssignments = pgTable(
+  "complaint_assignments",
+  {
+    id: serial("id").primaryKey(),
+    complaintId: integer("complaint_id")
+      .notNull()
+      .references(() => complaints.id, { onDelete: "restrict" }),
+    assigneeUserId: integer("assignee_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    assignedByUserId: integer("assigned_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    assignedAt: timestamp("assigned_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endedByUserId: integer("ended_by_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    endReason: varchar("end_reason", { length: 500 }),
+  },
+  (table) => [
+    check(
+      "complaint_assignments_end_details_check",
+      sql`(${table.endedAt} is null and ${table.endedByUserId} is null and ${table.endReason} is null) or (${table.endedAt} is not null and ${table.endedAt} > ${table.assignedAt} and ${table.endedByUserId} is not null and length(trim(${table.endReason})) > 0)`
+    ),
+    uniqueIndex("complaint_assignments_one_active_per_complaint")
+      .on(table.complaintId)
+      .where(sql`${table.endedAt} is null`),
+    index("complaint_assignments_active_assignee_idx")
+      .on(table.assigneeUserId, table.assignedAt)
+      .where(sql`${table.endedAt} is null`),
+    index("complaint_assignments_history_idx").on(
+      table.complaintId,
+      table.assignedAt
+    ),
+  ]
+);
+
+// Events are append-only. Actor fields are snapshots so the timeline remains
+// readable even when an account is later renamed or deactivated.
+export const complaintEvents = pgTable(
+  "complaint_events",
+  {
+    id: serial("id").primaryKey(),
+    complaintId: integer("complaint_id")
+      .notNull()
+      .references(() => complaints.id, { onDelete: "restrict" }),
+    eventType: complaintEventTypeEnum("event_type").notNull(),
+    fromStatus: complaintStatusEnum("from_status"),
+    toStatus: complaintStatusEnum("to_status").notNull(),
+    actorUserId: integer("actor_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    note: varchar("note", { length: 1000 }),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "complaint_events_created_state_check",
+      sql`(${table.eventType} = 'created' and ${table.fromStatus} is null and ${table.toStatus} = 'created') or (${table.eventType} <> 'created' and ${table.fromStatus} is not null)`
+    ),
+    check(
+      "complaint_events_actor_snapshot_check",
+      sql`length(trim(${table.actorName})) > 0 and length(trim(${table.actorRole})) > 0`
+    ),
+    check(
+      "complaint_events_note_not_blank_check",
+      sql`${table.note} is null or length(trim(${table.note})) > 0`
+    ),
+    check(
+      "complaint_events_metadata_object_check",
+      sql`jsonb_typeof(${table.metadata}) = 'object'`
+    ),
+    index("complaint_events_timeline_idx").on(
+      table.complaintId,
+      table.occurredAt,
+      table.id
+    ),
+    index("complaint_events_actor_idx").on(table.actorUserId),
+  ]
+);
+
+// Only storage keys are persisted. Routes must authorize access and return a
+// short-lived download response; this table never exposes a public file URL.
+export const complaintAttachments = pgTable(
+  "complaint_attachments",
+  {
+    id: serial("id").primaryKey(),
+    complaintId: integer("complaint_id")
+      .notNull()
+      .references(() => complaints.id, { onDelete: "restrict" }),
+    eventId: integer("event_id").references(() => complaintEvents.id, {
+      onDelete: "restrict",
+    }),
+    uploadedByUserId: integer("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    purpose: complaintAttachmentPurposeEnum("purpose").notNull(),
+    storageKey: varchar("storage_key", { length: 500 }).notNull().unique(),
+    originalName: varchar("original_name", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 100 }).notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: varchar("sha256", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "complaint_attachments_storage_key_check",
+      sql`length(trim(${table.storageKey})) > 0`
+    ),
+    check(
+      "complaint_attachments_original_name_check",
+      sql`length(trim(${table.originalName})) > 0`
+    ),
+    check(
+      "complaint_attachments_mime_type_check",
+      sql`${table.mimeType} in ('image/jpeg', 'image/png', 'image/webp')`
+    ),
+    check(
+      "complaint_attachments_size_check",
+      sql`${table.sizeBytes} between 1 and 5242880`
+    ),
+    check(
+      "complaint_attachments_sha256_check",
+      sql`${table.sha256} ~ '^[a-f0-9]{64}$'`
+    ),
+    index("complaint_attachments_complaint_idx").on(
+      table.complaintId,
+      table.createdAt
+    ),
+  ]
+);
 
 // 4. Leave Applications Table (With Gate Security State Machine)
 export const leaves = pgTable("leaves", {

@@ -2,12 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { ACCOUNT_STATUSES } from "../src/domain/accountStatuses.js";
+import {
+  COMPLAINT_ATTACHMENT_PURPOSES,
+  COMPLAINT_EVENT_TYPES,
+  COMPLAINT_PRIORITIES,
+  COMPLAINT_STATUSES,
+} from "../src/domain/complaintWorkflow.js";
 import { USER_ROLES } from "../src/domain/roles.js";
 import {
   accountStatusEnum,
   approvedStudents,
   auditEventHostels,
   auditEvents,
+  complaintAssignments,
+  complaintAttachmentPurposeEnum,
+  complaintAttachments,
+  complaintCategories,
+  complaintEventTypeEnum,
+  complaintEvents,
+  complaintPriorityEnum,
+  complaints,
+  complaintStatusEnum,
   hostelBlocks,
   hostelMemberships,
   hostels,
@@ -39,6 +54,111 @@ test("database enums constrain supported roles and account states", () => {
   assert.equal(users.accountStatus.notNull, true);
   assert.equal(users.accountStatus.hasDefault, true);
   assert.equal(users.rollNo.isUnique, true);
+});
+
+test("complaint enums match the workflow domain values", () => {
+  assert.deepEqual(
+    complaintStatusEnum.enumValues,
+    Object.values(COMPLAINT_STATUSES)
+  );
+  assert.deepEqual(
+    complaintPriorityEnum.enumValues,
+    Object.values(COMPLAINT_PRIORITIES)
+  );
+  assert.deepEqual(
+    complaintEventTypeEnum.enumValues,
+    Object.values(COMPLAINT_EVENT_TYPES)
+  );
+  assert.deepEqual(
+    complaintAttachmentPurposeEnum.enumValues,
+    Object.values(COMPLAINT_ATTACHMENT_PURPOSES)
+  );
+});
+
+test("complaints keep explicit hostel, reporter, category, room, and SLA context", () => {
+  const config = getTableConfig(complaints);
+
+  assert.equal(config.foreignKeys.length, 5);
+  assert.equal(complaints.hostelId.notNull, true);
+  assert.equal(complaints.reportedByUserId.notNull, true);
+  assert.equal(complaints.categoryId.notNull, true);
+  assert.equal(complaints.priority.notNull, true);
+  assert.equal(complaints.slaPolicyMinutes.notNull, true);
+  assert.equal(complaints.slaDeadline.notNull, true);
+  assert.equal(complaints.status.hasDefault, true);
+  assert.ok(findIndex(complaints, "complaints_hostel_status_created_idx"));
+  assert.ok(findIndex(complaints, "complaints_open_sla_idx").config.where);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaints_resolution_details_check"
+    )
+  );
+});
+
+test("complaint categories own the default priority and SLA policy", () => {
+  const config = getTableConfig(complaintCategories);
+
+  assert.equal(complaintCategories.code.isUnique, true);
+  assert.equal(complaintCategories.name.isUnique, true);
+  assert.equal(complaintCategories.defaultPriority.notNull, true);
+  assert.equal(complaintCategories.slaMinutes.notNull, true);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaint_categories_sla_bounds_check"
+    )
+  );
+});
+
+test("complaint assignments preserve hand-offs and allow one active assignee", () => {
+  const config = getTableConfig(complaintAssignments);
+  const activeAssignment = findIndex(
+    complaintAssignments,
+    "complaint_assignments_one_active_per_complaint"
+  );
+
+  assert.equal(config.foreignKeys.length, 4);
+  assert.equal(activeAssignment.config.unique, true);
+  assert.ok(activeAssignment.config.where);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaint_assignments_end_details_check"
+    )
+  );
+});
+
+test("complaint events store actor snapshots and have no update timestamp", () => {
+  const config = getTableConfig(complaintEvents);
+
+  assert.equal(complaintEvents.actorName.notNull, true);
+  assert.equal(complaintEvents.actorRole.notNull, true);
+  assert.equal(complaintEvents.metadata.notNull, true);
+  assert.equal(complaintEvents.updatedAt, undefined);
+  assert.ok(findIndex(complaintEvents, "complaint_events_timeline_idx"));
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaint_events_metadata_object_check"
+    )
+  );
+});
+
+test("complaint attachments store private file metadata instead of public URLs", () => {
+  const config = getTableConfig(complaintAttachments);
+
+  assert.equal(complaintAttachments.storageKey.notNull, true);
+  assert.equal(complaintAttachments.storageKey.isUnique, true);
+  assert.equal(complaintAttachments.publicUrl, undefined);
+  assert.equal(complaintAttachments.url, undefined);
+  assert.equal(config.foreignKeys.length, 3);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaint_attachments_mime_type_check"
+    )
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaint_attachments_size_check"
+    )
+  );
 });
 
 test("hostels have unique human names and validated short codes", () => {

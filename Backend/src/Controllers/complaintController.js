@@ -1,5 +1,9 @@
 import { db } from "../db/index.js";
-import { complaints, complaintTimelines, users } from "../db/schema.js";
+import {
+  legacyComplaints as complaints,
+  legacyComplaintTimelines as complaintTimelines,
+  users,
+} from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import {
   canAccessOwnedResource,
