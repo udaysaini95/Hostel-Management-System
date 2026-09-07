@@ -9,12 +9,19 @@ import {
   getApprovalStatusLabel,
   getApprovalStatusTone,
 } from "../src/onboarding/approvedStudentView.js";
+import {
+  STUDENT_IMPORT_MAX_BYTES,
+  validateStudentImportFile,
+} from "../src/onboarding/studentImport.js";
 
 const pagePath = fileURLToPath(
   new URL("../src/pages/ApprovedStudents.jsx", import.meta.url)
 );
 const stylesPath = fileURLToPath(
   new URL("../src/styles/onboarding.css", import.meta.url)
+);
+const importDialogPath = fileURLToPath(
+  new URL("../src/onboarding/StudentImportDialog.jsx", import.meta.url)
 );
 
 test("approved-student states use plain labels and consistent tones", () => {
@@ -49,20 +56,45 @@ test("available actions follow the approval lifecycle", () => {
 });
 
 test("the console uses server APIs and never handles activation tokens", async () => {
-  const page = await readFile(pagePath, "utf8");
+  const [page, importDialog] = await Promise.all([
+    readFile(pagePath, "utf8"),
+    readFile(importDialogPath, "utf8"),
+  ]);
 
   assert.match(page, /api\/admin\/hostels/);
   assert.match(page, /api\/admin\/students\/approvals/);
   assert.match(page, /\/activation-email/);
   assert.match(page, /\/revoke/);
   assert.match(page, /\/reinstate/);
+  assert.match(importDialog, /students\/approvals\/import/);
+  assert.match(importDialog, /dryRun/);
   assert.doesNotMatch(page, /tokenHash|result\.token|response\.data\.token/);
 });
 
+test("student import applies the same file boundary shown in the interface", () => {
+  assert.equal(validateStudentImportFile(null), "Choose a CSV file to review.");
+  assert.equal(
+    validateStudentImportFile({ name: "students.xlsx", size: 200 }),
+    "Choose a file with the .csv extension."
+  );
+  assert.equal(
+    validateStudentImportFile({
+      name: "students.csv",
+      size: STUDENT_IMPORT_MAX_BYTES + 1,
+    }),
+    "The CSV file must be 1 MB or smaller."
+  );
+  assert.equal(
+    validateStudentImportFile({ name: "students.csv", size: 200 }),
+    ""
+  );
+});
+
 test("the console has a compact table and structured mobile records", async () => {
-  const [page, styles] = await Promise.all([
+  const [page, styles, importDialog] = await Promise.all([
     readFile(pagePath, "utf8"),
     readFile(stylesPath, "utf8"),
+    readFile(importDialogPath, "utf8"),
   ]);
 
   for (const field of ["name", "email", "rollNo", "hostelCode"]) {
@@ -72,6 +104,9 @@ test("the console has a compact table and structured mobile records", async () =
   assert.match(page, /<Table caption="Approved student records"/);
   assert.match(page, /hm-approvals__mobile-list/);
   assert.match(page, /<ConfirmationDialog/);
+  assert.match(page, /<StudentImportDialog/);
+  assert.match(importDialog, /Download CSV template/);
+  assert.match(importDialog, /CSV row errors/);
   assert.match(styles, /@media\s*\(max-width:\s*767px\)/);
   assert.match(
     styles,

@@ -27,6 +27,11 @@ business logic. Successful validation also performs safe normalization such as
 trimming text, lowercasing email addresses, uppercasing hostel codes, and
 converting numeric route IDs.
 
+Multipart student imports validate their query before accepting one bounded
+in-memory CSV file. CSV headers, row values, existing identities, and hostel
+codes are then validated by the import service; invalid confirmed batches
+return row-level details and write nothing.
+
 Validation currently covers authentication, account provisioning, student
 activation, student profiles, resident-directory searches, audit searches,
 room inventory and allocation, complaints, leave applications, mess operations,

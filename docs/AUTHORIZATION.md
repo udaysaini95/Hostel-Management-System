@@ -22,6 +22,9 @@ Unknown roles and unknown permissions are denied by default. Administrative acce
 - Administrators receive explicitly listed institution-level operational and account-management permissions.
 - Approved-student search, revocation, reinstatement, and activation-email
   reissue require the administrator-only `student-approval:manage` permission.
+- Validated CSV approval imports require the separate administrator-only
+  `student:import` permission. Wardens cannot use the preview or confirmed
+  import endpoint.
 
 Audit visibility is additionally filtered after the route permission check:
 administrators can read all events, wardens can read operational events for
@@ -34,6 +37,7 @@ The student identity and email-verification flow is documented in [Approved Stud
 The private profile response and editable fields are documented in [Student Profile API](./STUDENT_PROFILES.md).
 Resident search fields and hostel visibility are documented in [Resident Directory API](./RESIDENT_DIRECTORY.md).
 The append-only audit model is documented in [Audit Logging](./AUDIT_LOGGING.md).
+The bulk approval boundary is documented in [Student CSV Imports](./STUDENT_IMPORTS.md).
 
 Protected endpoints return `AUTHENTICATION_REQUIRED` when no valid actor exists and `PERMISSION_DENIED` when the authenticated role lacks the requested capability. Ownership failures return `RESOURCE_ACCESS_DENIED`.
 

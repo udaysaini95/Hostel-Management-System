@@ -59,6 +59,15 @@ export const studentApprovalRequestSchema = {
   }),
 };
 
+export const studentApprovalImportRequestSchema = {
+  query: z.strictObject({
+    dryRun: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
+  }),
+};
+
 export const approvedStudentSearchRequestSchema = {
   query: z.strictObject({
     page: z.coerce.number().int().positive().default(1),

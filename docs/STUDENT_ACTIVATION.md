@@ -31,6 +31,18 @@ Requires an administrator access token with the `student:approve` permission.
 
 The email and roll number must each be unique. The hostel must exist and be active.
 
+### Import several approvals
+
+`POST /api/admin/students/approvals/import?dryRun=true|false`
+
+Administrators may upload the documented four-column CSV template from the
+student onboarding screen. The dry run reports row-level format, hostel, file
+duplicate, existing approval, and existing account conflicts without writing
+data. A confirmed import repeats those checks and creates the entire batch in
+one transaction. It creates approval records only; students still complete the
+normal email-ownership activation flow. See `docs/STUDENT_IMPORTS.md` for the
+complete contract.
+
 ### Manage approved students
 
 All management endpoints require an administrator access token with the
@@ -130,7 +142,7 @@ If email delivery is not configured, activation requests return `503 ACTIVATION_
 - Raw activation tokens exist only in the email-delivery path; the database stores SHA-256 hashes.
 - Tokens are random 256-bit values, expire after 30 minutes, and can be used once.
 - A failed email send revokes the new token.
-- Approval creation, revocation, reinstatement, and administrator activation
+- Approval creation, CSV import, revocation, reinstatement, and administrator activation
   reissue are recorded in the immutable audit log with hostel scope.
 - Activated approvals cannot be revoked or reissued. Administrators use account
   suspension when an already activated student must lose access.

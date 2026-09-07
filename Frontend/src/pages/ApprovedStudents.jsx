@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Building2,
+  FileUp,
   MailPlus,
   RotateCcw,
   Search,
@@ -40,6 +41,7 @@ import {
   getApprovalStatusLabel,
   getApprovalStatusTone,
 } from "../onboarding/approvedStudentView.js";
+import { StudentImportDialog } from "../onboarding/StudentImportDialog.jsx";
 
 const EMPTY_FORM = Object.freeze({
   name: "",
@@ -222,6 +224,7 @@ const ApprovedStudents = () => {
   const [page, setPage] = useState(1);
   const [recordsVersion, setRecordsVersion] = useState(0);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [approvalForm, setApprovalForm] = useState(EMPTY_FORM);
   const [approvalErrors, setApprovalErrors] = useState({});
   const [approvalError, setApprovalError] = useState("");
@@ -478,6 +481,16 @@ const ApprovedStudents = () => {
     setPage(1);
   };
 
+  const finishStudentImport = () => {
+    setImportDialogOpen(false);
+    setSearchInput("");
+    setSearch("");
+    setHostelFilter("");
+    setStatusFilter("");
+    setPage(1);
+    setRecordsVersion((current) => current + 1);
+  };
+
   const filtersActive = Boolean(search || hostelFilter || statusFilter);
   const approvalDisabled =
     hostelsLoading || Boolean(hostelsError) || hostels.length === 0;
@@ -498,15 +511,25 @@ const ApprovedStudents = () => {
         title="Student onboarding"
         description="Approve institutional identities, assign a hostel, and manage account activation eligibility."
         actions={
-          <Button
-            variant="primary"
-            size="form"
-            leadingIcon={<UserPlus aria-hidden="true" />}
-            disabled={approvalDisabled}
-            onClick={() => setApprovalDialogOpen(true)}
-          >
-            Approve student
-          </Button>
+          <>
+            <Button
+              size="form"
+              leadingIcon={<FileUp aria-hidden="true" />}
+              disabled={approvalDisabled}
+              onClick={() => setImportDialogOpen(true)}
+            >
+              Import CSV
+            </Button>
+            <Button
+              variant="primary"
+              size="form"
+              leadingIcon={<UserPlus aria-hidden="true" />}
+              disabled={approvalDisabled}
+              onClick={() => setApprovalDialogOpen(true)}
+            >
+              Approve student
+            </Button>
+          </>
         }
       />
 
@@ -763,6 +786,12 @@ const ApprovedStudents = () => {
           </nav>
         </section>
       )}
+
+      <StudentImportDialog
+        open={importDialogOpen}
+        onDismiss={() => setImportDialogOpen(false)}
+        onImported={finishStudentImport}
+      />
 
       <Dialog
         open={approvalDialogOpen}

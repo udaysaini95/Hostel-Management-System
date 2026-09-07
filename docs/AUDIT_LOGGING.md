@@ -34,7 +34,7 @@ and `DELETE` statements against both audit events and their hostel scopes.
 
 An audit write runs inside the same database transaction as the protected
 business change. If the audit insert fails, the invitation, account-status
-change, or student approval also rolls back.
+change, student approval, or approval import also rolls back.
 
 ## Events emitted so far
 
@@ -43,6 +43,7 @@ change, or student approval also rolls back.
 | `staff.invitation.created` | Staff invitation | Account |
 | `account.status.changed` | User account | Account |
 | `student.approval.created` | Approved student | Student |
+| `student.approvals.imported` | Student import batch | Student |
 | `student.approval.revoked` | Approved student | Student |
 | `student.approval.reinstated` | Approved student | Student |
 | `student.activation.reissued` | Approved student | Student |

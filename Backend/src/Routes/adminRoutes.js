@@ -6,6 +6,7 @@ import {
 import {
   listApprovalHostels,
   listApprovedStudents,
+  importApprovedStudents,
   reinstateStudentApproval,
   reissueStudentActivationEmail,
   revokeStudentApproval,
@@ -15,6 +16,7 @@ import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { createStudentApproval } from "../Controllers/studentActivationController.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
+import { studentCsvUpload } from "../middlewares/studentCsvUpload.js";
 import {
   accountStatusRequestSchema,
   approvedStudentActivationReissueRequestSchema,
@@ -23,6 +25,7 @@ import {
   approvedStudentSearchRequestSchema,
   staffInvitationRequestSchema,
   studentApprovalRequestSchema,
+  studentApprovalImportRequestSchema,
 } from "../validation/authSchemas.js";
 
 const router = express.Router();
@@ -49,6 +52,15 @@ router.post(
   requirePermission(PERMISSIONS.STUDENT_APPROVE),
   validateRequest(studentApprovalRequestSchema),
   createStudentApproval
+);
+
+router.post(
+  "/students/approvals/import",
+  protect,
+  requirePermission(PERMISSIONS.STUDENT_IMPORT),
+  validateRequest(studentApprovalImportRequestSchema),
+  studentCsvUpload.single("file"),
+  importApprovedStudents
 );
 
 router.get(

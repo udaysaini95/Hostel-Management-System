@@ -27,7 +27,10 @@ Approved-student presentation rules live in
 `src/onboarding/approvedStudentView.js`. The administrator onboarding page uses
 server pagination and filtering, loads active hostel choices from the API, and
 renders the same records as a comparison table on desktop and structured
-records on mobile. It never receives or renders activation tokens.
+records on mobile. Its CSV dialog requires a server dry run before enabling a
+transactional bulk approval import, and displays row-specific validation
+problems without treating them as an empty list. It never receives or renders
+activation tokens.
 
 Student activation validation and privacy-safe copy live in
 `src/onboarding/studentActivation.js`. `/register` now requests an activation

@@ -7,6 +7,7 @@ import {
   revokeApprovedStudent,
   searchApprovedStudents,
 } from "../services/approvedStudentService.js";
+import { importStudentApprovals } from "../services/studentImportService.js";
 import { sendStudentActivationEmail } from "../services/studentActivationEmailService.js";
 import { revokeStudentActivationToken } from "../services/studentActivationService.js";
 import {
@@ -36,6 +37,47 @@ export const listApprovalHostels = async (_req, res) => {
       res,
       error,
       "List Student Approval Hostels Error"
+    );
+  }
+};
+
+export const importApprovedStudents = async (req, res) => {
+  try {
+    if (!req.file) {
+      return sendApiError(
+        res,
+        422,
+        "CSV_FILE_REQUIRED",
+        "Choose a CSV file to review"
+      );
+    }
+
+    const result = await importStudentApprovals(
+      db,
+      req.file.buffer.toString("utf8"),
+      req.user.id,
+      { dryRun: req.query.dryRun }
+    );
+
+    if (!req.query.dryRun && !result.report.canImport) {
+      return res.status(422).json({
+        code: "CSV_IMPORT_INVALID",
+        message: "Correct the reported CSV rows before importing",
+        ...result,
+      });
+    }
+
+    return res.status(req.query.dryRun ? 200 : 201).json({
+      message: req.query.dryRun
+        ? "CSV review completed"
+        : "Student approvals imported",
+      ...result,
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Import Approved Students Error"
     );
   }
 };

@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   STAFF_INVITATION_CREATED: "staff.invitation.created",
   ACCOUNT_STATUS_CHANGED: "account.status.changed",
   STUDENT_APPROVAL_CREATED: "student.approval.created",
+  STUDENT_APPROVALS_IMPORTED: "student.approvals.imported",
   STUDENT_APPROVAL_REVOKED: "student.approval.revoked",
   STUDENT_APPROVAL_REINSTATED: "student.approval.reinstated",
   STUDENT_ACTIVATION_REISSUED: "student.activation.reissued",
@@ -24,5 +25,6 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   STAFF_INVITATION: "staff_invitation",
   USER_ACCOUNT: "user_account",
   APPROVED_STUDENT: "approved_student",
+  STUDENT_IMPORT: "student_import",
   ROOM_ALLOCATION: "room_allocation",
 });
