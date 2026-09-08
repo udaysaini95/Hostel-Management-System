@@ -318,8 +318,8 @@ export const createLeaveRequest = async (
       actor.id
     );
 
-    // The same lock key is also used by the database trigger. It makes the
-    // overlap check safe when two submissions for one student arrive together.
+    // Serialize the friendly overlap check. The database exclusion constraint
+    // remains the final guard for writes that do not use this service.
     await transaction.execute(
       sql`select pg_advisory_xact_lock(7102, ${actor.id})`
     );

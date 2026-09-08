@@ -85,6 +85,13 @@
       "when": 1789153200000,
       "tag": "0011_leave_overlap_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789239600000,
+      "tag": "0012_auditable_leave_decisions",
+      "breakpoints": true
     }
   ]
 }

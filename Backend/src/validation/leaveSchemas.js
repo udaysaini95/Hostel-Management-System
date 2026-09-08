@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requiredText } from "./commonSchemas.js";
+import { idParamsSchema, requiredText } from "./commonSchemas.js";
 
 const timestampWithTimezone = (label) =>
   z.iso.datetime({ offset: true, message: `${label} must be an ISO timestamp with a timezone` });
@@ -24,4 +24,15 @@ export const leaveCreateRequestSchema = {
         message: "Expected return time must be after departure time",
       }
     ),
+};
+
+export const leaveDecisionRequestSchema = {
+  params: idParamsSchema,
+  body: z.strictObject({
+    outcome: z.enum(["approved", "rejected"]),
+    note: requiredText("Decision note", 1000).min(
+      5,
+      "Decision note must contain at least 5 characters"
+    ),
+  }),
 };

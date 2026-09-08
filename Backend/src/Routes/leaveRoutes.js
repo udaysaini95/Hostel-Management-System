@@ -3,6 +3,7 @@ import {
   applyLeave,
   approveLeave,
   createStudentLeaveRequest,
+  decideStudentLeaveRequest,
   getAllLeaves,
   myLeaves,
   rejectLeave,
@@ -15,7 +16,10 @@ import {
   leaveApplicationSchema,
   resourceIdSchema,
 } from "../validation/operationalSchemas.js";
-import { leaveCreateRequestSchema } from "../validation/leaveSchemas.js";
+import {
+  leaveCreateRequestSchema,
+  leaveDecisionRequestSchema,
+} from "../validation/leaveSchemas.js";
 
 const router = express.Router();
 
@@ -25,6 +29,13 @@ router.post(
   requirePermission(PERMISSIONS.LEAVE_CREATE_OWN),
   validateRequest(leaveCreateRequestSchema),
   createStudentLeaveRequest
+);
+router.post(
+  "/:id/decision",
+  protect,
+  requirePermission(PERMISSIONS.LEAVE_REVIEW),
+  validateRequest(leaveDecisionRequestSchema),
+  decideStudentLeaveRequest
 );
 
 router.post(

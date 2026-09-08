@@ -125,7 +125,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "users",
     ]
   );
-  assert.equal(migrationsResult.rows[0].count, 12);
+  assert.equal(migrationsResult.rows[0].count, 13);
 });
 
 test("PostgreSQL enforces hostel and primary-membership constraints", async () => {

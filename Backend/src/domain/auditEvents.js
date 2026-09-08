@@ -30,6 +30,8 @@ export const AUDIT_ACTIONS = Object.freeze({
   COMPLAINT_REOPENED: "complaint.reopened",
   COMPLAINT_CLOSED: "complaint.closed",
   LEAVE_REQUEST_SUBMITTED: "leave.request.submitted",
+  LEAVE_REQUEST_APPROVED: "leave.request.approved",
+  LEAVE_REQUEST_REJECTED: "leave.request.rejected",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({

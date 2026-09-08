@@ -85,3 +85,16 @@ is intentionally deferred to the authorized exception workflow in LEV-11.
 The legacy application endpoint remains available for the existing frontend.
 Later slices will migrate decisions, secure pass issuance, gate verification,
 movement logging, and the frontend before the compatibility tables are retired.
+
+## Staff decisions
+
+LEV-03 adds `POST /api/leave/:id/decision` for wardens and administrators. The
+body contains an `outcome` of `approved` or `rejected` and a required decision
+`note`. Wardens can decide requests only for hostels in their memberships;
+administrators can decide across the institution.
+
+Only pending requests can be decided. The decision row, leave status change,
+timeline event, and audit event share one transaction. PostgreSQL locks the
+request while validating the decision, verifies the staff snapshot and hostel
+scope, and applies the matching status. Approval does not issue a gate pass in
+this slice; secure token and private QR/PDF creation belong to PASS-01.

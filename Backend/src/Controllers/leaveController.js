@@ -10,6 +10,7 @@ import {
   sendApiError,
 } from "../utils/apiErrors.js";
 import { createLeaveRequest } from "../services/leaveRequestService.js";
+import { decideLeaveRequest } from "../services/leaveDecisionService.js";
 
 // Normalized student leave submission. Legacy handlers below remain available
 // until the leave frontend moves to the secure workflow.
@@ -19,6 +20,20 @@ export const createStudentLeaveRequest = async (req, res) => {
     return res.status(201).json({ leaveRequest });
   } catch (error) {
     return handleControllerError(res, error, "Create Leave Request Error");
+  }
+};
+
+export const decideStudentLeaveRequest = async (req, res) => {
+  try {
+    const result = await decideLeaveRequest(
+      db,
+      req.user,
+      req.params.id,
+      req.body
+    );
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "Decide Leave Request Error");
   }
 };
 

@@ -29,4 +29,12 @@ test("leave routes expose normalized submission before compatibility routes", ()
       (route) => route.path === "/apply" && route.methods.includes("post")
     )
   );
+  assert.ok(
+    routes.some(
+      (route) =>
+        route.path === "/:id/decision" &&
+        route.methods.includes("post") &&
+        route.middlewareCount === 4
+    )
+  );
 });

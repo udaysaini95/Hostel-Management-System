@@ -13,7 +13,10 @@ import {
   menuRequestSchema,
   resourceIdSchema,
 } from "../src/validation/operationalSchemas.js";
-import { leaveCreateRequestSchema } from "../src/validation/leaveSchemas.js";
+import {
+  leaveCreateRequestSchema,
+  leaveDecisionRequestSchema,
+} from "../src/validation/leaveSchemas.js";
 import {
   studentProfileReadRequestSchema,
   studentProfileUpdateRequestSchema,
@@ -142,6 +145,29 @@ test("normalized leave requests require timezone-aware ordered timestamps", () =
   assert.ok(invalidResult.response.body.fieldErrors["body.reason"]);
   assert.ok(invalidResult.response.body.fieldErrors["body.departureAt"]);
   assert.ok(invalidResult.response.body.fieldErrors["body.isEmergency"]);
+});
+
+test("leave decisions require an outcome, route ID, and meaningful note", () => {
+  const request = {
+    params: { id: "42" },
+    body: { outcome: "approved", note: "  Student details verified  " },
+  };
+  const validResult = runValidation(leaveDecisionRequestSchema, request);
+
+  assert.equal(validResult.nextCalled, true);
+  assert.deepEqual(request, {
+    params: { id: 42 },
+    body: { outcome: "approved", note: "Student details verified" },
+  });
+
+  const invalidResult = runValidation(leaveDecisionRequestSchema, {
+    params: { id: "invalid" },
+    body: { outcome: "pending", note: "No" },
+  });
+  assert.equal(invalidResult.nextCalled, false);
+  assert.ok(invalidResult.response.body.fieldErrors["params.id"]);
+  assert.ok(invalidResult.response.body.fieldErrors["body.outcome"]);
+  assert.ok(invalidResult.response.body.fieldErrors["body.note"]);
 });
 
 test("validated query values work with the Express 5 query getter", () => {

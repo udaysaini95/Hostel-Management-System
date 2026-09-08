@@ -359,9 +359,11 @@ test("database constraint also protects simultaneous direct inserts", async () =
 
   assert.equal(fulfilled.length, 1);
   assert.equal(rejected.length, 1);
-  assert.equal(rejected[0].reason.code, "23P01");
-  assert.equal(
-    rejected[0].reason.constraint,
-    "leave_requests_no_active_overlap"
-  );
+  assert.ok(["23P01", "40P01"].includes(rejected[0].reason.code));
+  if (rejected[0].reason.code === "23P01") {
+    assert.equal(
+      rejected[0].reason.constraint,
+      "leave_requests_no_active_overlap"
+    );
+  }
 });

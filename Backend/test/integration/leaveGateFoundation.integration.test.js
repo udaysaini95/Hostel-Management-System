@@ -242,7 +242,9 @@ test("decisions, secure passes, and movement events preserve one auditable histo
          'A second decision must not be accepted.', '2026-09-10T09:01:00Z')`,
       [leaveRequestId, wardenId]
     ),
-    (error) => postgresErrorCode(error) === "23505"
+    (error) =>
+      postgresErrorCode(error) === "23514" &&
+      error.constraint === "leave_decisions_status_match_check"
   );
 
   const passResult = await pool.query(
