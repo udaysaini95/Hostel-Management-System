@@ -4,11 +4,27 @@ import {
   legacyLeaves as leaves,
   users,
 } from "../db/schema.js";
-import { eq, or, desc, and } from "drizzle-orm";
+import { desc, eq, or } from "drizzle-orm";
 import {
   handleControllerError,
   sendApiError,
 } from "../utils/apiErrors.js";
+import { verifySecureGatePass } from "../services/gatePassVerificationService.js";
+
+// Normalized verification used by the secure guard terminal. It never trusts
+// the client to decide whether exit or return is allowed.
+export const verifyNormalizedGatePass = async (req, res) => {
+  try {
+    const verification = await verifySecureGatePass(
+      db,
+      req.user,
+      req.body.credential
+    );
+    return res.json({ verification });
+  } catch (error) {
+    return handleControllerError(res, error, "Secure Gate Verification Error");
+  }
+};
 
 // 1. Verify Pass or Roll Number (Guard Terminal)
 export const verifyGatePass = async (req, res) => {

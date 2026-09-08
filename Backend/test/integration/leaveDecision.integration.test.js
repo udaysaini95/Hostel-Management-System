@@ -20,6 +20,7 @@ import {
   getGatePass,
   readGatePassArtifact,
 } from "../../src/services/gatePassService.js";
+import { verifySecureGatePass } from "../../src/services/gatePassVerificationService.js";
 import { decideLeaveRequest } from "../../src/services/leaveDecisionService.js";
 import { createLeaveRequest } from "../../src/services/leaveRequestService.js";
 
@@ -38,8 +39,13 @@ let administrator;
 let firstWarden;
 let secondWarden;
 let suspendedWarden;
+let firstGuard;
+let secondGuard;
 let students;
 let pendingLeaves;
+
+const firstGatePassToken = "A".repeat(43);
+const secondGatePassToken = "B".repeat(43);
 
 const gatePassFiles = new Map();
 const gatePassStorage = {
@@ -73,7 +79,14 @@ before(async () => {
     ])
     .returning();
 
-  [administrator, firstWarden, secondWarden, suspendedWarden] = await database
+  [
+    administrator,
+    firstWarden,
+    secondWarden,
+    suspendedWarden,
+    firstGuard,
+    secondGuard,
+  ] = await database
     .insert(users)
     .values([
       {
@@ -104,6 +117,20 @@ before(async () => {
         role: USER_ROLES.WARDEN,
         accountStatus: ACCOUNT_STATUSES.SUSPENDED,
       },
+      {
+        name: "Leave Gate Guard One",
+        email: "guard-one@leave-decision.integration.test",
+        password: "test-hash",
+        role: USER_ROLES.GUARD,
+        accountStatus: ACCOUNT_STATUSES.ACTIVE,
+      },
+      {
+        name: "Leave Gate Guard Two",
+        email: "guard-two@leave-decision.integration.test",
+        password: "test-hash",
+        role: USER_ROLES.GUARD,
+        accountStatus: ACCOUNT_STATUSES.ACTIVE,
+      },
     ])
     .returning();
 
@@ -125,6 +152,8 @@ before(async () => {
     { userId: firstWarden.id, hostelId: firstHostel.id, isPrimary: true },
     { userId: secondWarden.id, hostelId: secondHostel.id, isPrimary: true },
     { userId: suspendedWarden.id, hostelId: firstHostel.id, isPrimary: true },
+    { userId: firstGuard.id, hostelId: firstHostel.id, isPrimary: true },
+    { userId: secondGuard.id, hostelId: secondHostel.id, isPrimary: true },
     ...students.map((student) => ({
       userId: student.id,
       hostelId: firstHostel.id,
@@ -189,7 +218,7 @@ test("warden approval records one decision, status, timeline, and audit event", 
     pendingLeaves[0].id,
     { outcome: "approved", note: "Student identity and travel dates verified" },
     decisionOptions(new Date("2026-10-02T08:00:00.000Z"), {
-      createToken: () => "known-collision-token",
+      createToken: () => firstGatePassToken,
     })
   );
 
@@ -281,6 +310,92 @@ test("pass metadata and files follow ownership and hostel scope", async () => {
       (error) => error.statusCode === 404 && error.code === "GATE_PASS_NOT_FOUND"
     );
   }
+});
+
+test("authoritative verification returns one server-owned gate action", async () => {
+  const qrResult = await verifySecureGatePass(
+    database,
+    { id: firstGuard.id, role: USER_ROLES.GUARD },
+    `hostelmate://gate-pass/${firstGatePassToken}`,
+    { now: new Date("2026-11-10T10:00:00.000Z") }
+  );
+  const manualResult = await verifySecureGatePass(
+    database,
+    { id: administrator.id, role: USER_ROLES.ADMIN },
+    firstGatePassToken,
+    { now: new Date("2026-11-10T10:00:00.000Z") }
+  );
+
+  assert.equal(qrResult.valid, true);
+  assert.equal(qrResult.verificationMethod, "qr");
+  assert.equal(qrResult.permittedAction, "exit");
+  assert.equal(manualResult.permittedAction, "exit");
+  assert.deepEqual(Object.keys(qrResult.details.student).sort(), [
+    "name",
+    "rollNo",
+    "room",
+  ]);
+  assert.equal(JSON.stringify(qrResult).includes(firstGatePassToken), false);
+  assert.equal(JSON.stringify(qrResult).includes("tokenHash"), false);
+
+  const tooEarly = await verifySecureGatePass(
+    database,
+    { id: firstGuard.id, role: USER_ROLES.GUARD },
+    firstGatePassToken,
+    { now: new Date("2026-11-10T07:59:59.000Z") }
+  );
+  const expired = await verifySecureGatePass(
+    database,
+    { id: firstGuard.id, role: USER_ROLES.GUARD },
+    firstGatePassToken,
+    { now: new Date("2026-11-11T18:00:00.000Z") }
+  );
+  const outOfScope = await verifySecureGatePass(
+    database,
+    { id: secondGuard.id, role: USER_ROLES.GUARD },
+    firstGatePassToken,
+    { now: new Date("2026-11-10T10:00:00.000Z") }
+  );
+
+  assert.equal(tooEarly.code, "PASS_NOT_YET_VALID");
+  assert.equal(expired.code, "PASS_EXPIRED");
+  assert.equal(outOfScope.code, "PASS_NOT_FOUND");
+  assert.equal(outOfScope.details, null);
+
+  await assert.rejects(
+    verifySecureGatePass(
+      database,
+      { id: firstWarden.id, role: USER_ROLES.WARDEN },
+      firstGatePassToken
+    ),
+    (error) =>
+      error.statusCode === 403 && error.code === "GATE_VERIFICATION_DENIED"
+  );
+
+  await pool.query(
+    "UPDATE leave_requests SET status = 'exited' WHERE id = $1",
+    [pendingLeaves[0].id]
+  );
+  const exited = await verifySecureGatePass(
+    database,
+    { id: firstGuard.id, role: USER_ROLES.GUARD },
+    firstGatePassToken,
+    { now: new Date("2026-11-10T10:00:00.000Z") }
+  );
+  assert.equal(exited.permittedAction, "return");
+
+  await pool.query(
+    "UPDATE leave_requests SET status = 'returned' WHERE id = $1",
+    [pendingLeaves[0].id]
+  );
+  const returned = await verifySecureGatePass(
+    database,
+    { id: firstGuard.id, role: USER_ROLES.GUARD },
+    firstGatePassToken,
+    { now: new Date("2026-11-10T10:00:00.000Z") }
+  );
+  assert.equal(returned.code, "LEAVE_COMPLETED");
+  assert.equal(returned.permittedAction, null);
 });
 
 test("administrator can reject a request with an auditable note", async () => {
@@ -498,7 +613,7 @@ test("file failure rolls approval back and token collisions are retried", async 
     passes: 0,
   });
 
-  const tokens = ["known-collision-token", "new-unique-token"];
+  const tokens = [firstGatePassToken, secondGatePassToken];
   let tokenCalls = 0;
   const result = await decideLeaveRequest(
     database,

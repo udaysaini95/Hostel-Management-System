@@ -1,9 +1,10 @@
 import express from "express";
-import { 
-  verifyGatePass, 
-  logGateAction, 
-  getActiveOutsideStudents, 
-  getRecentGateLogs 
+import {
+  getActiveOutsideStudents,
+  getRecentGateLogs,
+  logGateAction,
+  verifyGatePass,
+  verifyNormalizedGatePass,
 } from "../Controllers/gateController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
@@ -13,10 +14,18 @@ import {
   gateActionSchema,
   gatePassVerificationSchema,
 } from "../validation/operationalSchemas.js";
+import { secureGatePassVerificationSchema } from "../validation/gateSchemas.js";
 
 const router = express.Router();
 
 // Guard & Admin Gate Routes
+router.post(
+  "/passes/verify",
+  protect,
+  requirePermission(PERMISSIONS.GATE_VERIFY_PASS),
+  validateRequest(secureGatePassVerificationSchema),
+  verifyNormalizedGatePass
+);
 router.post(
   "/verify",
   protect,

@@ -121,3 +121,23 @@ Students can access only their own pass. Wardens and guards are limited to
 their assigned hostels, administrators can access every hostel, and maintenance
 accounts have no pass access. Out-of-scope IDs return the same not-found result
 as unknown IDs to avoid leaking another hostel's records.
+
+## Authoritative gate verification
+
+GATE-01 adds `POST /api/gate/passes/verify` for active guards and
+administrators. The body contains one `credential`, which may be the complete
+manual token printed on the PDF or the `hostelmate://gate-pass/...` value read
+from its QR code. The legacy `/api/gate/verify` endpoint remains temporarily
+available to the old frontend and is not part of the normalized workflow.
+
+Verification hashes the supplied token before looking it up. The service then
+checks the staff account, guard hostel membership, student account, hostel,
+revocation, leave state, start time, and expiry against current database data.
+An unknown token and a token from another guard's hostel produce the same
+not-found result.
+
+The response exposes only the student's name, roll number, room, hostel, pass
+window, and current leave state. It never returns the credential or its hash.
+Exactly one `permittedAction` is returned: `exit` for an active approved leave,
+`return` for an active exited leave, or `null` for every invalid condition.
+Verification is read-only; transactional movement logging belongs to GATE-02.
