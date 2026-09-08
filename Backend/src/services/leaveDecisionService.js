@@ -23,6 +23,7 @@ import {
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { issueGatePass } from "./gatePassService.js";
 
 const decisionRoles = new Set([USER_ROLES.WARDEN, USER_ROLES.ADMIN]);
 const decisionOutcomes = new Set(Object.values(LEAVE_DECISION_OUTCOMES));
@@ -170,7 +171,7 @@ const getDecisionAuditDetails = (outcome) =>
         description: "Rejected a student leave request",
       };
 
-const toDecisionResult = ({ leaveRequest, decision, actor }) => ({
+const toDecisionResult = ({ leaveRequest, decision, actor, gatePass }) => ({
   leaveRequest: {
     id: leaveRequest.id,
     reason: leaveRequest.reason,
@@ -204,6 +205,7 @@ const toDecisionResult = ({ leaveRequest, decision, actor }) => ({
       role: actor.role,
     },
   },
+  gatePass: gatePass ?? null,
 });
 
 export const decideLeaveRequest = async (
@@ -211,82 +213,106 @@ export const decideLeaveRequest = async (
   requestActor,
   leaveRequestId,
   input,
-  { now = new Date() } = {}
+  { now = new Date(), gatePassOptions } = {}
 ) => {
   const id = requirePositiveInteger(leaveRequestId, "Leave request ID");
   const decidedAt = requireOperationTime(now);
   const values = normalizeLeaveDecisionInput(input);
 
-  return database.transaction(async (transaction) => {
-    const actor = await loadDecisionActor(transaction, requestActor);
-    const leaveRequest = await loadManagedLeave(transaction, actor, id);
+  let cleanupGatePass = null;
 
-    if (leaveRequest.status !== LEAVE_STATUSES.PENDING) {
-      fail(
-        409,
-        "LEAVE_ALREADY_DECIDED",
-        "Only a pending leave request can be approved or rejected"
-      );
-    }
-    if (decidedAt < new Date(leaveRequest.createdAt)) {
-      fail(
-        409,
-        "INVALID_LEAVE_DECISION_TIME",
-        "Decision time cannot be earlier than the leave submission"
-      );
-    }
+  try {
+    return await database.transaction(async (transaction) => {
+      const actor = await loadDecisionActor(transaction, requestActor);
+      const leaveRequest = await loadManagedLeave(transaction, actor, id);
 
-    assertLeaveTransition(leaveRequest.status, values.outcome);
+      if (leaveRequest.status !== LEAVE_STATUSES.PENDING) {
+        fail(
+          409,
+          "LEAVE_ALREADY_DECIDED",
+          "Only a pending leave request can be approved or rejected"
+        );
+      }
+      if (decidedAt < new Date(leaveRequest.createdAt)) {
+        fail(
+          409,
+          "INVALID_LEAVE_DECISION_TIME",
+          "Decision time cannot be earlier than the leave submission"
+        );
+      }
 
-    // The decision trigger applies the matching request status atomically.
-    const [decision] = await transaction
-      .insert(leaveDecisions)
-      .values({
+      assertLeaveTransition(leaveRequest.status, values.outcome);
+
+      // The decision trigger applies the matching request status atomically.
+      const [decision] = await transaction
+        .insert(leaveDecisions)
+        .values({
+          leaveRequestId: leaveRequest.id,
+          outcome: values.outcome,
+          decidedByUserId: actor.id,
+          actorName: actor.name,
+          actorRole: actor.role,
+          note: values.note,
+          decidedAt,
+        })
+        .returning();
+
+      await transaction.insert(leaveEvents).values({
         leaveRequestId: leaveRequest.id,
-        outcome: values.outcome,
-        decidedByUserId: actor.id,
+        eventType:
+          values.outcome === LEAVE_DECISION_OUTCOMES.APPROVED
+            ? LEAVE_EVENT_TYPES.APPROVED
+            : LEAVE_EVENT_TYPES.REJECTED,
+        fromStatus: leaveRequest.status,
+        toStatus: values.outcome,
+        actorUserId: actor.id,
         actorName: actor.name,
         actorRole: actor.role,
         note: values.note,
-        decidedAt,
-      })
-      .returning();
+        metadata: { decisionId: decision.id },
+        occurredAt: decidedAt,
+      });
 
-    await transaction.insert(leaveEvents).values({
-      leaveRequestId: leaveRequest.id,
-      eventType:
-        values.outcome === LEAVE_DECISION_OUTCOMES.APPROVED
-          ? LEAVE_EVENT_TYPES.APPROVED
-          : LEAVE_EVENT_TYPES.REJECTED,
-      fromStatus: leaveRequest.status,
-      toStatus: values.outcome,
-      actorUserId: actor.id,
-      actorName: actor.name,
-      actorRole: actor.role,
-      note: values.note,
-      metadata: { decisionId: decision.id },
-      occurredAt: decidedAt,
+      const auditDetails = getDecisionAuditDetails(values.outcome);
+      await appendAuditEvent(transaction, {
+        actor,
+        category: AUDIT_CATEGORIES.LEAVE,
+        action: auditDetails.action,
+        resourceType: AUDIT_RESOURCE_TYPES.LEAVE_REQUEST,
+        resourceId: leaveRequest.id,
+        description: auditDetails.description,
+        metadata: {
+          decisionId: decision.id,
+          outcome: decision.outcome,
+          studentUserId: leaveRequest.studentUserId,
+        },
+        assignedHostels: [
+          { id: leaveRequest.hostelId, code: leaveRequest.hostelCode },
+        ],
+        createdAt: decidedAt,
+      });
+
+      let gatePass = null;
+      if (values.outcome === LEAVE_DECISION_OUTCOMES.APPROVED) {
+        const issuedPass = await issueGatePass(
+          transaction,
+          {
+            actor,
+            leaveRequest: { ...leaveRequest, status: values.outcome },
+            issuedAt: decidedAt,
+          },
+          gatePassOptions
+        );
+        gatePass = issuedPass.pass;
+        cleanupGatePass = issuedPass.cleanup;
+      }
+
+      return toDecisionResult({ leaveRequest, decision, actor, gatePass });
     });
-
-    const auditDetails = getDecisionAuditDetails(values.outcome);
-    await appendAuditEvent(transaction, {
-      actor,
-      category: AUDIT_CATEGORIES.LEAVE,
-      action: auditDetails.action,
-      resourceType: AUDIT_RESOURCE_TYPES.LEAVE_REQUEST,
-      resourceId: leaveRequest.id,
-      description: auditDetails.description,
-      metadata: {
-        decisionId: decision.id,
-        outcome: decision.outcome,
-        studentUserId: leaveRequest.studentUserId,
-      },
-      assignedHostels: [
-        { id: leaveRequest.hostelId, code: leaveRequest.hostelCode },
-      ],
-      createdAt: decidedAt,
-    });
-
-    return toDecisionResult({ leaveRequest, decision, actor });
-  });
+  } catch (error) {
+    if (cleanupGatePass) {
+      await cleanupGatePass();
+    }
+    throw error;
+  }
 };

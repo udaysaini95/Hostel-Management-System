@@ -4,9 +4,12 @@ import {
   approveLeave,
   createStudentLeaveRequest,
   decideStudentLeaveRequest,
+  downloadStudentGatePassPdf,
   getAllLeaves,
+  getStudentGatePass,
   myLeaves,
   rejectLeave,
+  viewStudentGatePassQr,
 } from "../Controllers/leaveController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
@@ -36,6 +39,27 @@ router.post(
   requirePermission(PERMISSIONS.LEAVE_REVIEW),
   validateRequest(leaveDecisionRequestSchema),
   decideStudentLeaveRequest
+);
+router.get(
+  "/:id/pass",
+  protect,
+  requirePermission(PERMISSIONS.GATE_PASS_READ),
+  validateRequest(resourceIdSchema),
+  getStudentGatePass
+);
+router.get(
+  "/:id/pass/qr",
+  protect,
+  requirePermission(PERMISSIONS.GATE_PASS_READ),
+  validateRequest(resourceIdSchema),
+  viewStudentGatePassQr
+);
+router.get(
+  "/:id/pass/pdf",
+  protect,
+  requirePermission(PERMISSIONS.GATE_PASS_READ),
+  validateRequest(resourceIdSchema),
+  downloadStudentGatePassPdf
 );
 
 router.post(

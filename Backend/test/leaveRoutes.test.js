@@ -37,4 +37,14 @@ test("leave routes expose normalized submission before compatibility routes", ()
         route.middlewareCount === 4
     )
   );
+  for (const path of ["/:id/pass", "/:id/pass/qr", "/:id/pass/pdf"]) {
+    assert.ok(
+      routes.some(
+        (route) =>
+          route.path === path &&
+          route.methods.includes("get") &&
+          route.middlewareCount === 4
+      )
+    );
+  }
 });

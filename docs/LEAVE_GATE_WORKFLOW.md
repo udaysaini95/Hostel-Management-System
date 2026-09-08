@@ -32,8 +32,8 @@ The workflow deliberately separates records with different responsibilities:
   user, actor snapshot, note, and timestamp.
 - `gate_passes` stores one pass per approved request. Only a SHA-256 token hash
   is persisted; neither a sequential ID nor a raw bearer token is a credential.
-  Validity, expiry, optional private PDF storage key, and revocation details are
-  explicit.
+  Validity, expiry, required private QR/PDF storage keys, and revocation details
+  are explicit.
 - `leave_events` is the append-only student and staff timeline.
 - `gate_events` is append-only movement history. Each request can have only one
   exit and one return, and every event has a unique idempotency key for safe
@@ -93,8 +93,31 @@ body contains an `outcome` of `approved` or `rejected` and a required decision
 `note`. Wardens can decide requests only for hostels in their memberships;
 administrators can decide across the institution.
 
-Only pending requests can be decided. The decision row, leave status change,
-timeline event, and audit event share one transaction. PostgreSQL locks the
-request while validating the decision, verifies the staff snapshot and hostel
-scope, and applies the matching status. Approval does not issue a gate pass in
-this slice; secure token and private QR/PDF creation belong to PASS-01.
+Only pending requests can be decided. PostgreSQL locks the request while
+validating the decision, verifies the staff snapshot and hostel scope, and
+applies the matching status.
+
+## Secure gate-pass issuance
+
+PASS-01 extends approval so the decision, status change, pass record, timeline,
+and audit records share one database transaction. Approval also creates a QR
+image and PDF in private file storage. If rendering or storage fails, the
+database transaction rolls back and any partial files are removed, leaving the
+request pending so staff can retry safely.
+
+The raw 256-bit token exists only inside the private QR/PDF artifacts. The
+database stores its SHA-256 hash, and API responses expose only pass metadata
+and authenticated download URLs. Token collisions are retried without using a
+sequential or predictable fallback. The pass begins at the later of approval
+or planned departure and expires at the approved expected-return time.
+
+Authenticated pass endpoints are:
+
+- `GET /api/leave/:id/pass` for safe pass metadata;
+- `GET /api/leave/:id/pass/qr` for the private QR image; and
+- `GET /api/leave/:id/pass/pdf` for the private PDF download.
+
+Students can access only their own pass. Wardens and guards are limited to
+their assigned hostels, administrators can access every hostel, and maintenance
+accounts have no pass access. Out-of-scope IDs return the same not-found result
+as unknown IDs to avoid leaking another hostel's records.

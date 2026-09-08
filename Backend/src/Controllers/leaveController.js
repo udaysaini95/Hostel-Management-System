@@ -11,6 +11,10 @@ import {
 } from "../utils/apiErrors.js";
 import { createLeaveRequest } from "../services/leaveRequestService.js";
 import { decideLeaveRequest } from "../services/leaveDecisionService.js";
+import {
+  getGatePass,
+  readGatePassArtifact,
+} from "../services/gatePassService.js";
 
 // Normalized student leave submission. Legacy handlers below remain available
 // until the leave frontend moves to the secure workflow.
@@ -36,6 +40,43 @@ export const decideStudentLeaveRequest = async (req, res) => {
     return handleControllerError(res, error, "Decide Leave Request Error");
   }
 };
+
+export const getStudentGatePass = async (req, res) => {
+  try {
+    const gatePass = await getGatePass(db, req.user, req.params.id);
+    return res.json({ gatePass });
+  } catch (error) {
+    return handleControllerError(res, error, "Get Gate Pass Error");
+  }
+};
+
+const sendGatePassArtifact = async (req, res, kind) => {
+  try {
+    const artifact = await readGatePassArtifact(
+      db,
+      req.user,
+      req.params.id,
+      kind
+    );
+    const disposition = kind === "pdf" ? "attachment" : "inline";
+
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": `${disposition}; filename="${artifact.filename}"`,
+      "Content-Length": artifact.contents.length,
+      "Content-Type": artifact.mimeType,
+    });
+    return res.send(artifact.contents);
+  } catch (error) {
+    return handleControllerError(res, error, "Read Gate Pass File Error");
+  }
+};
+
+export const viewStudentGatePassQr = (req, res) =>
+  sendGatePassArtifact(req, res, "qr");
+
+export const downloadStudentGatePassPdf = (req, res) =>
+  sendGatePassArtifact(req, res, "pdf");
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(process.cwd(), "uploads");

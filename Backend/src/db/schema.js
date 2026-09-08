@@ -1008,6 +1008,7 @@ export const gatePasses = pgTable(
       .notNull(),
     validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    qrStorageKey: varchar("qr_storage_key", { length: 500 }).unique(),
     pdfStorageKey: varchar("pdf_storage_key", { length: 500 }).unique(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     revokedByUserId: integer("revoked_by_user_id").references(() => users.id, {
@@ -1023,6 +1024,10 @@ export const gatePasses = pgTable(
     check(
       "gate_passes_validity_check",
       sql`${table.validFrom} >= ${table.issuedAt} and ${table.expiresAt} > ${table.validFrom}`
+    ),
+    check(
+      "gate_passes_qr_storage_key_check",
+      sql`${table.qrStorageKey} is null or length(trim(${table.qrStorageKey})) > 0`
     ),
     check(
       "gate_passes_pdf_storage_key_check",

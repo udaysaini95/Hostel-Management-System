@@ -161,6 +161,8 @@ test("gate passes store hashed tokens and gate events enforce idempotent movemen
   assert.equal(gatePasses.leaveRequestId.isUnique, true);
   assert.equal(gatePasses.tokenHash.isUnique, true);
   assert.equal(gatePasses.tokenHash.config.length, 64);
+  assert.equal(gatePasses.qrStorageKey.isUnique, true);
+  assert.equal(gatePasses.pdfStorageKey.isUnique, true);
   assert.equal(passConfig.foreignKeys.length, 3);
   assert.equal(gateEvents.idempotencyKey.isUnique, true);
   assert.equal(eventConfig.foreignKeys.length, 3);

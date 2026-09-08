@@ -247,13 +247,40 @@ test("decisions, secure passes, and movement events preserve one auditable histo
       error.constraint === "leave_decisions_status_match_check"
   );
 
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO gate_passes (
+         leave_request_id, token_hash, issued_by_user_id,
+         issued_at, valid_from, expires_at
+       ) VALUES ($1, repeat('b', 64), $2,
+         '2026-09-10T09:00:00Z', '2026-09-11T08:00:00Z', '2026-09-12T18:00:00Z')`,
+      [leaveRequestId, wardenId]
+    ),
+    (error) =>
+      postgresErrorCode(error) === "23514" &&
+      error.constraint === "gate_passes_artifacts_required_check"
+  );
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO gate_passes (
+         leave_request_id, token_hash, issued_by_user_id,
+         issued_at, valid_from, expires_at, qr_storage_key, pdf_storage_key
+       ) VALUES ($1, repeat('c', 64), $2,
+         '2026-09-10T09:00:00Z', '2026-09-11T08:00:00Z', '2026-09-12T18:00:00Z',
+         'gate-passes/forged/pass.png', 'gate-passes/forged/pass.pdf')`,
+      [leaveRequestId, studentId]
+    ),
+    (error) => postgresErrorCode(error) === "42501"
+  );
+
   const passResult = await pool.query(
     `INSERT INTO gate_passes (
        leave_request_id, token_hash, issued_by_user_id,
-       issued_at, valid_from, expires_at
+       issued_at, valid_from, expires_at, qr_storage_key, pdf_storage_key
      )
      VALUES ($1, repeat('a', 64), $2,
-       '2026-09-10T09:00:00Z', '2026-09-11T08:00:00Z', '2026-09-12T18:00:00Z')
+       '2026-09-10T09:00:00Z', '2026-09-11T08:00:00Z', '2026-09-12T18:00:00Z',
+       'gate-passes/foundation/pass.png', 'gate-passes/foundation/pass.pdf')
      RETURNING id`,
     [leaveRequestId, wardenId]
   );
