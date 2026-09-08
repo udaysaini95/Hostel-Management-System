@@ -1,6 +1,10 @@
 import express from "express";
 import {
   getActiveOutsideStudents,
+  createGateOverride,
+  expireNormalizedGatePasses,
+  getNormalizedGateMovements,
+  getNormalizedOutsideRoster,
   getRecentGateLogs,
   logGateAction,
   logNormalizedGateMovement,
@@ -17,6 +21,10 @@ import {
 } from "../validation/operationalSchemas.js";
 import {
   gateMovementRequestSchema,
+  gateMovementHistoryQuerySchema,
+  gateOverrideRequestSchema,
+  expireGatePassesSchema,
+  outsideRosterQuerySchema,
   secureGatePassVerificationSchema,
 } from "../validation/gateSchemas.js";
 
@@ -36,6 +44,34 @@ router.post(
   requirePermission(PERMISSIONS.GATE_LOG_MOVEMENT),
   validateRequest(gateMovementRequestSchema),
   logNormalizedGateMovement
+);
+router.post(
+  "/passes/expire",
+  protect,
+  requirePermission(PERMISSIONS.GATE_MANAGE_EXCEPTIONS),
+  validateRequest(expireGatePassesSchema),
+  expireNormalizedGatePasses
+);
+router.post(
+  "/overrides",
+  protect,
+  requirePermission(PERMISSIONS.GATE_MANAGE_EXCEPTIONS),
+  validateRequest(gateOverrideRequestSchema),
+  createGateOverride
+);
+router.get(
+  "/outside",
+  protect,
+  requirePermission(PERMISSIONS.GATE_READ_ACTIVITY),
+  validateRequest(outsideRosterQuerySchema),
+  getNormalizedOutsideRoster
+);
+router.get(
+  "/movements",
+  protect,
+  requirePermission(PERMISSIONS.GATE_READ_ACTIVITY),
+  validateRequest(gateMovementHistoryQuerySchema),
+  getNormalizedGateMovements
 );
 router.post(
   "/verify",

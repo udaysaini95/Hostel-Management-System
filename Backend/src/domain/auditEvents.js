@@ -35,6 +35,8 @@ export const AUDIT_ACTIONS = Object.freeze({
   GATE_PASS_ISSUED: "gate-pass.issued",
   GATE_EXIT_RECORDED: "gate.exit.recorded",
   GATE_RETURN_RECORDED: "gate.return.recorded",
+  GATE_PASS_EXPIRED: "gate-pass.expired",
+  GATE_MOVEMENT_OVERRIDDEN: "gate.movement.overridden",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({

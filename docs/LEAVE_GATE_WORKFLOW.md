@@ -162,3 +162,35 @@ leave row, so they cannot create duplicate events. Reusing a key for another
 pass, actor, or action is rejected. Sending a second `exit` with a new key after
 the first exit is also rejected because the authoritative next action is now
 `return`.
+
+## Gate operations and exceptions
+
+GATE-03 adds four normalized operational endpoints:
+
+- `GET /api/gate/outside` returns the paginated outside roster. It includes
+  the student, room, hostel, actual exit time, expected return, and a derived
+  overdue flag. Staff can filter by hostel, overdue state, or student search.
+- `GET /api/gate/movements` returns paginated gate history with the actor,
+  student, movement, verification method, time, and note. Movement, time,
+  hostel, and override filters are available.
+- `POST /api/gate/passes/expire` changes unused approved passes whose window
+  has ended to `expired` in bounded batches and writes timeline and audit
+  records.
+- `POST /api/gate/overrides` records an exceptional exit or return after a
+  scanner or pass problem. A meaningful reason and idempotency key are
+  required.
+
+Outside and history reads are available to active guards, wardens, and
+administrators. Guards and wardens see only hostels assigned through their
+memberships; administrators see all hostels.
+
+An override is deliberately more restricted than an ordinary gate scan. Only
+an active warden assigned to the leave hostel or an administrator may create
+one. It bypasses pass availability and timing, but it does not bypass the leave
+state machine: an exit still requires `approved`, and a return still requires
+`exited`. The reason is copied to both immutable history and audit records, and
+the movement history exposes `isOverride: true` for prominent UI treatment.
+
+Pass verification already treats an elapsed validity window as expired even
+before the batch endpoint persists that state. This means a delayed expiry job
+cannot make an old pass usable.

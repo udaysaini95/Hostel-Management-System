@@ -29,5 +29,14 @@ test("gate API exposes secure verification before compatibility routes", () => {
     methods: ["post"],
     middlewareCount: 4,
   });
+  assert.deepEqual(
+    routes.slice(2, 6).map((route) => `${route.methods[0]} ${route.path}`),
+    [
+      "post /passes/expire",
+      "post /overrides",
+      "get /outside",
+      "get /movements",
+    ]
+  );
   assert.ok(routes.some((route) => route.path === "/verify"));
 });

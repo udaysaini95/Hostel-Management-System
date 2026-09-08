@@ -11,6 +11,12 @@ import {
 } from "../utils/apiErrors.js";
 import { verifySecureGatePass } from "../services/gatePassVerificationService.js";
 import { recordGateMovement } from "../services/gateMovementService.js";
+import {
+  expireUnusedGatePasses,
+  getGateMovementHistory,
+  getOutsideRoster,
+} from "../services/gateOperationsService.js";
+import { recordGateOverride } from "../services/gateOverrideService.js";
 
 // Normalized verification used by the secure guard terminal. It never trusts
 // the client to decide whether exit or return is allowed.
@@ -33,6 +39,42 @@ export const logNormalizedGateMovement = async (req, res) => {
     return res.status(movement.replayed ? 200 : 201).json({ movement });
   } catch (error) {
     return handleControllerError(res, error, "Record Gate Movement Error");
+  }
+};
+
+export const getNormalizedOutsideRoster = async (req, res) => {
+  try {
+    const roster = await getOutsideRoster(db, req.user, req.query);
+    return res.json(roster);
+  } catch (error) {
+    return handleControllerError(res, error, "Get Outside Roster Error");
+  }
+};
+
+export const getNormalizedGateMovements = async (req, res) => {
+  try {
+    const movements = await getGateMovementHistory(db, req.user, req.query);
+    return res.json(movements);
+  } catch (error) {
+    return handleControllerError(res, error, "Get Gate Movements Error");
+  }
+};
+
+export const expireNormalizedGatePasses = async (req, res) => {
+  try {
+    const result = await expireUnusedGatePasses(db, req.user, req.body);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "Expire Gate Passes Error");
+  }
+};
+
+export const createGateOverride = async (req, res) => {
+  try {
+    const movement = await recordGateOverride(db, req.user, req.body);
+    return res.status(movement.replayed ? 200 : 201).json({ movement });
+  } catch (error) {
+    return handleControllerError(res, error, "Record Gate Override Error");
   }
 };
 
