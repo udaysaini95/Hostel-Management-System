@@ -13,7 +13,8 @@
     "db:migrate": "node scripts/migrate.js",
     "db:push": "drizzle-kit push",
     "db:seed": "node scripts/seedDemoData.js",
-    "db:seed:reset": "node scripts/seedDemoData.js --reset"
+    "db:seed:reset": "node scripts/seedDemoData.js --reset",
+    "complaints:monitor-sla": "node scripts/monitorComplaintSla.js"
   },
   "keywords": [],
   "author": "",

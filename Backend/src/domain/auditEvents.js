@@ -25,6 +25,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   COMPLAINT_ATTACHMENT_ADDED: "complaint.attachment.added",
   COMPLAINT_ATTACHMENT_DELETED: "complaint.attachment.deleted",
   COMPLAINT_WORK_STARTED: "complaint.work.started",
+  COMPLAINT_SLA_BREACHED: "complaint.sla.breached",
   COMPLAINT_RESOLVED: "complaint.resolved",
   COMPLAINT_REOPENED: "complaint.reopened",
   COMPLAINT_CLOSED: "complaint.closed",

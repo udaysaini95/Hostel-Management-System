@@ -609,6 +609,7 @@ export const complaints = pgTable(
     priority: complaintPriorityEnum("priority").notNull(),
     slaPolicyMinutes: integer("sla_policy_minutes").notNull(),
     slaDeadline: timestamp("sla_deadline", { withTimezone: true }).notNull(),
+    slaBreachedAt: timestamp("sla_breached_at", { withTimezone: true }),
     status: complaintStatusEnum("status")
       .default(COMPLAINT_STATUSES.CREATED)
       .notNull(),
@@ -640,6 +641,10 @@ export const complaints = pgTable(
       sql`${table.slaDeadline} > ${table.createdAt}`
     ),
     check(
+      "complaints_sla_breached_at_check",
+      sql`${table.slaBreachedAt} is null or ${table.slaBreachedAt} >= ${table.slaDeadline}`
+    ),
+    check(
       "complaints_resolution_details_check",
       sql`(${table.resolvedAt} is null and ${table.resolutionNote} is null) or (${table.resolvedAt} is not null and ${table.resolvedAt} >= ${table.createdAt} and length(trim(${table.resolutionNote})) > 0)`
     ),
@@ -663,6 +668,11 @@ export const complaints = pgTable(
     index("complaints_open_sla_idx")
       .on(table.hostelId, table.slaDeadline)
       .where(sql`${table.status} <> 'closed'`),
+    index("complaints_pending_sla_breach_idx")
+      .on(table.slaDeadline)
+      .where(
+        sql`${table.status} in ('created', 'assigned', 'in_progress') and ${table.slaBreachedAt} is null`
+      ),
     index("complaints_student_profile_idx").on(
       table.studentProfileId,
       table.createdAt

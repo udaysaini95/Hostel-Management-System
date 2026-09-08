@@ -89,6 +89,10 @@ export const complaintAssigneeListRequestSchema = {
   query: z.strictObject({ hostelCode: hostelCodeSchema }),
 };
 
+export const complaintMetricsRequestSchema = {
+  query: z.strictObject({ hostelCode: hostelCodeSchema.optional() }),
+};
+
 export const complaintAssignmentRequestSchema = {
   params: idParamsSchema,
   body: z.strictObject({

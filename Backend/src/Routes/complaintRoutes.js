@@ -8,6 +8,7 @@ import {
   deleteComplaint,
   downloadComplaintAttachment,
   getComplaintDetails,
+  getComplaintSlaMetrics,
   listComplaintAttachments,
   listComplaintAssignees,
   listComplaintCategories,
@@ -43,6 +44,7 @@ import {
   complaintCreateRequestSchema,
   complaintDetailRequestSchema,
   complaintListRequestSchema,
+  complaintMetricsRequestSchema,
   complaintResolutionRequestSchema,
   complaintVerificationRequestSchema,
   complaintWorkQueueRequestSchema,
@@ -92,6 +94,13 @@ router.get(
   requirePermission(PERMISSIONS.COMPLAINT_READ_ASSIGNED),
   validateRequest(complaintWorkQueueRequestSchema),
   listMaintenanceWorkQueue
+);
+router.get(
+  "/metrics",
+  protect,
+  requirePermission(PERMISSIONS.COMPLAINT_READ_METRICS),
+  validateRequest(complaintMetricsRequestSchema),
+  getComplaintSlaMetrics
 );
 router.post(
   "/:id/assignments",

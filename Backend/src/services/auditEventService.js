@@ -130,10 +130,10 @@ const normalizeHostelScopes = (assignedHostels = []) => {
   return Object.freeze([...uniqueHostels.values()]);
 };
 
-export const appendAuditEvent = async (
+const appendAuditEventWithActor = async (
   database,
+  actorSnapshot,
   {
-    actor,
     category,
     action,
     resourceType,
@@ -169,7 +169,6 @@ export const appendAuditEvent = async (
     );
   }
 
-  const actorSnapshot = createAuditActorSnapshot(actor);
   const hostelScopes = normalizeHostelScopes(assignedHostels);
   const safeRequestId =
     requestId === null ? null : requireText(requestId, "Request ID", 100);
@@ -206,6 +205,25 @@ export const appendAuditEvent = async (
     hostels: hostelScopes,
   });
 };
+
+export const appendAuditEvent = async (database, event) =>
+  appendAuditEventWithActor(
+    database,
+    createAuditActorSnapshot(event.actor),
+    event
+  );
+
+const slaMonitorActor = Object.freeze({
+  userId: null,
+  name: "HostelMate SLA monitor",
+  email: null,
+  role: "system",
+});
+
+// Scheduled jobs have no signed-in user. Keeping this separate from the public
+// actor helper prevents request code from inventing system audit identities.
+export const appendSlaMonitorAuditEvent = async (database, event) =>
+  appendAuditEventWithActor(database, slaMonitorActor, event);
 
 const addVisibilityConditions = (database, actor, conditions) => {
   const visibility = getAuditVisibility(actor);

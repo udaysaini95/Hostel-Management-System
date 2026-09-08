@@ -5,6 +5,7 @@ const eventLabels = Object.freeze({
   assigned: "Maintenance assigned",
   reassigned: "Maintenance reassigned",
   work_started: "Work started",
+  sla_breached: "SLA deadline breached",
   resolved: "Marked resolved",
   reopened: "Complaint reopened",
   closed: "Complaint closed",

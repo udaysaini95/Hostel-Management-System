@@ -20,6 +20,7 @@ export const COMPLAINT_EVENT_TYPES = Object.freeze({
   ASSIGNED: "assigned",
   REASSIGNED: "reassigned",
   WORK_STARTED: "work_started",
+  SLA_BREACHED: "sla_breached",
   RESOLVED: "resolved",
   REOPENED: "reopened",
   CLOSED: "closed",

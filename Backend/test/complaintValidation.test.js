@@ -6,6 +6,7 @@ import {
   complaintAssignmentRequestSchema,
   complaintCreateRequestSchema,
   complaintListRequestSchema,
+  complaintMetricsRequestSchema,
   complaintResolutionRequestSchema,
   complaintVerificationRequestSchema,
   complaintWorkQueueRequestSchema,
@@ -124,6 +125,20 @@ test("complaint list validation supplies bounded pagination defaults", () => {
     sortBy: "updatedAt",
     sortOrder: "desc",
   });
+});
+
+test("complaint metric validation accepts one normalized hostel filter", () => {
+  const valid = complaintMetricsRequestSchema.query.safeParse({
+    hostelCode: " h1 ",
+  });
+  const unknown = complaintMetricsRequestSchema.query.safeParse({
+    hostelCode: "H1",
+    status: "created",
+  });
+
+  assert.equal(valid.success, true);
+  assert.deepEqual(valid.data, { hostelCode: "H1" });
+  assert.equal(unknown.success, false);
 });
 
 test("complaint validation rejects arbitrary deadlines and unknown fields", () => {

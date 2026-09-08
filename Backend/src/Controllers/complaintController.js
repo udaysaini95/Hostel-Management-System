@@ -36,6 +36,9 @@ import {
   startComplaintWork,
   verifyComplaintResolution,
 } from "../services/complaintResolutionService.js";
+import {
+  getComplaintSlaMetrics as readComplaintSlaMetrics,
+} from "../services/complaintSlaService.js";
 
 const getContentDisposition = (filename) => {
   const fallback = filename
@@ -88,6 +91,19 @@ export const listMaintenanceWorkQueue = async (req, res) => {
     return res.json(result);
   } catch (error) {
     return handleControllerError(res, error, "List Maintenance Work Error");
+  }
+};
+
+export const getComplaintSlaMetrics = async (req, res) => {
+  try {
+    const metrics = await readComplaintSlaMetrics(db, req.user, req.query);
+    return res.json({ metrics });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Get Complaint SLA Metrics Error"
+    );
   }
 };
 

@@ -480,6 +480,7 @@ const complaintSelection = {
   priority: complaints.priority,
   slaPolicyMinutes: complaints.slaPolicyMinutes,
   slaDeadline: complaints.slaDeadline,
+  slaBreachedAt: complaints.slaBreachedAt,
   status: complaints.status,
   resolutionNote: complaints.resolutionNote,
   resolvedAt: complaints.resolvedAt,
@@ -521,6 +522,7 @@ const getSlaView = (record, now) => {
 
   return {
     deadline: record.slaDeadline,
+    breachedAt: record.slaBreachedAt,
     policyMinutes: record.slaPolicyMinutes,
     state: open ? (breached ? "breached" : "active") : "completed",
     remainingSeconds: open ? Math.max(0, Math.ceil(millisecondsRemaining / 1000)) : null,

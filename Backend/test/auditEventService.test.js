@@ -13,6 +13,7 @@ import {
 import { USER_ROLES } from "../src/domain/roles.js";
 import {
   appendAuditEvent,
+  appendSlaMonitorAuditEvent,
   createAuditActorSnapshot,
   getAuditVisibility,
   searchAuditEvents,
@@ -199,6 +200,33 @@ test("audit writes reject invalid categories and metadata", async () => {
     appendAuditEvent(database, { ...baseEvent, metadata: [] }),
     (error) => error.code === "INVALID_AUDIT_EVENT"
   );
+});
+
+test("SLA monitor audit events use a fixed non-user identity", async () => {
+  let insertedEvent;
+  const database = {
+    insert(table) {
+      assert.equal(table, auditEvents);
+      return {
+        values(values) {
+          insertedEvent = values;
+          return { returning: async () => [{ id: 43, ...values }] };
+        },
+      };
+    },
+  };
+
+  await appendSlaMonitorAuditEvent(database, {
+    category: AUDIT_CATEGORIES.COMPLAINT,
+    action: AUDIT_ACTIONS.COMPLAINT_SLA_BREACHED,
+    resourceType: AUDIT_RESOURCE_TYPES.COMPLAINT,
+    resourceId: 12,
+    description: "Complaint 12 breached its SLA deadline",
+  });
+
+  assert.equal(insertedEvent.actorUserId, null);
+  assert.equal(insertedEvent.actorName, "HostelMate SLA monitor");
+  assert.equal(insertedEvent.actorRole, "system");
 });
 
 test("admin audit searches return pagination and hostel snapshots", async () => {

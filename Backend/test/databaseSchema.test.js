@@ -85,12 +85,21 @@ test("complaints keep explicit hostel, reporter, category, room, and SLA context
   assert.equal(complaints.priority.notNull, true);
   assert.equal(complaints.slaPolicyMinutes.notNull, true);
   assert.equal(complaints.slaDeadline.notNull, true);
+  assert.equal(complaints.slaBreachedAt.notNull, false);
   assert.equal(complaints.status.hasDefault, true);
   assert.ok(findIndex(complaints, "complaints_hostel_status_created_idx"));
   assert.ok(findIndex(complaints, "complaints_open_sla_idx").config.where);
   assert.ok(
+    findIndex(complaints, "complaints_pending_sla_breach_idx").config.where
+  );
+  assert.ok(
     config.checks.some(
       (entry) => entry.name === "complaints_resolution_details_check"
+    )
+  );
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "complaints_sla_breached_at_check"
     )
   );
 });

@@ -86,6 +86,7 @@ All routes below require a valid access token.
 | `GET` | `/api/complaints/managed` | Paginate a warden/admin hostel-scoped queue |
 | `GET` | `/api/complaints/assignees?hostelCode=H1` | List active maintenance staff and workloads for an authorized hostel |
 | `GET` | `/api/complaints/work-queue` | Paginate the current maintenance user's active assignments |
+| `GET` | `/api/complaints/metrics` | Read role-scoped live SLA and first-resolution metrics |
 | `POST` | `/api/complaints/:id/assignments` | Assign or reassign a complaint |
 | `POST` | `/api/complaints/:id/start` | Let the active maintenance assignee start work |
 | `POST` | `/api/complaints/:id/resolve` | Resolve assigned work with a note and optional private image |
@@ -156,3 +157,37 @@ without changing the complaint API.
 The student and operations complaint pages now use this normalized contract.
 The old named endpoints remain temporarily connected only for legacy dashboard
 summaries and can be removed when those summaries are migrated.
+
+## SLA metrics and escalation
+
+The metrics endpoint calculates values from persisted complaints and timeline
+events at request time. It does not store dashboard counters. Administrators
+see every hostel, wardens see complaints in their hostel memberships, and
+maintenance staff see complaints with an active assignment to them. An optional
+`hostelCode` query narrows any of those existing scopes; it never expands them.
+
+Metric definitions are intentionally separate:
+
+- `open` means every complaint not yet `closed`, including resolved work waiting
+  for student confirmation.
+- `actionable` means `created`, `assigned`, or `in_progress`.
+- `slaBreached` means actionable work whose deadline is earlier than server
+  time. Resolved and closed work is excluded from this live-risk count.
+- SLA compliance compares the first `resolved` timeline event with the original
+  deadline. Reopen events are counted separately and do not rewrite that first
+  resolution measurement.
+- `compliancePercent` and `averageFirstResolutionMinutes` are `null` when no
+  qualifying record exists, rather than displaying a misleading zero.
+
+Run the following one-shot command from `Backend` after migrations:
+
+```powershell
+npm run complaints:monitor-sla
+```
+
+Production should schedule that command at a regular interval, such as once per
+minute. Each run claims at most 100 overdue actionable complaints, stamps
+`sla_breached_at`, and appends a student-visible timeline event plus a scoped
+audit event. The guarded update is idempotent and concurrency-safe, so retries or
+overlapping workers cannot record the same breach twice. This step records the
+escalation; notification delivery is added later by NOT-02.

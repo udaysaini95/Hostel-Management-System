@@ -75,6 +75,14 @@ test("complaints expose scoped assignment and maintenance queue routes", () => {
   assert.ok(
     routes.some(
       (route) =>
+        route.path === "/metrics" &&
+        route.methods.includes("get") &&
+        route.middlewareCount === 4
+    )
+  );
+  assert.ok(
+    routes.some(
+      (route) =>
         route.path === "/assignees" &&
         route.methods.includes("get") &&
         route.middlewareCount === 4

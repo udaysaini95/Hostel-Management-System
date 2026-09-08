@@ -6,6 +6,10 @@ const migrationUrl = new URL(
   "../drizzle/0006_complaint_workflow_foundation.sql",
   import.meta.url
 );
+const slaMigrationUrl = new URL(
+  "../drizzle/0009_complaint_sla_monitoring.sql",
+  import.meta.url
+);
 
 test("complaint migration preserves legacy data before creating the new table", async () => {
   const migration = await readFile(migrationUrl, "utf8");
@@ -39,4 +43,14 @@ test("complaint migration installs defaults and database workflow guards", async
     migration,
     /complaint_assignments_one_active_per_complaint/
   );
+});
+
+test("SLA monitoring migration adds a durable marker and efficient candidate index", async () => {
+  const migration = await readFile(slaMigrationUrl, "utf8");
+
+  assert.match(migration, /ADD VALUE IF NOT EXISTS 'sla_breached'/);
+  assert.match(migration, /ADD COLUMN "sla_breached_at"/);
+  assert.match(migration, /complaints_sla_breached_at_check/);
+  assert.match(migration, /complaints_pending_sla_breach_idx/);
+  assert.match(migration, /'created', 'assigned', 'in_progress'/);
 });
