@@ -30,6 +30,43 @@ export const getMyComplaints = async ({ page = 1, status } = {}) => {
   return result;
 };
 
+export const getManagedComplaints = async ({ page = 1, ...filters } = {}) => {
+  const response = await api.get("/api/complaints/managed", {
+    params: {
+      page,
+      pageSize: 15,
+      ...filters,
+    },
+  });
+
+  const result = response.data;
+  if (!Array.isArray(result?.data) || !result?.pagination) {
+    throw new Error("Managed complaint response was invalid");
+  }
+
+  return result;
+};
+
+export const getComplaintAssignees = async (hostelCode) => {
+  const response = await api.get("/api/complaints/assignees", {
+    params: { hostelCode },
+  });
+
+  if (!Array.isArray(response.data?.data)) {
+    throw new Error("Complaint assignee response was invalid");
+  }
+
+  return response.data;
+};
+
+export const assignComplaint = async (complaintId, values) => {
+  const response = await api.post(
+    `/api/complaints/${complaintId}/assignments`,
+    values
+  );
+  return response.data;
+};
+
 export const getComplaint = async (complaintId) => {
   const [complaintResponse, attachmentResponse] = await Promise.all([
     api.get(`/api/complaints/${complaintId}`),

@@ -147,6 +147,6 @@ deployment should mount durable private storage at that path; the storage
 adapter can later be replaced with a managed object-store implementation
 without changing the complaint API.
 
-The old named endpoints remain temporarily connected to the legacy tables and
-the public `/uploads` directory so the current frontend is usable. They will be
-removed after the complaint UI is moved to this contract in CMP-05.
+The student and operations complaint pages now use this normalized contract.
+The old named endpoints remain temporarily connected only for legacy dashboard
+summaries and can be removed when those summaries are migrated.

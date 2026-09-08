@@ -1,275 +1,336 @@
-import React, { useEffect, useState } from "react";
-import api from "../api/axios";
+import { useCallback, useEffect, useState } from "react";
+import { FilterX, Search } from "lucide-react";
 import { getApiErrorMessage } from "../api/errors.js";
-import { buildUploadUrl } from "../config/serviceUrls";
 import {
   Button,
-  ConfirmationDialog,
   EmptyState,
   ErrorState,
+  Input,
   LoadingState,
-  Textarea,
+  PageHeader,
+  Panel,
+  Select,
 } from "../components/ui/index.js";
+import { ComplaintAssignmentDialog } from "../complaints/ComplaintAssignmentDialog.jsx";
+import {
+  getComplaint,
+  getComplaintCategories,
+  getManagedComplaints,
+} from "../complaints/complaintApi.js";
+import { ManagedComplaintDrawer } from "../complaints/ManagedComplaintDrawer.jsx";
+import { ManagedComplaintQueue } from "../complaints/ManagedComplaintQueue.jsx";
+import {
+  COMPLAINT_STATUSES,
+  getComplaintStatusLabel,
+} from "../complaints/complaintView.js";
 import { useToast } from "../feedback/toastContext.js";
-import { 
-  CheckCircle2, 
-  ImageIcon, 
-  ExternalLink,
-  ShieldCheck,
-  User,
-  Filter,
-  Clock,
-  AlertOctagon
-} from "lucide-react";
+
+const EMPTY_PAGINATION = Object.freeze({
+  page: 1,
+  pageSize: 15,
+  total: 0,
+  totalPages: 0,
+});
+
+const DEFAULT_FILTERS = Object.freeze({
+  search: "",
+  hostelCode: "",
+  categoryCode: "",
+  status: "",
+  priority: "",
+  slaState: "open",
+  sort: "slaDeadline:asc",
+});
+
+const getRequestFilters = (filters) => {
+  const [sortBy, sortOrder] = filters.sort.split(":");
+
+  return {
+    ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
+    ...(filters.hostelCode.trim()
+      ? { hostelCode: filters.hostelCode.trim().toUpperCase() }
+      : {}),
+    ...(filters.categoryCode ? { categoryCode: filters.categoryCode } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.priority ? { priority: filters.priority } : {}),
+    slaState: filters.slaState,
+    sortBy,
+    sortOrder,
+  };
+};
 
 const AllComplaintsAdmin = () => {
+  const { showToast } = useToast();
   const [complaints, setComplaints] = useState([]);
+  const [pagination, setPagination] = useState(EMPTY_PAGINATION);
+  const [categories, setCategories] = useState([]);
+  const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [resolutionDialog, setResolutionDialog] = useState(null);
-  const [resolutionNote, setResolutionNote] = useState("");
-  const [updatingId, setUpdatingId] = useState(null);
-  const { showToast } = useToast();
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [assignmentTarget, setAssignmentTarget] = useState(null);
 
-  const fetchComplaints = async () => {
+  const loadComplaints = useCallback(async () => {
     try {
       setLoading(true);
       setLoadError("");
-      const res = await api.get("/api/complaints/admin/complaints");
-      setComplaints(res.data || []);
-    } catch (err) {
+      const result = await getManagedComplaints({
+        page,
+        ...getRequestFilters(filters),
+      });
+      setComplaints(result.data);
+      setPagination(result.pagination);
+    } catch (error) {
       setLoadError(
-        getApiErrorMessage(err, "The complaint queue could not be loaded.")
+        getApiErrorMessage(error, "The managed complaint queue could not be loaded.")
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, page]);
+
+  const loadSelectedComplaint = useCallback(async () => {
+    if (!selectedId) return;
+
+    try {
+      setDetailLoading(true);
+      setDetailError("");
+      const result = await getComplaint(selectedId);
+      if (!result.complaint) throw new Error("Complaint response was empty");
+      setSelectedComplaint(result.complaint);
+      setAttachments(result.attachments);
+    } catch (error) {
+      setDetailError(
+        getApiErrorMessage(error, "The complaint details could not be loaded.")
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [selectedId]);
 
   useEffect(() => {
-    fetchComplaints();
+    loadComplaints();
+  }, [loadComplaints]);
+
+  useEffect(() => {
+    getComplaintCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
-  const updateComplaintStatus = async (complaint, newStatus, note = "") => {
-    const id = complaint.id || complaint._id;
-    try {
-      setUpdatingId(id);
-      await api.put(`/api/complaints/status/${id}`, {
-        status: newStatus,
-        resolutionNote: note,
-      });
-      setComplaints((currentComplaints) =>
-        currentComplaints.map((item) =>
-          (item.id || item._id) === id
-            ? { ...item, status: newStatus, resolutionNote: note }
-            : item
-        )
-      );
-      setResolutionDialog(null);
-      setResolutionNote("");
-      showToast({
-        tone: "success",
-        title: "Complaint status updated",
-        message: `The complaint is now ${newStatus.toLowerCase()}.`,
-      });
-    } catch (err) {
-      showToast({
-        tone: "danger",
-        title: "Complaint status was not changed",
-        message: getApiErrorMessage(err, "Try again in a moment."),
-      });
-    } finally {
-      setUpdatingId(null);
+  useEffect(() => {
+    if (selectedId) loadSelectedComplaint();
+  }, [loadSelectedComplaint, selectedId]);
+
+  const updateDraftFilter = (field, value) => {
+    setDraftFilters((current) => ({ ...current, [field]: value }));
+  };
+
+  const applyFilters = (event) => {
+    event.preventDefault();
+    setPage(1);
+    setFilters({ ...draftFilters });
+  };
+
+  const clearFilters = () => {
+    setDraftFilters(DEFAULT_FILTERS);
+    setFilters(DEFAULT_FILTERS);
+    setPage(1);
+  };
+
+  const openComplaint = (complaintId) => {
+    setSelectedComplaint(null);
+    setAttachments([]);
+    setDetailError("");
+    setSelectedId(complaintId);
+  };
+
+  const closeComplaint = () => {
+    setSelectedId(null);
+    setSelectedComplaint(null);
+    setAttachments([]);
+    setDetailError("");
+  };
+
+  const finishAssignment = (updatedComplaint) => {
+    const reassigned = Boolean(assignmentTarget?.assignment);
+    setComplaints((current) =>
+      current.map((complaint) =>
+        complaint.id === updatedComplaint.id ? updatedComplaint : complaint
+      )
+    );
+    if (selectedId === updatedComplaint.id) {
+      setSelectedComplaint(updatedComplaint);
     }
+    setAssignmentTarget(null);
+    showToast({
+      tone: "success",
+      title: reassigned ? "Complaint reassigned" : "Complaint assigned",
+      message: `${updatedComplaint.assignment.assignee.name} now owns this maintenance task.`,
+    });
   };
 
-  const handleStatusSelection = (complaint, newStatus) => {
-    if (newStatus === "Resolved") {
-      setResolutionDialog(complaint);
-      setResolutionNote("");
-      return;
-    }
-
-    updateComplaintStatus(complaint, newStatus);
-  };
-
-  const isSlaBreached = (deadline, status) => {
-    if (!deadline || status === "Resolved" || status === "Closed") return false;
-    return new Date(deadline) < new Date();
-  };
-
-  const filteredComplaints = complaints.filter(c => {
-    if (filterStatus === "All") return true;
-    return c.status === filterStatus;
-  });
+  const hasCustomFilters = Object.entries(DEFAULT_FILTERS).some(
+    ([key, value]) => draftFilters[key] !== value || filters[key] !== value
+  );
 
   return (
-    <div className="hm-page-stack hm-page-stack--wide">
-      
-      {/* Header */}
-      <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            All Student Complaints Queue
-          </h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Review room maintenance tickets and update resolution status.
-          </p>
-        </div>
-      </div>
+    <div className="hm-page-stack hm-page-stack--wide hm-complaints hm-managed-complaints">
+      <PageHeader
+        eyebrow="Maintenance operations"
+        title="Complaint queue"
+        description="Review hostel maintenance reports, track SLA risk, and assign work to available technicians."
+      />
 
-      {/* Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200">
-        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 mr-2">
-          <Filter className="w-3 h-3" /> Filter Status:
-        </span>
-        {["All", "Created", "In Progress", "Resolved", "Closed"].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-              filterStatus === status
-                ? "bg-slate-900 text-white font-semibold"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
+      <Panel padding="compact">
+        <form className="hm-managed-complaints__filters" onSubmit={applyFilters}>
+          <Input
+            label="Search"
+            type="search"
+            startIcon={<Search aria-hidden="true" />}
+            placeholder="Student, category, or location"
+            value={draftFilters.search}
+            onChange={(event) => updateDraftFilter("search", event.target.value)}
+          />
+          <Input
+            label="Hostel code"
+            placeholder="For example H1"
+            maxLength={20}
+            value={draftFilters.hostelCode}
+            onChange={(event) => updateDraftFilter("hostelCode", event.target.value)}
+          />
+          <Select
+            label="Category"
+            value={draftFilters.categoryCode}
+            onChange={(event) => updateDraftFilter("categoryCode", event.target.value)}
           >
-            {status}
-          </button>
-        ))}
+            <option value="">All categories</option>
+            {categories.map((category) => (
+              <option key={category.code} value={category.code}>{category.name}</option>
+            ))}
+          </Select>
+          <Select
+            label="Status"
+            value={draftFilters.status}
+            onChange={(event) => updateDraftFilter("status", event.target.value)}
+          >
+            <option value="">All statuses</option>
+            {COMPLAINT_STATUSES.map((status) => (
+              <option key={status} value={status}>{getComplaintStatusLabel(status)}</option>
+            ))}
+          </Select>
+          <Select
+            label="Priority"
+            value={draftFilters.priority}
+            onChange={(event) => updateDraftFilter("priority", event.target.value)}
+          >
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </Select>
+          <Select
+            label="SLA view"
+            value={draftFilters.slaState}
+            onChange={(event) => updateDraftFilter("slaState", event.target.value)}
+          >
+            <option value="open">Open work</option>
+            <option value="breached">Breached only</option>
+            <option value="all">All complaints</option>
+          </Select>
+          <Select
+            label="Sort by"
+            value={draftFilters.sort}
+            onChange={(event) => updateDraftFilter("sort", event.target.value)}
+          >
+            <option value="slaDeadline:asc">SLA deadline · soonest</option>
+            <option value="priority:asc">Priority · highest</option>
+            <option value="createdAt:asc">Reported · oldest</option>
+            <option value="updatedAt:desc">Updated · newest</option>
+          </Select>
+          <div className="hm-managed-complaints__filter-actions">
+            <Button type="submit" variant="primary">Apply filters</Button>
+            <Button
+              leadingIcon={<FilterX aria-hidden="true" />}
+              disabled={!hasCustomFilters}
+              onClick={clearFilters}
+            >
+              Reset
+            </Button>
+          </div>
+        </form>
+      </Panel>
+
+      <div className="hm-managed-complaints__result-summary" aria-live="polite">
+        <strong>{loading ? "Loading queue" : `${pagination.total} complaint${pagination.total === 1 ? "" : "s"}`}</strong>
+        <span>Open work is ordered by the nearest SLA deadline.</span>
       </div>
 
-      {/* List */}
       {loading ? (
-        <LoadingState label="Loading the complaint queue" rows={5} />
+        <LoadingState label="Loading the managed complaint queue" rows={6} />
       ) : loadError ? (
         <ErrorState
-          title="Complaint queue is unavailable"
+          title="Complaint queue unavailable"
           description={loadError}
-          onRetry={fetchComplaints}
+          onRetry={loadComplaints}
         />
-      ) : filteredComplaints.length === 0 ? (
+      ) : complaints.length === 0 ? (
         <EmptyState
-          icon={CheckCircle2}
-          title={filterStatus === "All" ? "No complaints in the queue" : "No matching complaints"}
-          description={
-            filterStatus === "All"
-              ? "New student complaints will appear here for operational review."
-              : "No complaints match the selected status."
-          }
+          title="No complaints match this queue"
+          description="Try a broader filter, or check again when students report new maintenance work."
           action={
-            filterStatus === "All" ? null : (
-              <Button onClick={() => setFilterStatus("All")}>
-                Show all complaints
-              </Button>
-            )
+            <Button onClick={hasCustomFilters ? clearFilters : loadComplaints}>
+              {hasCustomFilters ? "Reset filters" : "Refresh queue"}
+            </Button>
           }
         />
       ) : (
-        <div className="space-y-3">
-          {filteredComplaints.map((c) => {
-            const complaintId = c.id || c._id;
-            const attachmentUrl = buildUploadUrl(c.image);
-            return (
-              <div key={complaintId} className={`ui-card p-5 rounded-xl bg-white border flex flex-col md:flex-row md:items-center justify-between gap-4 ${isSlaBreached(c.slaDeadline, c.status) ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}>
-                
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 uppercase tracking-wider">
-                      {c.type}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${c.priority?.startsWith('P0') ? 'bg-rose-100 text-rose-800 border-rose-200' : c.priority?.startsWith('P1') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                      {c.priority || 'P2 - Medium'}
-                    </span>
-                    <span className="text-xs font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                      Room {c.room}
-                    </span>
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <User className="w-3 h-3 text-slate-400" />
-                      {c.user?.name || "Student"}
-                    </span>
-                    
-                    {isSlaBreached(c.slaDeadline, c.status) && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-600 text-white flex items-center gap-1 animate-pulse">
-                        <AlertOctagon className="w-3 h-3" /> SLA BREACHED
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-slate-800 text-xs font-medium leading-relaxed">
-                    {c.description}
-                  </p>
-
-                  {c.resolutionNote && (
-                    <div className={`mt-2 p-3 rounded-xl border text-xs ${c.resolutionNote.startsWith('[Reopened by Student]') ? 'bg-rose-50 border-rose-100 text-rose-800' : 'bg-emerald-50 border-emerald-100 text-emerald-800'}`}>
-                      <span className="font-bold">Note: </span>
-                      {c.resolutionNote}
-                    </div>
-                  )}
-
-                  {attachmentUrl && (
-                    <a
-                      href={attachmentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline font-semibold pt-0.5"
-                    >
-                      <ImageIcon className="w-3 h-3" />
-                      <span>View Photo Attachment</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 border-slate-200 pt-3 md:pt-0">
-                  <span className="text-xs font-semibold text-slate-500">Update Status:</span>
-                  <select
-                    value={c.status}
-                    onChange={(e) => handleStatusSelection(c, e.target.value)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold ui-input cursor-pointer"
-                    disabled={c.status === "Closed" || updatingId === complaintId}
-                  >
-                    <option value="Created">Created</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                    {c.status === "Closed" && <option value="Closed">Closed</option>}
-                  </select>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
+        <Panel padding="none" className="hm-managed-complaints__queue">
+          <ManagedComplaintQueue
+            complaints={complaints}
+            onAssign={setAssignmentTarget}
+            onOpen={openComplaint}
+          />
+          <nav className="hm-complaints__pagination" aria-label="Complaint queue pagination">
+            <span>Page {pagination.page} of {Math.max(1, pagination.totalPages)}</span>
+            <div>
+              <Button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+                Previous
+              </Button>
+              <Button
+                disabled={pagination.totalPages === 0 || page >= pagination.totalPages}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </nav>
+        </Panel>
       )}
 
-      <ConfirmationDialog
-        open={Boolean(resolutionDialog)}
-        title="Mark this complaint as resolved?"
-        description="The student will be asked to confirm the completed repair or reopen the complaint."
-        confirmLabel="Mark as resolved"
-        loadingLabel="Updating"
-        loading={Boolean(updatingId)}
-        onConfirm={() =>
-          updateComplaintStatus(
-            resolutionDialog,
-            "Resolved",
-            resolutionNote.trim()
-          )
-        }
-        onDismiss={() => {
-          setResolutionDialog(null);
-          setResolutionNote("");
-        }}
-      >
-        <Textarea
-          label="Resolution note"
-          name="resolutionNote"
-          hint="Optional. Briefly explain the completed work."
-          value={resolutionNote}
-          onChange={(event) => setResolutionNote(event.target.value)}
-        />
-      </ConfirmationDialog>
+      <ManagedComplaintDrawer
+        open={Boolean(selectedId) && !assignmentTarget}
+        complaint={selectedComplaint}
+        attachments={attachments}
+        loading={detailLoading}
+        error={detailError}
+        onAssign={setAssignmentTarget}
+        onDismiss={closeComplaint}
+        onRetry={loadSelectedComplaint}
+      />
 
+      <ComplaintAssignmentDialog
+        complaint={assignmentTarget}
+        onAssigned={finishAssignment}
+        onDismiss={() => setAssignmentTarget(null)}
+      />
     </div>
   );
 };

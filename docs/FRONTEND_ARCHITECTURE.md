@@ -54,6 +54,13 @@ attachment metadata. Private images are fetched through the authenticated Axios
 client and opened from a temporary browser object URL; public storage URLs are
 not used.
 
+The operations complaint page uses the same normalized complaint contract. It
+defaults to open work ordered by the nearest SLA deadline, applies search and
+queue filters on the server, and provides a desktop table plus structured mobile
+records. Authorized detail is shown in a focused drawer. Assignment uses a
+separate dialog that lists only active maintenance staff in the complaint's
+hostel, shows current workloads, and requires a reason for reassignment.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
