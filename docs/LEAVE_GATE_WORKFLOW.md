@@ -141,3 +141,24 @@ window, and current leave state. It never returns the credential or its hash.
 Exactly one `permittedAction` is returned: `exit` for an active approved leave,
 `return` for an active exited leave, or `null` for every invalid condition.
 Verification is read-only; transactional movement logging belongs to GATE-02.
+
+## Transactional gate movements
+
+GATE-02 adds `POST /api/gate/passes/movements`. The request contains the pass
+`credential`, the `action` shown by verification (`exit` or `return`), a unique
+`idempotencyKey`, and an optional note. The action is not trusted: the server
+locks the leave row, verifies the credential again, derives the currently
+permitted action, and rejects any mismatch.
+
+The gate event insert changes the leave state through a PostgreSQL trigger.
+The gate event, state change, leave timeline entry, and audit record then commit
+in one transaction. A failure in any part rolls back every part. PostgreSQL
+also verifies the current staff identity, guard hostel membership, pass scope,
+revocation, validity window, and state transition for direct database writes.
+
+Retries with the same idempotency key, pass, actor, and action return the
+original movement with `replayed: true`. Concurrent scans serialize on the
+leave row, so they cannot create duplicate events. Reusing a key for another
+pass, actor, or action is rejected. Sending a second `exit` with a new key after
+the first exit is also rejected because the authoritative next action is now
+`return`.

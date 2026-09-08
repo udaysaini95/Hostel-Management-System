@@ -180,44 +180,56 @@ test("leave request dates and student scope are enforced by PostgreSQL", async (
 });
 
 test("database guard permits only defined state transitions and immutable request data", async () => {
+  const stateRequest = await pool.query(
+    `INSERT INTO leave_requests (
+       hostel_id, student_user_id, student_profile_id, room_allocation_id,
+       reason, departure_at, expected_return_at, created_at, updated_at
+     ) VALUES ($1, $2, $3, $4, 'Separate request for transition checks',
+       '2026-09-13T08:00:00Z', '2026-09-14T18:00:00Z',
+       '2026-09-10T08:00:00Z', '2026-09-10T08:00:00Z')
+     RETURNING id`,
+    [hostelId, studentId, studentProfileId, roomAllocationId]
+  );
+  const stateRequestId = stateRequest.rows[0].id;
+
   await assert.rejects(
     pool.query(
       "UPDATE leave_requests SET status = 'exited' WHERE id = $1",
-      [leaveRequestId]
+      [stateRequestId]
     ),
     (error) => postgresErrorCode(error) === "23514"
   );
   await assert.rejects(
     pool.query(
       "UPDATE leave_requests SET reason = 'Changed later' WHERE id = $1",
-      [leaveRequestId]
+      [stateRequestId]
     ),
     (error) => postgresErrorCode(error) === "55000"
   );
 
   await pool.query(
     "UPDATE leave_requests SET status = 'approved', updated_at = '2026-09-10T09:00:00Z' WHERE id = $1",
-    [leaveRequestId]
+    [stateRequestId]
   );
   await pool.query(
     "UPDATE leave_requests SET status = 'exited', updated_at = '2026-09-11T08:00:00Z' WHERE id = $1",
-    [leaveRequestId]
+    [stateRequestId]
   );
   const returned = await pool.query(
     "UPDATE leave_requests SET status = 'returned', updated_at = '2026-09-12T17:00:00Z' WHERE id = $1 RETURNING status",
-    [leaveRequestId]
+    [stateRequestId]
   );
 
   assert.equal(returned.rows[0].status, "returned");
   await assert.rejects(
     pool.query(
       "UPDATE leave_requests SET status = 'approved' WHERE id = $1",
-      [leaveRequestId]
+      [stateRequestId]
     ),
     (error) => postgresErrorCode(error) === "23514"
   );
   await assert.rejects(
-    pool.query("DELETE FROM leave_requests WHERE id = $1", [leaveRequestId]),
+    pool.query("DELETE FROM leave_requests WHERE id = $1", [stateRequestId]),
     (error) => postgresErrorCode(error) === "55000"
   );
 });
@@ -325,7 +337,7 @@ test("decisions, secure passes, and movement events preserve one auditable histo
       [leaveRequestId, gatePassId, guardId]
     ),
     (error) =>
-      postgresErrorCode(error) === "23505" &&
-      error.constraint === "gate_events_one_movement_per_leave"
+      postgresErrorCode(error) === "23514" &&
+      error.constraint === "gate_events_movement_state_check"
   );
 });

@@ -163,7 +163,7 @@ export const evaluateGatePass = (record, now = new Date()) => {
   );
 };
 
-const loadVerifier = async (database, requestActor) => {
+export const loadGateVerifier = async (database, requestActor) => {
   const actorId = Number(requestActor?.id);
 
   if (!Number.isSafeInteger(actorId) || actorId < 1) {
@@ -177,6 +177,8 @@ const loadVerifier = async (database, requestActor) => {
   const [actor] = await database
     .select({
       id: users.id,
+      name: users.name,
+      email: users.email,
       role: users.role,
       accountStatus: users.accountStatus,
     })
@@ -199,7 +201,12 @@ const loadVerifier = async (database, requestActor) => {
   return actor;
 };
 
-const loadPassByHash = async (database, actor, tokenHash) => {
+export const loadScopedPassByHash = async (
+  database,
+  actor,
+  tokenHash,
+  { lock = false } = {}
+) => {
   const conditions = [eq(gatePasses.tokenHash, tokenHash)];
 
   if (actor.role === USER_ROLES.GUARD) {
@@ -215,7 +222,7 @@ const loadPassByHash = async (database, actor, tokenHash) => {
     conditions.push(exists(assignedHostel));
   }
 
-  const [record] = await database
+  const query = database
     .select({
       gatePassId: gatePasses.id,
       leaveRequestId: leaveRequests.id,
@@ -247,13 +254,15 @@ const loadPassByHash = async (database, actor, tokenHash) => {
     )
     .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
     .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
-    .where(and(...conditions))
-    .limit(1);
+    .where(and(...conditions));
+  const [record] = lock
+    ? await query.for("update", { of: leaveRequests }).limit(1)
+    : await query.limit(1);
 
   return record ?? null;
 };
 
-const toPublicDetails = (record) => {
+export const toPublicGatePassDetails = (record) => {
   if (!record) return null;
 
   return {
@@ -285,7 +294,7 @@ export const verifySecureGatePass = async (
   credential,
   { now = new Date() } = {}
 ) => {
-  const actor = await loadVerifier(database, requestActor);
+  const actor = await loadGateVerifier(database, requestActor);
   const normalizedCredential = normalizeGatePassCredential(credential);
 
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
@@ -303,7 +312,7 @@ export const verifySecureGatePass = async (
     };
   }
 
-  const record = await loadPassByHash(
+  const record = await loadScopedPassByHash(
     database,
     actor,
     normalizedCredential.tokenHash
@@ -313,6 +322,6 @@ export const verifySecureGatePass = async (
   return {
     ...result,
     verificationMethod: normalizedCredential.verificationMethod,
-    details: toPublicDetails(record),
+    details: toPublicGatePassDetails(record),
   };
 };

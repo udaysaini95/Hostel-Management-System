@@ -10,6 +10,7 @@ import {
   sendApiError,
 } from "../utils/apiErrors.js";
 import { verifySecureGatePass } from "../services/gatePassVerificationService.js";
+import { recordGateMovement } from "../services/gateMovementService.js";
 
 // Normalized verification used by the secure guard terminal. It never trusts
 // the client to decide whether exit or return is allowed.
@@ -23,6 +24,15 @@ export const verifyNormalizedGatePass = async (req, res) => {
     return res.json({ verification });
   } catch (error) {
     return handleControllerError(res, error, "Secure Gate Verification Error");
+  }
+};
+
+export const logNormalizedGateMovement = async (req, res) => {
+  try {
+    const movement = await recordGateMovement(db, req.user, req.body);
+    return res.status(movement.replayed ? 200 : 201).json({ movement });
+  } catch (error) {
+    return handleControllerError(res, error, "Record Gate Movement Error");
   }
 };
 

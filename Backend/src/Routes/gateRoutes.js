@@ -3,6 +3,7 @@ import {
   getActiveOutsideStudents,
   getRecentGateLogs,
   logGateAction,
+  logNormalizedGateMovement,
   verifyGatePass,
   verifyNormalizedGatePass,
 } from "../Controllers/gateController.js";
@@ -14,7 +15,10 @@ import {
   gateActionSchema,
   gatePassVerificationSchema,
 } from "../validation/operationalSchemas.js";
-import { secureGatePassVerificationSchema } from "../validation/gateSchemas.js";
+import {
+  gateMovementRequestSchema,
+  secureGatePassVerificationSchema,
+} from "../validation/gateSchemas.js";
 
 const router = express.Router();
 
@@ -25,6 +29,13 @@ router.post(
   requirePermission(PERMISSIONS.GATE_VERIFY_PASS),
   validateRequest(secureGatePassVerificationSchema),
   verifyNormalizedGatePass
+);
+router.post(
+  "/passes/movements",
+  protect,
+  requirePermission(PERMISSIONS.GATE_LOG_MOVEMENT),
+  validateRequest(gateMovementRequestSchema),
+  logNormalizedGateMovement
 );
 router.post(
   "/verify",

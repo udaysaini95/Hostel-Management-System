@@ -21,6 +21,7 @@ import {
   readGatePassArtifact,
 } from "../../src/services/gatePassService.js";
 import { verifySecureGatePass } from "../../src/services/gatePassVerificationService.js";
+import { recordGateMovement } from "../../src/services/gateMovementService.js";
 import { decideLeaveRequest } from "../../src/services/leaveDecisionService.js";
 import { createLeaveRequest } from "../../src/services/leaveRequestService.js";
 
@@ -627,4 +628,93 @@ test("file failure rolls approval back and token collisions are retried", async 
 
   assert.equal(result.leaveRequest.status, "approved");
   assert.equal(tokenCalls, 2);
+});
+
+test("exit and return are atomic and idempotent under concurrent scans", async () => {
+  const actor = { id: firstGuard.id, role: USER_ROLES.GUARD };
+  const now = new Date("2026-11-14T10:00:00.000Z");
+  const exitInput = {
+    credential: secondGatePassToken,
+    action: "exit",
+    idempotencyKey: "gate-exit-idempotency-0001",
+    note: "Student identity verified at the main gate",
+  };
+
+  const exit = await recordGateMovement(database, actor, exitInput, { now });
+  const exitReplay = await recordGateMovement(database, actor, exitInput, {
+    now: new Date("2026-11-14T10:00:05.000Z"),
+  });
+
+  assert.equal(exit.movement, "exit");
+  assert.equal(exit.status, "exited");
+  assert.equal(exit.replayed, false);
+  assert.equal(exitReplay.id, exit.id);
+  assert.equal(exitReplay.replayed, true);
+
+  await assert.rejects(
+    recordGateMovement(
+      database,
+      actor,
+      {
+        ...exitInput,
+        idempotencyKey: "gate-exit-idempotency-0002",
+      },
+      { now: new Date("2026-11-14T10:01:00.000Z") }
+    ),
+    (error) => error.code === "GATE_ACTION_MISMATCH"
+  );
+
+  const returnInput = {
+    credential: `hostelmate://gate-pass/${secondGatePassToken}`,
+    action: "return",
+    idempotencyKey: "gate-return-idempotency-001",
+  };
+  const returnResults = await Promise.all([
+    recordGateMovement(database, actor, returnInput, {
+      now: new Date("2026-11-14T12:00:00.000Z"),
+    }),
+    recordGateMovement(database, actor, returnInput, {
+      now: new Date("2026-11-14T12:00:00.000Z"),
+    }),
+  ]);
+
+  assert.equal(new Set(returnResults.map((result) => result.id)).size, 1);
+  assert.deepEqual(
+    returnResults.map((result) => result.replayed).sort(),
+    [false, true]
+  );
+
+  const [databaseState, timeline, audits] = await Promise.all([
+    pool.query(
+      `SELECT lr.status, count(ge.id)::integer AS event_count
+       FROM leave_requests lr
+       LEFT JOIN gate_events ge ON ge.leave_request_id = lr.id
+       WHERE lr.id = $1 GROUP BY lr.status`,
+      [pendingLeaves[4].id]
+    ),
+    pool.query(
+      "SELECT event_type FROM leave_events WHERE leave_request_id = $1 ORDER BY id",
+      [pendingLeaves[4].id]
+    ),
+    pool.query(
+      `SELECT action FROM audit_events
+       WHERE resource_type = 'gate_event'
+         AND metadata->>'leaveRequestId' = $1
+       ORDER BY id`,
+      [String(pendingLeaves[4].id)]
+    ),
+  ]);
+
+  assert.deepEqual(databaseState.rows[0], {
+    status: "returned",
+    event_count: 2,
+  });
+  assert.deepEqual(
+    timeline.rows.map((event) => event.event_type),
+    ["submitted", "approved", "pass_issued", "exited", "returned"]
+  );
+  assert.deepEqual(
+    audits.rows.map((event) => event.action),
+    [AUDIT_ACTIONS.GATE_EXIT_RECORDED, AUDIT_ACTIONS.GATE_RETURN_RECORDED]
+  );
 });

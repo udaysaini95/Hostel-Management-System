@@ -99,6 +99,13 @@
       "when": 1789326000000,
       "tag": "0013_secure_gate_pass_artifacts",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789412400000,
+      "tag": "0014_transactional_gate_movements",
+      "breakpoints": true
     }
   ]
 }
