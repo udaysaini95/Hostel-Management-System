@@ -49,7 +49,10 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/guard/terminal",
   ]);
   assert.deepEqual(pathsForRole("guard"), ["/guard/terminal"]);
-  assert.deepEqual(pathsForRole("maintenance"), ["/student/mess"]);
+  assert.deepEqual(pathsForRole("maintenance"), [
+    "/maintenance/work-orders",
+    "/student/mess",
+  ]);
   assert.deepEqual(pathsForRole("unknown"), []);
 });
 
@@ -69,7 +72,7 @@ test("role homes and nested navigation selection remain deterministic", () => {
   assert.equal(getRoleHome("warden"), "/admin/dashboard");
   assert.equal(getRoleHome("admin"), "/admin/dashboard");
   assert.equal(getRoleHome("guard"), "/guard/terminal");
-  assert.equal(getRoleHome("maintenance"), "/student/mess");
+  assert.equal(getRoleHome("maintenance"), "/maintenance/work-orders");
   assert.equal(getRoleHome("unknown"), "/");
 
   const complaintsItem = getNavigationForRole("student")[1];
@@ -86,6 +89,7 @@ test("utility-bar titles describe every implemented authenticated route", () => 
   assert.equal(getRouteTitle("/student/profile"), "My profile");
   assert.equal(getRouteTitle("/admin/residents"), "Residents and rooms");
   assert.equal(getRouteTitle("/admin/complaints"), "Complaint queue");
+  assert.equal(getRouteTitle("/maintenance/work-orders"), "Assigned work");
   assert.equal(
     getRouteTitle("/admin/student-approvals"),
     "Student onboarding"

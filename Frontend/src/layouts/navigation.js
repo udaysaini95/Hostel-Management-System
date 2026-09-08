@@ -1,5 +1,6 @@
 import {
   ClipboardList,
+  Wrench,
   FileCheck2,
   LayoutDashboard,
   QrCode,
@@ -79,6 +80,12 @@ const roleNavigation = Object.freeze({
     { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },
   ]),
   [USER_ROLES.MAINTENANCE]: Object.freeze([
+    {
+      label: "Work orders",
+      path: "/maintenance/work-orders",
+      icon: Wrench,
+      exact: true,
+    },
     { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
   ]),
 });
@@ -115,6 +122,7 @@ const routeTitles = Object.freeze({
   "/student/leaves/apply": "Apply for leave",
   "/student/mess": "Mess",
   "/student/profile": "My profile",
+  "/maintenance/work-orders": "Assigned work",
   "/admin/dashboard": "Operations overview",
   "/admin/residents": "Residents and rooms",
   "/admin/student-approvals": "Student onboarding",

@@ -120,6 +120,12 @@ and supports priority, status, SLA, category, hostel, search, creation-date,
 sorting, and pagination filters. Resolved and closed complaints are treated as
 completed for SLA calculations.
 
+The maintenance frontend defaults to active assigned and in-progress work. A
+separate view shows resolved work awaiting student confirmation, so completed
+items do not compete with actionable repairs. Only `assigned` records offer
+"Start work" and only `in_progress` records offer "Resolve". Resolution accepts
+a required note and one optional private JPEG, PNG, or WebP image up to 5 MB.
+
 Only the active maintenance assignee can move `assigned` work to `in_progress`
 or resolve `in_progress` work. Resolution requires a 10–1000 character note.
 The resolve route accepts `multipart/form-data`: `resolutionNote` is required

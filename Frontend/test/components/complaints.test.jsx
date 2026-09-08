@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import ComplaintDetail from "../../src/pages/ComplaintDetail.jsx";
 import AllComplaintsAdmin from "../../src/pages/AllComplaintsAdmin.jsx";
+import MaintenanceWorkOrders from "../../src/pages/MaintenanceWorkOrders.jsx";
 import MyComplaints from "../../src/pages/MyComplaints.jsx";
 import RaiseComplaint from "../../src/pages/RaiseComplaint.jsx";
 import {
@@ -13,7 +14,10 @@ import {
   getComplaintAssignees,
   getComplaintCategories,
   getManagedComplaints,
+  getMaintenanceWorkQueue,
   getMyComplaints,
+  resolveComplaintWork,
+  startComplaintWork,
   verifyComplaint,
 } from "../../src/complaints/complaintApi.js";
 import { expectNoAccessibilityViolations } from "../support/accessibility.js";
@@ -29,8 +33,11 @@ vi.mock("../../src/complaints/complaintApi.js", () => ({
   getComplaintAssignees: vi.fn(),
   getComplaintCategories: vi.fn(),
   getManagedComplaints: vi.fn(),
+  getMaintenanceWorkQueue: vi.fn(),
   getMyComplaints: vi.fn(),
   removeComplaintAttachment: vi.fn(),
+  resolveComplaintWork: vi.fn(),
+  startComplaintWork: vi.fn(),
   verifyComplaint: vi.fn(),
 }));
 
@@ -352,6 +359,148 @@ describe("managed complaint workflow", () => {
         assigneeUserId: 12,
         reason: "Technician is handling an urgent repair.",
       })
+    );
+  });
+});
+
+describe("maintenance work portal", () => {
+  const assignedWork = Object.freeze({
+    ...complaint,
+    status: "assigned",
+    resolutionNote: null,
+    sla: managedComplaint.sla,
+    timeline: complaint.timeline,
+  });
+  const inProgressWork = Object.freeze({
+    ...assignedWork,
+    status: "in_progress",
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getMaintenanceWorkQueue.mockResolvedValue({
+      data: [assignedWork],
+      pagination: { page: 1, pageSize: 12, total: 1, totalPages: 1 },
+    });
+    getComplaint.mockResolvedValue({ complaint: assignedWork, attachments: [] });
+  });
+
+  test("shows only active assigned work by default and separates resolved work", async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter>
+        <MaintenanceWorkOrders />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Assigned work" })).toBeVisible();
+    expect(screen.getByText("Complaint #42")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Start work" })).toBeVisible();
+    expect(getMaintenanceWorkQueue).toHaveBeenCalledWith({
+      page: 1,
+      slaState: "open",
+      sortBy: "priority",
+      sortOrder: "asc",
+    });
+
+    getMaintenanceWorkQueue.mockResolvedValueOnce({
+      data: [{ ...assignedWork, status: "resolved" }],
+      pagination: { page: 1, pageSize: 12, total: 1, totalPages: 1 },
+    });
+    await user.click(
+      screen.getByRole("tab", { name: "Awaiting student confirmation" })
+    );
+    await waitFor(() =>
+      expect(getMaintenanceWorkQueue).toHaveBeenLastCalledWith({
+        page: 1,
+        status: "resolved",
+        slaState: "all",
+        sortBy: "updatedAt",
+        sortOrder: "desc",
+      })
+    );
+    await expectNoAccessibilityViolations(view.container);
+  });
+
+  test("starts only the selected assigned work order after confirmation", async () => {
+    const user = userEvent.setup();
+    startComplaintWork.mockResolvedValue(inProgressWork);
+    render(
+      <MemoryRouter>
+        <MaintenanceWorkOrders />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("1 work order");
+    await user.click(screen.getByRole("button", { name: "Start work" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "Start this work order?",
+    });
+    await user.click(within(dialog).getByRole("button", { name: "Start work" }));
+
+    await waitFor(() => expect(startComplaintWork).toHaveBeenCalledWith(42));
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeVisible();
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Work started" })
+    );
+  });
+
+  test("validates and submits a resolution note with optional evidence", async () => {
+    const user = userEvent.setup();
+    const evidence = new File(["image-bytes"], "repair.png", {
+      type: "image/png",
+    });
+    getMaintenanceWorkQueue.mockResolvedValue({
+      data: [inProgressWork],
+      pagination: { page: 1, pageSize: 12, total: 1, totalPages: 1 },
+    });
+    resolveComplaintWork.mockResolvedValue({
+      complaint: {
+        ...inProgressWork,
+        status: "resolved",
+        resolutionNote: "Replaced the damaged valve and tested the water supply.",
+      },
+      resolutionEvidence: { id: 15, originalName: "repair.png" },
+    });
+    render(
+      <MemoryRouter>
+        <MaintenanceWorkOrders />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("1 work order");
+    await user.click(screen.getByRole("button", { name: "Resolve" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "Resolve work order",
+    });
+    await user.click(
+      within(dialog).getByRole("button", { name: "Submit resolution" })
+    );
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "at least 10 characters"
+    );
+
+    await user.type(
+      within(dialog).getByLabelText("Resolution note"),
+      "Replaced the damaged valve and tested the water supply."
+    );
+    await user.upload(
+      within(dialog).getByLabelText("Resolution evidence"),
+      evidence
+    );
+    expect(within(dialog).getByText("repair.png")).toBeVisible();
+    await user.click(
+      within(dialog).getByRole("button", { name: "Submit resolution" })
+    );
+
+    await waitFor(() =>
+      expect(resolveComplaintWork).toHaveBeenCalledWith(42, {
+        resolutionNote: "Replaced the damaged valve and tested the water supply.",
+        file: evidence,
+      })
+    );
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Resolution submitted" })
     );
   });
 });

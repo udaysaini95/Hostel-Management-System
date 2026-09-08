@@ -19,6 +19,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import MessAdmin from "./pages/MessAdmin";
 import MessPage from "./pages/MessPage";
+import MaintenanceWorkOrders from "./pages/MaintenanceWorkOrders.jsx";
 import MyComplaints from "./pages/MyComplaints";
 import MyLeaves from "./pages/MyLeaves";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -74,6 +75,13 @@ function App() {
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.MESS_READER} />}>
             <Route path="/student/mess" element={<MessPage />} />
+          </Route>
+
+          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.MAINTENANCE} />}>
+            <Route
+              path="/maintenance/work-orders"
+              element={<MaintenanceWorkOrders />}
+            />
           </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.OPERATIONS} />}>

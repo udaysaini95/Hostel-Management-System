@@ -61,6 +61,13 @@ records. Authorized detail is shown in a focused drawer. Assignment uses a
 separate dialog that lists only active maintenance staff in the complaint's
 hostel, shows current workloads, and requires a reason for reassignment.
 
+Maintenance users enter through `/maintenance/work-orders`. Their active queue
+contains only complaints assigned to the signed-in technician and keeps
+resolved work in a separate student-confirmation view. Starting work uses a
+confirmation dialog; resolution uses a focused form with a required note and
+optional private image. The page never offers transitions that do not match the
+current complaint state.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
@@ -111,6 +118,7 @@ components to justify one, but they must remain reachable from the single
 | Student | `/student/leaves/apply` | Leave application |
 | Student | `/student/mess` | Mess menu and feedback |
 | Student | `/student/profile` | Own profile, contact details, and current room |
+| Maintenance | `/maintenance/work-orders` | Assigned work queue, progress, and resolution submission |
 | Operations | `/admin/dashboard` | Warden/admin dashboard |
 | Operations | `/admin/residents` | Resident directory, allocations, and room occupancy |
 | Operations | `/admin/complaints` | Complaint operations |
@@ -124,11 +132,11 @@ components to justify one, but they must remain reachable from the single
 The compatibility routes are aliases in the canonical route tree, not separate
 login applications. Authentication bootstrap and direct-URL protection are
 active. Student pages, including the own-profile page, accept the student role.
-Resident and room operations accept admin and warden roles. Mess reading
-currently accepts student and maintenance roles, and the gate terminal accepts
-admin and guard roles. The backend remains the final authority for every API
-action. Student onboarding is administrator-only and is not included in the
-warden operations navigation.
+Resident and room operations accept admin and warden roles. The work-order
+portal accepts only maintenance users. Mess reading accepts student and
+maintenance roles, and the gate terminal accepts admin and guard roles. The
+backend remains the final authority for every API action. Student onboarding is
+administrator-only and is not included in the warden operations navigation.
 
 ## Removed legacy implementation
 

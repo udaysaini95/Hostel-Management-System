@@ -67,6 +67,43 @@ export const assignComplaint = async (complaintId, values) => {
   return response.data;
 };
 
+export const getMaintenanceWorkQueue = async ({ page = 1, ...filters } = {}) => {
+  const response = await api.get("/api/complaints/work-queue", {
+    params: {
+      page,
+      pageSize: 12,
+      ...filters,
+    },
+  });
+
+  const result = response.data;
+  if (!Array.isArray(result?.data) || !result?.pagination) {
+    throw new Error("Maintenance work queue response was invalid");
+  }
+
+  return result;
+};
+
+export const startComplaintWork = async (complaintId) => {
+  const response = await api.post(`/api/complaints/${complaintId}/start`);
+  return response.data?.complaint;
+};
+
+export const resolveComplaintWork = async (
+  complaintId,
+  { resolutionNote, file }
+) => {
+  const body = new FormData();
+  body.append("resolutionNote", resolutionNote);
+  if (file) body.append("file", file);
+
+  const response = await api.post(
+    `/api/complaints/${complaintId}/resolve`,
+    body
+  );
+  return response.data;
+};
+
 export const getComplaint = async (complaintId) => {
   const [complaintResponse, attachmentResponse] = await Promise.all([
     api.get(`/api/complaints/${complaintId}`),
