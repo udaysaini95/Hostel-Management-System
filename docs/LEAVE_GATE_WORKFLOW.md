@@ -70,7 +70,18 @@ Migration `0010_leave_gate_foundation` renames the current `leaves` and
 preserved, and the current frontend remains connected to those compatibility
 tables.
 
-No normalized leave API is introduced in LEV-01. LEV-02 will add validated
-student application endpoints and transactional overlap detection. Later slices
-will migrate decisions, secure pass issuance, gate verification, movement
-logging, and the frontend before the legacy tables are retired.
+LEV-02 adds `POST /api/leave` for normalized student submissions. The endpoint
+accepts `reason`, timezone-aware `departureAt` and `expectedReturnAt` values, and
+an optional `isEmergency` flag. Student, hostel, profile, and room-allocation
+identifiers are always derived from the authenticated account.
+
+Overlap detection treats time ranges as half-open intervals: a leave ending at
+10:00 and another beginning at 10:00 do not conflict. Pending, approved, and
+exited requests block overlapping submissions. A per-student PostgreSQL
+transaction lock protects concurrent API requests, and a PostgreSQL exclusion
+constraint applies the same rule to writes outside the API. Override behavior
+is intentionally deferred to the authorized exception workflow in LEV-11.
+
+The legacy application endpoint remains available for the existing frontend.
+Later slices will migrate decisions, secure pass issuance, gate verification,
+movement logging, and the frontend before the compatibility tables are retired.

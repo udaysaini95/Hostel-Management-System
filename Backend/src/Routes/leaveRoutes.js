@@ -1,5 +1,12 @@
 import express from "express";
-import { applyLeave, myLeaves, getAllLeaves, approveLeave, rejectLeave } from "../Controllers/leaveController.js";
+import {
+  applyLeave,
+  approveLeave,
+  createStudentLeaveRequest,
+  getAllLeaves,
+  myLeaves,
+  rejectLeave,
+} from "../Controllers/leaveController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
@@ -8,8 +15,17 @@ import {
   leaveApplicationSchema,
   resourceIdSchema,
 } from "../validation/operationalSchemas.js";
+import { leaveCreateRequestSchema } from "../validation/leaveSchemas.js";
 
 const router = express.Router();
+
+router.post(
+  "/",
+  protect,
+  requirePermission(PERMISSIONS.LEAVE_CREATE_OWN),
+  validateRequest(leaveCreateRequestSchema),
+  createStudentLeaveRequest
+);
 
 router.post(
   "/apply",

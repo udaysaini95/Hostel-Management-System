@@ -9,6 +9,18 @@ import {
   handleControllerError,
   sendApiError,
 } from "../utils/apiErrors.js";
+import { createLeaveRequest } from "../services/leaveRequestService.js";
+
+// Normalized student leave submission. Legacy handlers below remain available
+// until the leave frontend moves to the secure workflow.
+export const createStudentLeaveRequest = async (req, res) => {
+  try {
+    const leaveRequest = await createLeaveRequest(db, req.user, req.body);
+    return res.status(201).json({ leaveRequest });
+  } catch (error) {
+    return handleControllerError(res, error, "Create Leave Request Error");
+  }
+};
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(process.cwd(), "uploads");

@@ -13,6 +13,7 @@ import {
   menuRequestSchema,
   resourceIdSchema,
 } from "../src/validation/operationalSchemas.js";
+import { leaveCreateRequestSchema } from "../src/validation/leaveSchemas.js";
 import {
   studentProfileReadRequestSchema,
   studentProfileUpdateRequestSchema,
@@ -108,6 +109,39 @@ test("numeric route IDs are validated and converted to numbers", () => {
   assert.equal(nextCalled, true);
   assert.equal(response.statusCode, null);
   assert.deepEqual(request.params, { id: 42 });
+});
+
+test("normalized leave requests require timezone-aware ordered timestamps", () => {
+  const validRequest = {
+    body: {
+      reason: "  Family function  ",
+      departureAt: "2026-10-10T09:00:00+05:30",
+      expectedReturnAt: "2026-10-12T18:00:00+05:30",
+    },
+  };
+  const validResult = runValidation(leaveCreateRequestSchema, validRequest);
+
+  assert.equal(validResult.nextCalled, true);
+  assert.deepEqual(validRequest.body, {
+    reason: "Family function",
+    departureAt: "2026-10-10T09:00:00+05:30",
+    expectedReturnAt: "2026-10-12T18:00:00+05:30",
+    isEmergency: false,
+  });
+
+  const invalidResult = runValidation(leaveCreateRequestSchema, {
+    body: {
+      reason: "Trip",
+      departureAt: "2026-10-12T09:00:00",
+      expectedReturnAt: "2026-10-10T09:00:00Z",
+      isEmergency: "yes",
+    },
+  });
+
+  assert.equal(invalidResult.nextCalled, false);
+  assert.ok(invalidResult.response.body.fieldErrors["body.reason"]);
+  assert.ok(invalidResult.response.body.fieldErrors["body.departureAt"]);
+  assert.ok(invalidResult.response.body.fieldErrors["body.isEmergency"]);
 });
 
 test("validated query values work with the Express 5 query getter", () => {

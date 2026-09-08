@@ -29,6 +29,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   COMPLAINT_RESOLVED: "complaint.resolved",
   COMPLAINT_REOPENED: "complaint.reopened",
   COMPLAINT_CLOSED: "complaint.closed",
+  LEAVE_REQUEST_SUBMITTED: "leave.request.submitted",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
@@ -40,4 +41,5 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   COMPLAINT: "complaint",
   COMPLAINT_ASSIGNMENT: "complaint_assignment",
   COMPLAINT_ATTACHMENT: "complaint_attachment",
+  LEAVE_REQUEST: "leave_request",
 });
