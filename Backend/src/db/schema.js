@@ -22,6 +22,13 @@ import {
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
 import { USER_ROLES } from "../domain/roles.js";
+import {
+  GATE_MOVEMENTS,
+  GATE_VERIFICATION_METHODS,
+  LEAVE_DECISION_OUTCOMES,
+  LEAVE_EVENT_TYPES,
+  LEAVE_STATUSES,
+} from "../domain/leaveWorkflow.js";
 
 export const userRoleEnum = pgEnum("user_role", Object.values(USER_ROLES));
 export const accountStatusEnum = pgEnum(
@@ -43,6 +50,26 @@ export const complaintEventTypeEnum = pgEnum(
 export const complaintAttachmentPurposeEnum = pgEnum(
   "complaint_attachment_purpose",
   Object.values(COMPLAINT_ATTACHMENT_PURPOSES)
+);
+export const leaveStatusEnum = pgEnum(
+  "leave_status",
+  Object.values(LEAVE_STATUSES)
+);
+export const leaveDecisionOutcomeEnum = pgEnum(
+  "leave_decision_outcome",
+  Object.values(LEAVE_DECISION_OUTCOMES)
+);
+export const leaveEventTypeEnum = pgEnum(
+  "leave_event_type",
+  Object.values(LEAVE_EVENT_TYPES)
+);
+export const gateMovementEnum = pgEnum(
+  "gate_movement",
+  Object.values(GATE_MOVEMENTS)
+);
+export const gateVerificationMethodEnum = pgEnum(
+  "gate_verification_method",
+  Object.values(GATE_VERIFICATION_METHODS)
 );
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
@@ -825,8 +852,9 @@ export const complaintAttachments = pgTable(
   ]
 );
 
-// 4. Leave Applications Table (With Gate Security State Machine)
-export const leaves = pgTable("leaves", {
+// The original leave and gate APIs remain connected to these tables until the
+// normalized workflow is implemented. New code must use the tables below.
+export const legacyLeaves = pgTable("legacy_leaves", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id")
     .notNull()
@@ -843,12 +871,11 @@ export const leaves = pgTable("leaves", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 5. Gate Access Logs (Real-time Gate Attendance Logging)
-export const gateLogs = pgTable("gate_logs", {
+export const legacyGateLogs = pgTable("legacy_gate_logs", {
   id: serial("id").primaryKey(),
   leaveId: integer("leave_id")
     .notNull()
-    .references(() => leaves.id, { onDelete: "cascade" }),
+    .references(() => legacyLeaves.id, { onDelete: "cascade" }),
   studentId: integer("student_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -857,6 +884,266 @@ export const gateLogs = pgTable("gate_logs", {
   scannedAt: timestamp("scanned_at").defaultNow(),
   remarks: text("remarks"),
 });
+
+export const leaveRequests = pgTable(
+  "leave_requests",
+  {
+    id: serial("id").primaryKey(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    studentUserId: integer("student_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    studentProfileId: integer("student_profile_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "restrict" }),
+    roomAllocationId: integer("room_allocation_id").references(
+      () => roomAllocations.id,
+      { onDelete: "restrict" }
+    ),
+    reason: text("reason").notNull(),
+    departureAt: timestamp("departure_at", { withTimezone: true }).notNull(),
+    expectedReturnAt: timestamp("expected_return_at", {
+      withTimezone: true,
+    }).notNull(),
+    isEmergency: boolean("is_emergency").default(false).notNull(),
+    status: leaveStatusEnum("status")
+      .default(LEAVE_STATUSES.PENDING)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "leave_requests_reason_length_check",
+      sql`length(trim(${table.reason})) between 5 and 1000`
+    ),
+    check(
+      "leave_requests_departure_future_check",
+      sql`${table.departureAt} > ${table.createdAt}`
+    ),
+    check(
+      "leave_requests_date_order_check",
+      sql`${table.expectedReturnAt} > ${table.departureAt}`
+    ),
+    check(
+      "leave_requests_updated_at_check",
+      sql`${table.updatedAt} >= ${table.createdAt}`
+    ),
+    index("leave_requests_student_status_idx").on(
+      table.studentUserId,
+      table.status,
+      table.departureAt
+    ),
+    index("leave_requests_hostel_status_departure_idx").on(
+      table.hostelId,
+      table.status,
+      table.departureAt
+    ),
+    index("leave_requests_outside_return_idx")
+      .on(table.hostelId, table.expectedReturnAt)
+      .where(sql`${table.status} = 'exited'`),
+    index("leave_requests_room_allocation_idx").on(table.roomAllocationId),
+  ]
+);
+
+// A decision is a separate immutable record instead of editable columns on the
+// leave request. This preserves exactly who decided and what note they gave.
+export const leaveDecisions = pgTable(
+  "leave_decisions",
+  {
+    id: serial("id").primaryKey(),
+    leaveRequestId: integer("leave_request_id")
+      .notNull()
+      .unique()
+      .references(() => leaveRequests.id, { onDelete: "restrict" }),
+    outcome: leaveDecisionOutcomeEnum("outcome").notNull(),
+    decidedByUserId: integer("decided_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    note: varchar("note", { length: 1000 }).notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "leave_decisions_actor_snapshot_check",
+      sql`length(trim(${table.actorName})) > 0 and length(trim(${table.actorRole})) > 0`
+    ),
+    check(
+      "leave_decisions_note_length_check",
+      sql`length(trim(${table.note})) between 5 and 1000`
+    ),
+    index("leave_decisions_actor_idx").on(
+      table.decidedByUserId,
+      table.decidedAt
+    ),
+  ]
+);
+
+// Only the SHA-256 hash of the bearer token is stored. Sequential IDs are never
+// accepted as pass credentials.
+export const gatePasses = pgTable(
+  "gate_passes",
+  {
+    id: serial("id").primaryKey(),
+    leaveRequestId: integer("leave_request_id")
+      .notNull()
+      .unique()
+      .references(() => leaveRequests.id, { onDelete: "restrict" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    issuedByUserId: integer("issued_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    issuedAt: timestamp("issued_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    pdfStorageKey: varchar("pdf_storage_key", { length: 500 }).unique(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedByUserId: integer("revoked_by_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    revocationReason: varchar("revocation_reason", { length: 1000 }),
+  },
+  (table) => [
+    check(
+      "gate_passes_token_hash_check",
+      sql`${table.tokenHash} ~ '^[a-f0-9]{64}$'`
+    ),
+    check(
+      "gate_passes_validity_check",
+      sql`${table.validFrom} >= ${table.issuedAt} and ${table.expiresAt} > ${table.validFrom}`
+    ),
+    check(
+      "gate_passes_pdf_storage_key_check",
+      sql`${table.pdfStorageKey} is null or length(trim(${table.pdfStorageKey})) > 0`
+    ),
+    check(
+      "gate_passes_revocation_details_check",
+      sql`(${table.revokedAt} is null and ${table.revokedByUserId} is null and ${table.revocationReason} is null) or (${table.revokedAt} is not null and ${table.revokedAt} >= ${table.issuedAt} and ${table.revokedByUserId} is not null and length(trim(${table.revocationReason})) between 5 and 1000)`
+    ),
+    index("gate_passes_active_expiry_idx")
+      .on(table.expiresAt)
+      .where(sql`${table.revokedAt} is null`),
+    index("gate_passes_issuer_idx").on(table.issuedByUserId, table.issuedAt),
+  ]
+);
+
+export const leaveEvents = pgTable(
+  "leave_events",
+  {
+    id: serial("id").primaryKey(),
+    leaveRequestId: integer("leave_request_id")
+      .notNull()
+      .references(() => leaveRequests.id, { onDelete: "restrict" }),
+    eventType: leaveEventTypeEnum("event_type").notNull(),
+    fromStatus: leaveStatusEnum("from_status"),
+    toStatus: leaveStatusEnum("to_status").notNull(),
+    actorUserId: integer("actor_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    note: varchar("note", { length: 1000 }),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "leave_events_submitted_state_check",
+      sql`(${table.eventType} = 'submitted' and ${table.fromStatus} is null and ${table.toStatus} = 'pending') or (${table.eventType} <> 'submitted' and ${table.fromStatus} is not null)`
+    ),
+    check(
+      "leave_events_actor_snapshot_check",
+      sql`length(trim(${table.actorName})) > 0 and length(trim(${table.actorRole})) > 0`
+    ),
+    check(
+      "leave_events_note_not_blank_check",
+      sql`${table.note} is null or length(trim(${table.note})) > 0`
+    ),
+    check(
+      "leave_events_metadata_object_check",
+      sql`jsonb_typeof(${table.metadata}) = 'object'`
+    ),
+    index("leave_events_timeline_idx").on(
+      table.leaveRequestId,
+      table.occurredAt,
+      table.id
+    ),
+    index("leave_events_actor_idx").on(table.actorUserId),
+  ]
+);
+
+export const gateEvents = pgTable(
+  "gate_events",
+  {
+    id: serial("id").primaryKey(),
+    leaveRequestId: integer("leave_request_id")
+      .notNull()
+      .references(() => leaveRequests.id, { onDelete: "restrict" }),
+    gatePassId: integer("gate_pass_id").references(() => gatePasses.id, {
+      onDelete: "restrict",
+    }),
+    movement: gateMovementEnum("movement").notNull(),
+    verificationMethod: gateVerificationMethodEnum(
+      "verification_method"
+    ).notNull(),
+    performedByUserId: integer("performed_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 100 })
+      .notNull()
+      .unique(),
+    note: varchar("note", { length: 1000 }),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "gate_events_actor_snapshot_check",
+      sql`length(trim(${table.actorName})) > 0 and length(trim(${table.actorRole})) > 0`
+    ),
+    check(
+      "gate_events_idempotency_key_check",
+      sql`length(trim(${table.idempotencyKey})) between 16 and 100`
+    ),
+    check(
+      "gate_events_pass_required_check",
+      sql`${table.verificationMethod} = 'override' or ${table.gatePassId} is not null`
+    ),
+    check(
+      "gate_events_override_note_check",
+      sql`${table.verificationMethod} <> 'override' or (${table.note} is not null and length(trim(${table.note})) between 5 and 1000)`
+    ),
+    check(
+      "gate_events_metadata_object_check",
+      sql`jsonb_typeof(${table.metadata}) = 'object'`
+    ),
+    uniqueIndex("gate_events_one_movement_per_leave")
+      .on(table.leaveRequestId, table.movement),
+    index("gate_events_activity_idx").on(table.occurredAt, table.id),
+    index("gate_events_actor_idx").on(
+      table.performedByUserId,
+      table.occurredAt
+    ),
+  ]
+);
 
 // 6. Mess Issues Table
 export const messIssues = pgTable("mess_issues", {

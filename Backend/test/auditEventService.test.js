@@ -79,6 +79,7 @@ test("actor snapshots preserve readable normalized identity", () => {
     role: USER_ROLES.ADMIN,
   });
   assert.equal(Object.isFrozen(actor), true);
+  assert.deepEqual(createAuditActorSnapshot(actor), actor);
 });
 
 test("audit visibility follows role and hostel boundaries", () => {

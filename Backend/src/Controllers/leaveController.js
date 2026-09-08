@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import QRCode from "qrcode";
 import { db } from "../db/index.js";
-import { leaves, users } from "../db/schema.js";
+import { legacyLeaves as leaves, users } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import {
   handleControllerError,

@@ -1,5 +1,9 @@
 import { db } from "../db/index.js";
-import { leaves, users, gateLogs } from "../db/schema.js";
+import {
+  legacyGateLogs as gateLogs,
+  legacyLeaves as leaves,
+  users,
+} from "../db/schema.js";
 import { eq, or, desc, and } from "drizzle-orm";
 import {
   handleControllerError,

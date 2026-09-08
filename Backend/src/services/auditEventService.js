@@ -76,7 +76,7 @@ export const getAuditVisibility = (actor) => {
 
 export const createAuditActorSnapshot = (user) =>
   Object.freeze({
-    userId: requirePositiveInteger(user?.id, "Actor ID"),
+    userId: requirePositiveInteger(user?.id ?? user?.userId, "Actor ID"),
     name: requireText(user?.name, "Actor name", 255),
     email: requireText(user?.email, "Actor email", 255).toLowerCase(),
     role: requireText(user?.role, "Actor role", 50),

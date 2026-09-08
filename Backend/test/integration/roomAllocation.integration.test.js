@@ -176,7 +176,7 @@ test("room inventory is paginated and limited to a warden's hostels", async () =
   const adminResult = await listRoomInventory(
     database,
     { id: administrator.id, role: USER_ROLES.ADMIN },
-    { page: 1, pageSize: 2 }
+    { page: 1, pageSize: 2, hostelCode: "RA1" }
   );
   const firstWardenResult = await listRoomInventory(database, {
     id: firstWarden.id,
@@ -190,7 +190,7 @@ test("room inventory is paginated and limited to a warden's hostels", async () =
   assert.deepEqual(adminResult.pagination, {
     page: 1,
     pageSize: 2,
-    total: 4,
+    total: 3,
     totalPages: 2,
   });
   assert.equal(firstWardenResult.pagination.total, 3);

@@ -190,18 +190,27 @@ test("administrators can paginate and filter the complete resident directory", a
   const firstPage = await searchResidents(database, actor, {
     page: 1,
     pageSize: 2,
+    search: "resident-directory.integration.test",
   });
   const secondPage = await searchResidents(database, actor, {
     page: 2,
     pageSize: 2,
+    search: "resident-directory.integration.test",
   });
   const byHostel = await searchResidents(database, actor, {
     hostelCode: "RD2",
   });
-  const byBlock = await searchResidents(database, actor, { blockCode: "B" });
-  const byRoom = await searchResidents(database, actor, { roomNumber: "101" });
+  const byBlock = await searchResidents(database, actor, {
+    blockCode: "B",
+    search: "resident-directory.integration.test",
+  });
+  const byRoom = await searchResidents(database, actor, {
+    roomNumber: "101",
+    search: "resident-directory.integration.test",
+  });
   const byStatus = await searchResidents(database, actor, {
     accountStatus: ACCOUNT_STATUSES.SUSPENDED,
+    search: "resident-directory.integration.test",
   });
   const bySearch = await searchResidents(database, actor, { search: "charu" });
 

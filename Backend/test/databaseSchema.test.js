@@ -10,6 +10,13 @@ import {
 } from "../src/domain/complaintWorkflow.js";
 import { USER_ROLES } from "../src/domain/roles.js";
 import {
+  GATE_MOVEMENTS,
+  GATE_VERIFICATION_METHODS,
+  LEAVE_DECISION_OUTCOMES,
+  LEAVE_EVENT_TYPES,
+  LEAVE_STATUSES,
+} from "../src/domain/leaveWorkflow.js";
+import {
   accountStatusEnum,
   approvedStudents,
   auditEventHostels,
@@ -23,9 +30,21 @@ import {
   complaintPriorityEnum,
   complaints,
   complaintStatusEnum,
+  gateEvents,
+  gateMovementEnum,
+  gatePasses,
+  gateVerificationMethodEnum,
   hostelBlocks,
   hostelMemberships,
   hostels,
+  leaveDecisionOutcomeEnum,
+  leaveDecisions,
+  leaveEventTypeEnum,
+  leaveEvents,
+  leaveRequests,
+  leaveStatusEnum,
+  legacyGateLogs,
+  legacyLeaves,
   roomAllocations,
   rooms,
   staffInvitationHostels,
@@ -73,6 +92,89 @@ test("complaint enums match the workflow domain values", () => {
     complaintAttachmentPurposeEnum.enumValues,
     Object.values(COMPLAINT_ATTACHMENT_PURPOSES)
   );
+});
+
+test("leave and gate enums match the workflow domain values", () => {
+  assert.deepEqual(leaveStatusEnum.enumValues, Object.values(LEAVE_STATUSES));
+  assert.deepEqual(
+    leaveDecisionOutcomeEnum.enumValues,
+    Object.values(LEAVE_DECISION_OUTCOMES)
+  );
+  assert.deepEqual(
+    leaveEventTypeEnum.enumValues,
+    Object.values(LEAVE_EVENT_TYPES)
+  );
+  assert.deepEqual(gateMovementEnum.enumValues, Object.values(GATE_MOVEMENTS));
+  assert.deepEqual(
+    gateVerificationMethodEnum.enumValues,
+    Object.values(GATE_VERIFICATION_METHODS)
+  );
+});
+
+test("normalized leave records keep student, hostel, schedule, and emergency context", () => {
+  const config = getTableConfig(leaveRequests);
+
+  assert.equal(config.foreignKeys.length, 4);
+  assert.equal(leaveRequests.hostelId.notNull, true);
+  assert.equal(leaveRequests.studentUserId.notNull, true);
+  assert.equal(leaveRequests.studentProfileId.notNull, true);
+  assert.equal(leaveRequests.departureAt.notNull, true);
+  assert.equal(leaveRequests.expectedReturnAt.notNull, true);
+  assert.equal(leaveRequests.isEmergency.hasDefault, true);
+  assert.equal(leaveRequests.status.hasDefault, true);
+  assert.ok(findIndex(leaveRequests, "leave_requests_student_status_idx"));
+  assert.ok(findIndex(leaveRequests, "leave_requests_outside_return_idx").config.where);
+  assert.ok(
+    config.checks.some(
+      (entry) => entry.name === "leave_requests_date_order_check"
+    )
+  );
+});
+
+test("leave decisions and timeline rows are append-only shaped records", () => {
+  const decisionConfig = getTableConfig(leaveDecisions);
+  const eventConfig = getTableConfig(leaveEvents);
+
+  assert.equal(leaveDecisions.leaveRequestId.isUnique, true);
+  assert.equal(decisionConfig.foreignKeys.length, 2);
+  assert.equal(leaveDecisions.note.notNull, true);
+  assert.equal(leaveEvents.actorName.notNull, true);
+  assert.equal(leaveEvents.actorRole.notNull, true);
+  assert.equal(leaveEvents.metadata.notNull, true);
+  assert.equal(leaveEvents.updatedAt, undefined);
+  assert.ok(findIndex(leaveEvents, "leave_events_timeline_idx"));
+  assert.ok(
+    eventConfig.checks.some(
+      (entry) => entry.name === "leave_events_metadata_object_check"
+    )
+  );
+});
+
+test("gate passes store hashed tokens and gate events enforce idempotent movement", () => {
+  const passConfig = getTableConfig(gatePasses);
+  const eventConfig = getTableConfig(gateEvents);
+  const movementIndex = findIndex(
+    gateEvents,
+    "gate_events_one_movement_per_leave"
+  );
+
+  assert.equal(gatePasses.leaveRequestId.isUnique, true);
+  assert.equal(gatePasses.tokenHash.isUnique, true);
+  assert.equal(gatePasses.tokenHash.config.length, 64);
+  assert.equal(passConfig.foreignKeys.length, 3);
+  assert.equal(gateEvents.idempotencyKey.isUnique, true);
+  assert.equal(eventConfig.foreignKeys.length, 3);
+  assert.equal(movementIndex.config.unique, true);
+  assert.ok(
+    eventConfig.checks.some(
+      (entry) => entry.name === "gate_events_pass_required_check"
+    )
+  );
+});
+
+test("legacy leave tables remain explicit compatibility models", () => {
+  assert.equal(getTableConfig(legacyLeaves).name, "legacy_leaves");
+  assert.equal(getTableConfig(legacyGateLogs).name, "legacy_gate_logs");
 });
 
 test("complaints keep explicit hostel, reporter, category, room, and SLA context", () => {

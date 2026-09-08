@@ -71,6 +71,13 @@
       "when": 1788980400000,
       "tag": "0009_complaint_sla_monitoring",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789066800000,
+      "tag": "0010_leave_gate_foundation",
+      "breakpoints": true
     }
   ]
 }
