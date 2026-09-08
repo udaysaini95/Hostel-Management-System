@@ -7,6 +7,7 @@ import {
   downloadStudentGatePassPdf,
   getAllLeaves,
   getStudentGatePass,
+  listMyStudentLeaveRequests,
   myLeaves,
   rejectLeave,
   viewStudentGatePassQr,
@@ -22,6 +23,7 @@ import {
 import {
   leaveCreateRequestSchema,
   leaveDecisionRequestSchema,
+  studentLeaveListSchema,
 } from "../validation/leaveSchemas.js";
 
 const router = express.Router();
@@ -32,6 +34,13 @@ router.post(
   requirePermission(PERMISSIONS.LEAVE_CREATE_OWN),
   validateRequest(leaveCreateRequestSchema),
   createStudentLeaveRequest
+);
+router.get(
+  "/",
+  protect,
+  requirePermission(PERMISSIONS.LEAVE_READ_OWN),
+  validateRequest(studentLeaveListSchema),
+  listMyStudentLeaveRequests
 );
 router.post(
   "/:id/decision",

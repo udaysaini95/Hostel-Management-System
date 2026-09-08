@@ -1,5 +1,7 @@
 import {
   and,
+  count,
+  desc,
   eq,
   gt,
   inArray,
@@ -9,6 +11,7 @@ import {
 } from "drizzle-orm";
 import {
   hostelBlocks,
+  gatePasses,
   hostels,
   leaveEvents,
   leaveRequests,
@@ -36,6 +39,7 @@ const activeLeaveStatuses = Object.freeze([
   LEAVE_STATUSES.APPROVED,
   LEAVE_STATUSES.EXITED,
 ]);
+const knownLeaveStatuses = new Set(Object.values(LEAVE_STATUSES));
 
 const fail = (status, code, message) => {
   throw new ApiError(status, code, message);
@@ -57,6 +61,24 @@ const requireOperationTime = (value) => {
   }
 
   return value;
+};
+
+export const normalizeStudentLeaveFilters = (input = {}) => {
+  const page = Number(input.page ?? 1);
+  const pageSize = Number(input.pageSize ?? 10);
+  const status = typeof input.status === "string" ? input.status.trim() : "";
+
+  if (!Number.isSafeInteger(page) || page < 1) {
+    fail(400, "INVALID_PAGE", "Page must be a positive integer");
+  }
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+    fail(400, "INVALID_PAGE_SIZE", "Page size must be between 1 and 50");
+  }
+  if (status && !knownLeaveStatuses.has(status)) {
+    fail(400, "INVALID_LEAVE_STATUS", "Leave status is invalid");
+  }
+
+  return Object.freeze({ page, pageSize, status: status || null });
 };
 
 const parseTimestamp = (value, label) => {
@@ -399,4 +421,110 @@ export const createLeaveRequest = async (
       allocation,
     });
   });
+};
+
+export const listStudentLeaveRequests = async (
+  database,
+  requestActor,
+  input = {}
+) => {
+  const actorId = requireActorId(requestActor?.id);
+  const { page, pageSize, status } = normalizeStudentLeaveFilters(input);
+  const [actor] = await database
+    .select({ role: users.role, accountStatus: users.accountStatus })
+    .from(users)
+    .where(eq(users.id, actorId))
+    .limit(1);
+
+  if (
+    !actor ||
+    actor.role !== USER_ROLES.STUDENT ||
+    actor.role !== requestActor.role ||
+    actor.accountStatus !== ACCOUNT_STATUSES.ACTIVE
+  ) {
+    fail(403, "LEAVE_READ_DENIED", "You cannot view these leave requests");
+  }
+
+  const conditions = [eq(leaveRequests.studentUserId, actorId)];
+  if (status) conditions.push(eq(leaveRequests.status, status));
+  const whereClause = and(...conditions);
+  const [totalRow] = await database
+    .select({ total: count() })
+    .from(leaveRequests)
+    .where(whereClause);
+  const records = await database
+    .select({
+      id: leaveRequests.id,
+      reason: leaveRequests.reason,
+      departureAt: leaveRequests.departureAt,
+      expectedReturnAt: leaveRequests.expectedReturnAt,
+      isEmergency: leaveRequests.isEmergency,
+      status: leaveRequests.status,
+      createdAt: leaveRequests.createdAt,
+      updatedAt: leaveRequests.updatedAt,
+      hostelId: hostels.id,
+      hostelCode: hostels.code,
+      hostelName: hostels.name,
+      blockCode: hostelBlocks.code,
+      roomNumber: rooms.roomNumber,
+      passId: gatePasses.id,
+      passIssuedAt: gatePasses.issuedAt,
+      passValidFrom: gatePasses.validFrom,
+      passExpiresAt: gatePasses.expiresAt,
+      passRevokedAt: gatePasses.revokedAt,
+      passRevocationReason: gatePasses.revocationReason,
+    })
+    .from(leaveRequests)
+    .innerJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
+    .leftJoin(
+      roomAllocations,
+      eq(leaveRequests.roomAllocationId, roomAllocations.id)
+    )
+    .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
+    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
+    .leftJoin(gatePasses, eq(gatePasses.leaveRequestId, leaveRequests.id))
+    .where(whereClause)
+    .orderBy(desc(leaveRequests.createdAt), desc(leaveRequests.id))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+  const total = Number(totalRow?.total ?? 0);
+
+  return {
+    data: records.map((record) => ({
+      id: record.id,
+      reason: record.reason,
+      departureAt: record.departureAt,
+      expectedReturnAt: record.expectedReturnAt,
+      isEmergency: record.isEmergency,
+      status: record.status,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      hostel: {
+        id: record.hostelId,
+        code: record.hostelCode,
+        name: record.hostelName,
+      },
+      room: record.roomNumber
+        ? { blockCode: record.blockCode, roomNumber: record.roomNumber }
+        : null,
+      pass: record.passId
+        ? {
+            id: record.passId,
+            issuedAt: record.passIssuedAt,
+            validFrom: record.passValidFrom,
+            expiresAt: record.passExpiresAt,
+            revokedAt: record.passRevokedAt,
+            revocationReason: record.passRevocationReason,
+            qrUrl: `/api/leave/${record.id}/pass/qr`,
+            pdfUrl: `/api/leave/${record.id}/pass/pdf`,
+          }
+        : null,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
+    },
+  };
 };

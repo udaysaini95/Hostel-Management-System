@@ -36,3 +36,13 @@ export const leaveDecisionRequestSchema = {
     ),
   }),
 };
+
+export const studentLeaveListSchema = {
+  query: z.strictObject({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(10),
+    status: z
+      .enum(["pending", "rejected", "approved", "exited", "returned", "expired"])
+      .optional(),
+  }),
+};

@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeLeaveRequestInput } from "../src/services/leaveRequestService.js";
+import {
+  normalizeLeaveRequestInput,
+  normalizeStudentLeaveFilters,
+} from "../src/services/leaveRequestService.js";
 
 const now = new Date("2026-10-01T08:00:00.000Z");
 
@@ -45,5 +48,21 @@ test("leave input rejects past departure and reversed ranges", () => {
         { now }
       ),
     (error) => error.code === "INVALID_LEAVE_DATE_RANGE"
+  );
+});
+
+test("student leave history filters use bounded pagination and known states", () => {
+  assert.deepEqual(normalizeStudentLeaveFilters({}), {
+    page: 1,
+    pageSize: 10,
+    status: null,
+  });
+  assert.deepEqual(
+    normalizeStudentLeaveFilters({ page: "2", pageSize: "25", status: "returned" }),
+    { page: 2, pageSize: 25, status: "returned" }
+  );
+  assert.throws(
+    () => normalizeStudentLeaveFilters({ pageSize: 51 }),
+    (error) => error.code === "INVALID_PAGE_SIZE"
   );
 });

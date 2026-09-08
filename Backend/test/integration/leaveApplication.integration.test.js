@@ -16,7 +16,10 @@ import { ACCOUNT_STATUSES } from "../../src/domain/accountStatuses.js";
 import { AUDIT_ACTIONS } from "../../src/domain/auditEvents.js";
 import { LEAVE_STATUSES } from "../../src/domain/leaveWorkflow.js";
 import { USER_ROLES } from "../../src/domain/roles.js";
-import { createLeaveRequest } from "../../src/services/leaveRequestService.js";
+import {
+  createLeaveRequest,
+  listStudentLeaveRequests,
+} from "../../src/services/leaveRequestService.js";
 
 const { Pool } = pg;
 
@@ -204,6 +207,16 @@ test("student submission derives scope and writes leave and audit history", asyn
     { event_type: "submitted", actor_user_id: student.id },
   ]);
   assert.equal(audit.rows[0].action, AUDIT_ACTIONS.LEAVE_REQUEST_SUBMITTED);
+
+  const history = await listStudentLeaveRequests(
+    database,
+    { id: student.id, role: USER_ROLES.STUDENT },
+    { page: 1, pageSize: 10 }
+  );
+  assert.equal(history.data[0].id, leaveRequest.id);
+  assert.equal(history.data[0].hostel.code, "LAPI");
+  assert.equal(history.data[0].room.roomNumber, "101");
+  assert.equal(history.pagination.total, 1);
 });
 
 test("past and reversed leave dates are rejected before any write", async () => {

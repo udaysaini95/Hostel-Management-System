@@ -9,7 +9,10 @@ import {
   handleControllerError,
   sendApiError,
 } from "../utils/apiErrors.js";
-import { createLeaveRequest } from "../services/leaveRequestService.js";
+import {
+  createLeaveRequest,
+  listStudentLeaveRequests,
+} from "../services/leaveRequestService.js";
 import { decideLeaveRequest } from "../services/leaveDecisionService.js";
 import {
   getGatePass,
@@ -24,6 +27,15 @@ export const createStudentLeaveRequest = async (req, res) => {
     return res.status(201).json({ leaveRequest });
   } catch (error) {
     return handleControllerError(res, error, "Create Leave Request Error");
+  }
+};
+
+export const listMyStudentLeaveRequests = async (req, res) => {
+  try {
+    const result = await listStudentLeaveRequests(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Student Leave Requests Error");
   }
 };
 

@@ -1,126 +1,196 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import api from "../api/axios";
-import { Calendar, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, CalendarClock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { getApiErrorMessage } from "../api/errors.js";
+import {
+  Button,
+  Input,
+  PageHeader,
+  Panel,
+  Textarea,
+} from "../components/ui/index.js";
+import { useToast } from "../feedback/toastContext.js";
+import { createLeaveRequest } from "../leave/leaveApi.js";
+import {
+  getLeaveFieldErrors,
+  toLeaveRequestPayload,
+  validateLeaveForm,
+} from "../leave/leaveView.js";
+
+const EMPTY_FORM = Object.freeze({
+  reason: "",
+  departureAt: "",
+  expectedReturnAt: "",
+  isEmergency: false,
+});
 
 const ApplyLeave = () => {
   const navigate = useNavigate();
-  const [reason, setReason] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const departureRef = useRef(null);
+  const returnRef = useRef(null);
+  const reasonRef = useRef(null);
+  const { showToast } = useToast();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!fromDate || !toDate || !reason) {
-      setError("Please fill in dates and reason for leave.");
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+    setFormError("");
+  };
+
+  const focusFirstError = (nextErrors) => {
+    const refs = {
+      departureAt: departureRef,
+      expectedReturnAt: returnRef,
+      reason: reasonRef,
+    };
+    const field = ["departureAt", "expectedReturnAt", "reason"].find(
+      (name) => nextErrors[name]
+    );
+
+    if (field) {
+      window.requestAnimationFrame(() => refs[field].current?.focus());
+    }
+  };
+
+  const submitLeave = async (event) => {
+    event.preventDefault();
+    const nextErrors = validateLeaveForm(form);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      focusFirstError(nextErrors);
       return;
     }
 
-    setError("");
-    setLoading(true);
-
     try {
-      await api.post("/api/leave/apply", {
-        reason,
-        fromDate,
-        toDate,
+      setSubmitting(true);
+      setFormError("");
+      await createLeaveRequest(toLeaveRequestPayload(form));
+      showToast({
+        tone: "success",
+        title: "Leave request submitted",
+        message: "Your request is waiting for a warden decision.",
       });
-
       navigate("/student/leaves");
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to submit leave application.");
+    } catch (error) {
+      const serverErrors = getLeaveFieldErrors(error);
+      setErrors(serverErrors);
+      setFormError(
+        getApiErrorMessage(error, "Your leave request could not be submitted.")
+      );
+      focusFirstError(serverErrors);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="hm-page-stack hm-page-stack--narrow">
-      
-      <Link
-        to="/student/leaves"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to My Leaves</span>
+    <div className="hm-page-stack hm-page-stack--narrow hm-leave-form-page">
+      <Link className="hm-leave__back-link" to="/student/leaves">
+        <ArrowLeft aria-hidden="true" /> Back to leave requests
       </Link>
+      <PageHeader
+        eyebrow="Leave and gate pass"
+        title="Apply for leave"
+        description="Enter local departure and return times. Your current hostel and room are added automatically."
+      />
 
-      <div className="ui-panel p-6 sm:p-8 rounded-2xl bg-white border-slate-200 shadow-xs">
-        
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Apply for Gate Pass / Leave
-          </h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Submit leave request for warden digital signature & PDF outpass generation.
-          </p>
+      <Panel
+        as="form"
+        className="hm-leave-form"
+        onSubmit={submitLeave}
+        noValidate
+      >
+        <div className="hm-leave-form__heading">
+          <CalendarClock aria-hidden="true" />
+          <div>
+            <h2>Leave schedule</h2>
+            <p>
+              Times are interpreted in your device timezone and stored with an
+              exact offset.
+            </p>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{error}</span>
-          </div>
+        {formError && (
+          <p className="hm-leave-form__error" role="alert">
+            {formError}
+          </p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                From Date
-              </label>
-              <input
-                type="date"
-                required
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs"
-              />
-            </div>
+        <div className="hm-leave-form__dates">
+          <Input
+            ref={departureRef}
+            label="Departure date and time"
+            type="datetime-local"
+            required
+            value={form.departureAt}
+            error={errors.departureAt}
+            onChange={(event) =>
+              updateField("departureAt", event.target.value)
+            }
+          />
+          <Input
+            ref={returnRef}
+            label="Expected return date and time"
+            type="datetime-local"
+            required
+            value={form.expectedReturnAt}
+            error={errors.expectedReturnAt}
+            onChange={(event) =>
+              updateField("expectedReturnAt", event.target.value)
+            }
+          />
+        </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                To Date
-              </label>
-              <input
-                type="date"
-                required
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs"
-              />
-            </div>
-          </div>
+        <Textarea
+          ref={reasonRef}
+          label="Reason for leave"
+          rows={4}
+          maxLength={1000}
+          required
+          placeholder="For example: travelling home for a family function"
+          value={form.reason}
+          error={errors.reason}
+          onChange={(event) => updateField("reason", event.target.value)}
+        />
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Reason for Leave
-            </label>
-            <textarea
-              required
-              rows={4}
-              placeholder="State your reason (e.g. Going home for weekend)..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg ui-input text-xs resize-none"
-            />
-          </div>
+        <label className="hm-leave-form__emergency">
+          <input
+            type="checkbox"
+            checked={form.isEmergency}
+            onChange={(event) =>
+              updateField("isEmergency", event.target.checked)
+            }
+          />
+          <span>
+            <strong>This is an emergency request</strong>
+            <small>
+              Wardens will see this flag prominently. It does not skip
+              approval.
+            </small>
+          </span>
+        </label>
 
-          <button
+        <div className="hm-leave-form__footer">
+          <span>
+            Requests cannot overlap an active pending or approved leave.
+          </span>
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            variant="primary"
+            size="form"
+            loading={submitting}
+            loadingLabel="Submitting request"
           >
-            {loading ? "Submitting..." : "Submit Leave Application"}
-          </button>
-
-        </form>
-
-      </div>
+            Apply for leave
+          </Button>
+        </div>
+      </Panel>
     </div>
   );
 };
