@@ -47,6 +47,13 @@ room inventory as two URL-backed peer views, uses server pagination, and opens
 focused dialogs for allocation and vacancy instead of editing crowded rows.
 Desktop tables have structured mobile record alternatives.
 
+Student complaint API calls, presentation helpers, and shared list, attachment,
+and timeline components live in `src/complaints`. The list uses server filtering
+and pagination, while the detail page loads the authorized timeline and private
+attachment metadata. Private images are fetched through the authenticated Axios
+client and opened from a temporary browser object URL; public storage URLs are
+not used.
+
 The auth provider treats the protected `/api/auth/me` response as the authority
 for the current identity and role. Browser storage keeps the access token and a
 display cache, but changing its cached `role` value cannot grant a route. A
@@ -92,6 +99,7 @@ components to justify one, but they must remain reachable from the single
 | Student | `/student/dashboard` | Student dashboard |
 | Student | `/student/complaints` | Student complaints |
 | Student | `/student/complaints/raise` | Complaint submission |
+| Student | `/student/complaints/:id` | Complaint detail, evidence, timeline, and verification |
 | Student | `/student/leaves` | Student leave requests |
 | Student | `/student/leaves/apply` | Leave application |
 | Student | `/student/mess` | Mess menu and feedback |

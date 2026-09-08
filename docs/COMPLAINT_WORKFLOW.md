@@ -104,7 +104,8 @@ authenticated account, not from request data.
 List endpoints return `{ data, pagination }`. Supported filters are `search`,
 `hostelCode`, `categoryCode`, `status`, `priority`, `slaState`, `createdFrom`,
 and `createdTo`. Date filters use ISO timestamps. The supported sort fields are
-`createdAt`, `slaDeadline`, and `priority`. Page sizes are capped at 100 records.
+`createdAt`, `updatedAt`, `slaDeadline`, and `priority`. Complaint lists default
+to the latest update first. Page sizes are capped at 100 records.
 
 Assignment requests contain `assigneeUserId` and an optional `reason`. A reason
 is mandatory when an active assignee is replaced. Initial assignment changes

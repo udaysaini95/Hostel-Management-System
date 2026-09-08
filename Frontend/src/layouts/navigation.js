@@ -125,4 +125,10 @@ const routeTitles = Object.freeze({
   "/unauthorized": "Access denied",
 });
 
-export const getRouteTitle = (pathname) => routeTitles[pathname] ?? "HostelMate";
+export const getRouteTitle = (pathname) => {
+  if (/^\/student\/complaints\/\d+$/.test(pathname)) {
+    return "Complaint details";
+  }
+
+  return routeTitles[pathname] ?? "HostelMate";
+};

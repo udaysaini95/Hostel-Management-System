@@ -42,7 +42,7 @@ const createComplaintListQuery = ({
       priority: z.enum(Object.values(COMPLAINT_PRIORITIES)).optional(),
       slaState: z.enum(["all", "open", "breached"]).default("all"),
       sortBy: z
-        .enum(["createdAt", "slaDeadline", "priority"])
+        .enum(["createdAt", "updatedAt", "slaDeadline", "priority"])
         .default(defaultSortBy),
       sortOrder: z.enum(["asc", "desc"]).default(defaultSortOrder),
       createdFrom: timestampSchema.optional(),
@@ -72,7 +72,9 @@ export const complaintCreateRequestSchema = {
   }),
 };
 
-const complaintListQuery = createComplaintListQuery();
+const complaintListQuery = createComplaintListQuery({
+  defaultSortBy: "updatedAt",
+});
 
 export const complaintListRequestSchema = { query: complaintListQuery };
 

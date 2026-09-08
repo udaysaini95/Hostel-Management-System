@@ -81,6 +81,14 @@ test("complaint list filters normalize paging, scope, and sorting", () => {
   );
 });
 
+test("student complaint lists default to the latest update", () => {
+  assert.equal(normalizeComplaintFilters({}).sortBy, "updatedAt");
+  assert.equal(
+    normalizeComplaintFilters({ sortBy: "updatedAt" }).sortBy,
+    "updatedAt"
+  );
+});
+
 test("maintenance work queues default to priority and SLA-risk ordering", () => {
   assert.deepEqual(
     normalizeWorkQueueFilters({

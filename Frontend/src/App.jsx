@@ -13,6 +13,7 @@ import AdminLeaves from "./pages/AdminLeaves";
 import ApprovedStudents from "./pages/ApprovedStudents.jsx";
 import AllComplaintsAdmin from "./pages/AllComplaintsAdmin";
 import ApplyLeave from "./pages/ApplyLeave";
+import ComplaintDetail from "./pages/ComplaintDetail.jsx";
 import GuardTerminal from "./pages/GuardTerminal";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -61,6 +62,10 @@ function App() {
             <Route
               path="/student/complaints/raise"
               element={<RaiseComplaint />}
+            />
+            <Route
+              path="/student/complaints/:id"
+              element={<ComplaintDetail />}
             />
             <Route path="/student/leaves" element={<MyLeaves />} />
             <Route path="/student/leaves/apply" element={<ApplyLeave />} />

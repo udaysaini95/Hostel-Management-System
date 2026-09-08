@@ -121,7 +121,7 @@ test("complaint list validation supplies bounded pagination defaults", () => {
     page: 1,
     pageSize: 20,
     slaState: "all",
-    sortBy: "createdAt",
+    sortBy: "updatedAt",
     sortOrder: "desc",
   });
 });

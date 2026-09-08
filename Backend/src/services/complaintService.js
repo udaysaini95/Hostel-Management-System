@@ -60,7 +60,12 @@ const completedComplaintStatuses = new Set([
 const knownStatuses = new Set(Object.values(COMPLAINT_STATUSES));
 const knownPriorities = new Set(Object.values(COMPLAINT_PRIORITIES));
 const knownSlaStates = new Set(["all", "open", "breached"]);
-const knownSortFields = new Set(["createdAt", "slaDeadline", "priority"]);
+const knownSortFields = new Set([
+  "createdAt",
+  "updatedAt",
+  "slaDeadline",
+  "priority",
+]);
 const knownSortOrders = new Set(["asc", "desc"]);
 const priorityRank = Object.freeze({
   [COMPLAINT_PRIORITIES.CRITICAL]: 1,
@@ -142,7 +147,7 @@ export const normalizeComplaintFilters = (input = {}) => {
   const status = normalizeCode(input.status);
   const priority = normalizeCode(input.priority);
   const slaState = normalizeCode(input.slaState) || "all";
-  const sortBy = normalizeCode(input.sortBy) || "createdAt";
+  const sortBy = normalizeCode(input.sortBy) || "updatedAt";
   const sortOrder = normalizeCode(input.sortOrder) || "desc";
   const createdFrom = normalizeCode(input.createdFrom);
   const createdTo = normalizeCode(input.createdTo);
@@ -722,6 +727,9 @@ const prioritySortExpression = sql`case ${complaints.priority}
 end`;
 
 const getSortExpression = (sortBy) => {
+  if (sortBy === "updatedAt") {
+    return complaints.updatedAt;
+  }
   if (sortBy === "slaDeadline") {
     return complaints.slaDeadline;
   }
