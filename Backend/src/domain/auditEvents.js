@@ -42,6 +42,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   MESS_FEEDBACK_SUBMITTED: "mess.feedback.submitted",
   MESS_ISSUE_REPORTED: "mess.issue.reported",
   MESS_ISSUE_STATUS_CHANGED: "mess.issue.status-changed",
+  NOTICE_PUBLISHED: "notice.published",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
@@ -59,4 +60,5 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   MESS_MENU: "mess_menu",
   MESS_FEEDBACK: "mess_feedback",
   MESS_ISSUE: "mess_issue",
+  NOTICE: "notice",
 });

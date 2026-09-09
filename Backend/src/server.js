@@ -15,6 +15,7 @@ import studentProfileRoutes from "./Routes/studentProfileRoutes.js";
 import residentRoutes from "./Routes/residentRoutes.js";
 import roomRoutes from "./Routes/roomRoutes.js";
 import roomAllocationRoutes from "./Routes/roomAllocationRoutes.js";
+import noticeRoutes from "./Routes/noticeRoutes.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
 import {
@@ -45,6 +46,7 @@ app.use("/api/room-allocations", roomAllocationRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/mess", messRoutes);
+app.use("/api/notices", noticeRoutes);
 app.use("/api/gate", gateRoutes);
 
 // Test Route

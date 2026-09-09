@@ -134,6 +134,13 @@
       "when": 1789758000000,
       "tag": "0018_mess_issue_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789844400000,
+      "tag": "0019_audience_scoped_notices",
+      "breakpoints": true
     }
   ]
 }

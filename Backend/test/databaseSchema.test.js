@@ -54,6 +54,10 @@ import {
   messMenuItems,
   messMenus,
   messMenuVersions,
+  noticeAudienceTypeEnum,
+  noticePriorityEnum,
+  noticeRecipients,
+  notices,
   legacyGateLogs,
   legacyLeaves,
   roomAllocations,
@@ -66,6 +70,10 @@ import {
   userRoleEnum,
   users,
 } from "../src/db/schema.js";
+import {
+  NOTICE_AUDIENCE_TYPES,
+  NOTICE_PRIORITIES,
+} from "../src/domain/notices.js";
 
 const findIndex = (table, name) =>
   getTableConfig(table).indexes.find((entry) => entry.config.name === name);
@@ -127,6 +135,19 @@ test("mess issues keep hostel scope, workflow history, and private evidence meta
   assert.equal(attachmentConfig.foreignKeys.length, 2);
   assert.equal(messIssueAttachments.storageKey.isUnique, true);
   assert.equal(messIssueAttachments.sha256.notNull, true);
+});
+
+test("notices keep an explicit audience and one read state per recipient", () => {
+  const noticeConfig = getTableConfig(notices);
+  const recipientConfig = getTableConfig(noticeRecipients);
+
+  assert.deepEqual(noticePriorityEnum.enumValues, Object.values(NOTICE_PRIORITIES));
+  assert.deepEqual(noticeAudienceTypeEnum.enumValues, Object.values(NOTICE_AUDIENCE_TYPES));
+  assert.equal(notices.publishedByUserId.notNull, true);
+  assert.ok(noticeConfig.checks.some((entry) => entry.name === "notices_audience_shape_check"));
+  assert.equal(recipientConfig.foreignKeys.length, 2);
+  assert.ok(findIndex(noticeRecipients, "notice_recipients_notice_user_unique")?.config.unique);
+  assert.equal(noticeRecipients.readAt.notNull, false);
 });
 
 test("database enums constrain supported roles and account states", () => {

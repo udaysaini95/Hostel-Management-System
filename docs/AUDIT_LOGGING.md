@@ -47,10 +47,11 @@ change, student approval, or approval import also rolls back.
 | `student.approval.revoked` | Approved student | Student |
 | `student.approval.reinstated` | Approved student | Student |
 | `student.activation.reissued` | Approved student | Student |
+| `notice.published` | Notice | Notice |
 
-Complaint, room, leave, gate, mess, and notice slices will add their event types
-when those workflows receive transactional service boundaries. This avoids
-recording an audit row separately from a legacy controller update.
+Complaint, room, leave, gate, mess, and notice workflows add their events from
+transactional service boundaries. This avoids recording an audit row separately
+from the underlying workflow change.
 
 ## Read API
 

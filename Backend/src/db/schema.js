@@ -29,6 +29,10 @@ import {
   MESS_ISSUE_TYPES,
 } from "../domain/messIssues.js";
 import {
+  NOTICE_AUDIENCE_TYPES,
+  NOTICE_PRIORITIES,
+} from "../domain/notices.js";
+import {
   GATE_MOVEMENTS,
   GATE_VERIFICATION_METHODS,
   LEAVE_DECISION_OUTCOMES,
@@ -85,6 +89,14 @@ export const messIssueTypeEnum = pgEnum(
 export const messIssueStatusEnum = pgEnum(
   "mess_issue_status",
   Object.values(MESS_ISSUE_STATUSES)
+);
+export const noticePriorityEnum = pgEnum(
+  "notice_priority",
+  Object.values(NOTICE_PRIORITIES)
+);
+export const noticeAudienceTypeEnum = pgEnum(
+  "notice_audience_type",
+  Object.values(NOTICE_AUDIENCE_TYPES)
 );
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
@@ -1390,6 +1402,89 @@ export const messFeedbacks = pgTable(
     index("mess_feedbacks_menu_submitted_idx").on(
       table.menuId,
       table.submittedAt
+    ),
+  ]
+);
+
+// Notice recipients are captured when a notice is published. This keeps the
+// original audience stable even when a resident later changes hostel or room.
+export const notices = pgTable(
+  "notices",
+  {
+    id: serial("id").primaryKey(),
+    publishedByUserId: integer("published_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: text("body").notNull(),
+    priority: noticePriorityEnum("priority").default("normal").notNull(),
+    audienceType: noticeAudienceTypeEnum("audience_type").notNull(),
+    audienceRole: userRoleEnum("audience_role"),
+    hostelId: integer("hostel_id").references(() => hostels.id, {
+      onDelete: "restrict",
+    }),
+    blockId: integer("block_id").references(() => hostelBlocks.id, {
+      onDelete: "restrict",
+    }),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    check(
+      "notices_title_check",
+      sql`length(trim(${table.title})) between 1 and 200`
+    ),
+    check(
+      "notices_body_check",
+      sql`length(trim(${table.body})) between 1 and 5000`
+    ),
+    check(
+      "notices_expiry_check",
+      sql`${table.expiresAt} is null or ${table.expiresAt} > ${table.publishedAt}`
+    ),
+    check(
+      "notices_audience_shape_check",
+      sql`(${table.audienceType} = 'all_residents' and ${table.audienceRole} is null and ${table.hostelId} is null and ${table.blockId} is null)
+        or (${table.audienceType} = 'role' and ${table.audienceRole} is not null and ${table.hostelId} is null and ${table.blockId} is null)
+        or (${table.audienceType} = 'hostel' and ${table.audienceRole} is null and ${table.hostelId} is not null and ${table.blockId} is null)
+        or (${table.audienceType} = 'block' and ${table.audienceRole} is null and ${table.hostelId} is not null and ${table.blockId} is not null)`
+    ),
+    index("notices_active_idx").on(table.publishedAt, table.expiresAt),
+    index("notices_hostel_idx").on(table.hostelId, table.publishedAt),
+    index("notices_publisher_idx").on(table.publishedByUserId, table.publishedAt),
+  ]
+);
+
+export const noticeRecipients = pgTable(
+  "notice_recipients",
+  {
+    id: serial("id").primaryKey(),
+    noticeId: integer("notice_id")
+      .notNull()
+      .references(() => notices.id, { onDelete: "restrict" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("notice_recipients_notice_user_unique").on(
+      table.noticeId,
+      table.userId
+    ),
+    check(
+      "notice_recipients_read_date_check",
+      sql`${table.readAt} is null or ${table.readAt} >= ${table.createdAt}`
+    ),
+    index("notice_recipients_user_unread_idx").on(
+      table.userId,
+      table.readAt,
+      table.noticeId
     ),
   ]
 );
