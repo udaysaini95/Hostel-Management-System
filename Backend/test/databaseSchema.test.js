@@ -58,6 +58,8 @@ import {
   noticePriorityEnum,
   noticeRecipients,
   notices,
+  notificationEventTypeEnum,
+  notifications,
   legacyGateLogs,
   legacyLeaves,
   roomAllocations,
@@ -74,6 +76,7 @@ import {
   NOTICE_AUDIENCE_TYPES,
   NOTICE_PRIORITIES,
 } from "../src/domain/notices.js";
+import { NOTIFICATION_EVENT_TYPES } from "../src/domain/notifications.js";
 
 const findIndex = (table, name) =>
   getTableConfig(table).indexes.find((entry) => entry.config.name === name);
@@ -148,6 +151,20 @@ test("notices keep an explicit audience and one read state per recipient", () =>
   assert.equal(recipientConfig.foreignKeys.length, 2);
   assert.ok(findIndex(noticeRecipients, "notice_recipients_notice_user_unique")?.config.unique);
   assert.equal(noticeRecipients.readAt.notNull, false);
+});
+
+test("notifications persist safe links, deduplication, and recipient read state", () => {
+  const config = getTableConfig(notifications);
+
+  assert.deepEqual(
+    notificationEventTypeEnum.enumValues,
+    Object.values(NOTIFICATION_EVENT_TYPES)
+  );
+  assert.equal(notifications.recipientUserId.notNull, true);
+  assert.equal(notifications.dedupeKey.isUnique, true);
+  assert.ok(config.checks.some((entry) => entry.name === "notifications_link_path_check"));
+  assert.ok(findIndex(notifications, "notifications_recipient_unread_idx"));
+  assert.equal(notifications.readAt.notNull, false);
 });
 
 test("database enums constrain supported roles and account states", () => {

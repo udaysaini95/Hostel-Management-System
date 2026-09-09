@@ -40,9 +40,14 @@ import {
   COMPLAINT_SLA_MINUTES,
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import {
+  appendNotifications,
+  getActiveHostelUserIds,
+} from "./notificationService.js";
 
 const complaintCreatorRoles = new Set([
   USER_ROLES.STUDENT,
@@ -639,6 +644,22 @@ export const createComplaint = async (
       assignedHostels: [
         { id: context.hostelId, code: context.hostelCode },
       ],
+      createdAt,
+    });
+
+    const wardenIds = await getActiveHostelUserIds(
+      transaction,
+      context.hostelId,
+      [USER_ROLES.WARDEN]
+    );
+    await appendNotifications(transaction, {
+      recipientUserIds: wardenIds,
+      eventType: NOTIFICATION_EVENT_TYPES.COMPLAINT_REPORTED,
+      title: "New maintenance complaint",
+      message: `${context.hostelCode} received a ${category.name.toLowerCase()} complaint.`,
+      resourceId: complaint.id,
+      dedupeKey: `complaint:${complaint.id}:reported`,
+      metadata: { hostelId: context.hostelId, priority },
       createdAt,
     });
 

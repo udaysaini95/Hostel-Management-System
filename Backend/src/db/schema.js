@@ -32,6 +32,7 @@ import {
   NOTICE_AUDIENCE_TYPES,
   NOTICE_PRIORITIES,
 } from "../domain/notices.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import {
   GATE_MOVEMENTS,
   GATE_VERIFICATION_METHODS,
@@ -97,6 +98,10 @@ export const noticePriorityEnum = pgEnum(
 export const noticeAudienceTypeEnum = pgEnum(
   "notice_audience_type",
   Object.values(NOTICE_AUDIENCE_TYPES)
+);
+export const notificationEventTypeEnum = pgEnum(
+  "notification_event_type",
+  Object.values(NOTIFICATION_EVENT_TYPES)
 );
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
@@ -1485,6 +1490,64 @@ export const noticeRecipients = pgTable(
       table.userId,
       table.readAt,
       table.noticeId
+    ),
+  ]
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    recipientUserId: integer("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    eventType: notificationEventTypeEnum("event_type").notNull(),
+    title: varchar("title", { length: 160 }).notNull(),
+    message: varchar("message", { length: 500 }).notNull(),
+    resourceType: varchar("resource_type", { length: 50 }).notNull(),
+    resourceId: integer("resource_id").notNull(),
+    linkPath: varchar("link_path", { length: 500 }).notNull(),
+    dedupeKey: varchar("dedupe_key", { length: 200 }).notNull().unique(),
+    metadata: jsonb("metadata").default({}).notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "notifications_title_check",
+      sql`length(trim(${table.title})) between 1 and 160`
+    ),
+    check(
+      "notifications_message_check",
+      sql`length(trim(${table.message})) between 1 and 500`
+    ),
+    check("notifications_resource_id_check", sql`${table.resourceId} > 0`),
+    check(
+      "notifications_link_path_check",
+      sql`${table.linkPath} ~ '^/(admin/complaints|maintenance/work-orders|student/complaints/[1-9][0-9]*|admin/leaves|student/leaves|notices)$'`
+    ),
+    check(
+      "notifications_dedupe_key_check",
+      sql`length(trim(${table.dedupeKey})) between 1 and 200`
+    ),
+    check(
+      "notifications_metadata_object_check",
+      sql`jsonb_typeof(${table.metadata}) = 'object'`
+    ),
+    check(
+      "notifications_read_date_check",
+      sql`${table.readAt} is null or ${table.readAt} >= ${table.createdAt}`
+    ),
+    index("notifications_recipient_feed_idx").on(
+      table.recipientUserId,
+      table.createdAt,
+      table.id
+    ),
+    index("notifications_recipient_unread_idx").on(
+      table.recipientUserId,
+      table.readAt
     ),
   ]
 );

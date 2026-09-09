@@ -22,9 +22,11 @@ import {
   COMPLAINT_EVENT_TYPES,
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { appendNotifications } from "./notificationService.js";
 import { getComplaintById, loadComplaintActor } from "./complaintService.js";
 import { privateFileStorage } from "./privateFileStorage.js";
 
@@ -445,6 +447,17 @@ export const resolveComplaint = async (
           resolutionEventId: event.id,
           evidenceAttachmentId: attachment?.id ?? null,
         },
+        createdAt: resolvedAt,
+      });
+
+      await appendNotifications(transaction, {
+        recipientUserIds: [complaint.reportedByUserId],
+        eventType: NOTIFICATION_EVENT_TYPES.COMPLAINT_RESOLVED,
+        title: "Complaint marked resolved",
+        message: `Maintenance marked complaint #${complaint.id} as resolved. Please review the result.`,
+        resourceId: complaint.id,
+        dedupeKey: `complaint:${complaint.id}:resolved:${event.id}`,
+        metadata: { resolutionEventId: event.id },
         createdAt: resolvedAt,
       });
 

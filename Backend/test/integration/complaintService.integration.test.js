@@ -135,7 +135,7 @@ test("student creation derives hostel and deadline and writes both histories", a
   assert.equal(complaint.timeline.length, 1);
   assert.equal(complaint.timeline[0].type, "created");
 
-  const [historyResult, auditResult] = await Promise.all([
+  const [historyResult, auditResult, notificationResult] = await Promise.all([
     pool.query(
       "SELECT count(*)::integer AS count FROM complaint_events WHERE complaint_id = $1",
       [complaint.id]
@@ -146,9 +146,19 @@ test("student creation derives hostel and deadline and writes both histories", a
        WHERE action = 'complaint.created' AND resource_id = $1`,
       [String(complaint.id)]
     ),
+    pool.query(
+      `SELECT recipient_user_id, link_path
+       FROM notifications
+       WHERE event_type = 'complaint_reported' AND resource_id = $1`,
+      [complaint.id]
+    ),
   ]);
   assert.equal(historyResult.rows[0].count, 1);
   assert.equal(auditResult.rows[0].count, 1);
+  assert.deepEqual(notificationResult.rows, [{
+    recipient_user_id: firstWarden.id,
+    link_path: "/admin/complaints",
+  }]);
 });
 
 test("requesters may escalate priority but never submit their own deadline", async () => {

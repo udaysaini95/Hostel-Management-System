@@ -30,9 +30,14 @@ import {
   LEAVE_EVENT_TYPES,
   LEAVE_STATUSES,
 } from "../domain/leaveWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import {
+  appendNotifications,
+  getActiveHostelUserIds,
+} from "./notificationService.js";
 
 const activeLeaveStatuses = Object.freeze([
   LEAVE_STATUSES.PENDING,
@@ -411,6 +416,22 @@ export const createLeaveRequest = async (
       assignedHostels: [
         { id: profile.hostelId, code: profile.hostelCode },
       ],
+      createdAt: leaveInput.createdAt,
+    });
+
+    const wardenIds = await getActiveHostelUserIds(
+      transaction,
+      profile.hostelId,
+      [USER_ROLES.WARDEN]
+    );
+    await appendNotifications(transaction, {
+      recipientUserIds: wardenIds,
+      eventType: NOTIFICATION_EVENT_TYPES.LEAVE_SUBMITTED,
+      title: leaveRequest.isEmergency ? "Emergency leave request" : "New leave request",
+      message: `${actor.name} submitted a leave request for review.`,
+      resourceId: leaveRequest.id,
+      dedupeKey: `leave:${leaveRequest.id}:submitted`,
+      metadata: { hostelId: profile.hostelId, isEmergency: leaveRequest.isEmergency },
       createdAt: leaveInput.createdAt,
     });
 

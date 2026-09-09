@@ -18,9 +18,11 @@ import {
   COMPLAINT_EVENT_TYPES,
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { appendNotifications } from "./notificationService.js";
 import {
   getComplaintById,
   loadComplaintActor,
@@ -374,6 +376,17 @@ export const assignComplaint = async (
       assignedHostels: [
         { id: complaint.hostelId, code: complaint.hostelCode },
       ],
+      createdAt: assignedAt,
+    });
+
+    await appendNotifications(transaction, {
+      recipientUserIds: [assignee.id],
+      eventType: NOTIFICATION_EVENT_TYPES.COMPLAINT_ASSIGNED,
+      title: kind === "initial" ? "Complaint assigned" : "Complaint reassigned",
+      message: `Complaint #${complaint.id} is now in your maintenance queue.`,
+      resourceId: complaint.id,
+      dedupeKey: `complaint-assignment:${assignment.id}`,
+      metadata: { assignmentId: assignment.id, hostelId: complaint.hostelId },
       createdAt: assignedAt,
     });
 

@@ -20,9 +20,11 @@ import {
   LEAVE_EVENT_TYPES,
   LEAVE_STATUSES,
 } from "../domain/leaveWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { appendNotifications } from "./notificationService.js";
 import { issueGatePass } from "./gatePassService.js";
 
 const decisionRoles = new Set([USER_ROLES.WARDEN, USER_ROLES.ADMIN]);
@@ -306,6 +308,19 @@ export const decideLeaveRequest = async (
         gatePass = issuedPass.pass;
         cleanupGatePass = issuedPass.cleanup;
       }
+
+      await appendNotifications(transaction, {
+        recipientUserIds: [leaveRequest.studentUserId],
+        eventType: NOTIFICATION_EVENT_TYPES.LEAVE_DECIDED,
+        title: `Leave request ${values.outcome}`,
+        message: values.outcome === LEAVE_DECISION_OUTCOMES.APPROVED
+          ? "Your leave request was approved and your gate pass is ready."
+          : "Your leave request was rejected. Open it to review the decision note.",
+        resourceId: leaveRequest.id,
+        dedupeKey: `leave-decision:${decision.id}`,
+        metadata: { decisionId: decision.id, outcome: values.outcome },
+        createdAt: decidedAt,
+      });
 
       return toDecisionResult({ leaveRequest, decision, actor, gatePass });
     });

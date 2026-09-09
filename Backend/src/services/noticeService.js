@@ -34,9 +34,11 @@ import {
   NOTICE_READ_STATES,
   isNoticeActive,
 } from "../domain/notices.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { appendNotifications } from "./notificationService.js";
 
 const fail = (status, code, message) => {
   throw new ApiError(status, code, message);
@@ -311,7 +313,9 @@ export const publishNotice = async (
       .insert(notices)
       .values({
         publishedByUserId: actor.id,
-        title: values.title,
+        title: values.title.length > 160
+          ? `${values.title.slice(0, 157)}...`
+          : values.title,
         body: values.body,
         priority: values.priority,
         ...target.values,
@@ -347,6 +351,21 @@ export const publishNotice = async (
       assignedHostels: target.hostel ? [target.hostel] : [],
       createdAt: now,
     });
+
+    if ([NOTICE_PRIORITIES.IMPORTANT, NOTICE_PRIORITIES.URGENT].includes(values.priority)) {
+      await appendNotifications(transaction, {
+        recipientUserIds: recipients.map((recipient) => recipient.userId),
+        eventType: NOTIFICATION_EVENT_TYPES.IMPORTANT_NOTICE,
+        title: values.title,
+        message: values.body.length > 180
+          ? `${values.body.slice(0, 177)}...`
+          : values.body,
+        resourceId: created.id,
+        dedupeKey: `notice:${created.id}:important`,
+        metadata: { priority: values.priority },
+        createdAt: now,
+      });
+    }
 
     const [notice] = await baseNoticeQuery(transaction)
       .where(eq(notices.id, created.id))

@@ -230,6 +230,7 @@ export const loadScopedPassByHash = async (
       validFrom: gatePasses.validFrom,
       expiresAt: gatePasses.expiresAt,
       revokedAt: gatePasses.revokedAt,
+      studentUserId: leaveRequests.studentUserId,
       studentName: users.name,
       studentAccountStatus: users.accountStatus,
       rollNo: studentProfiles.rollNo,

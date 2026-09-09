@@ -11,6 +11,7 @@ import {
   hostels,
   noticeRecipients,
   notices,
+  notifications,
   roomAllocations,
   rooms,
   studentProfiles,
@@ -25,6 +26,12 @@ import {
   markNoticeRead,
   publishNotice,
 } from "../../src/services/noticeService.js";
+import {
+  getUnreadNotificationCount,
+  listMyNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../../src/services/notificationService.js";
 
 const { Pool } = pg;
 if (!process.env.TEST_DATABASE_URL) {
@@ -48,6 +55,7 @@ let otherWarden;
 let administrator;
 let guard;
 let hostelNotice;
+let importantNotification;
 
 before(async () => {
   [firstHostel, secondHostel] = await database.insert(hostels).values([
@@ -121,6 +129,18 @@ test("warden publication materializes only the assigned hostel audience", async 
     .where(and(eq(auditEvents.resourceType, "notice"), eq(auditEvents.resourceId, String(hostelNotice.id))));
   assert.equal(audit.length, 1);
   assert.equal(audit[0].action, "notice.published");
+
+  [importantNotification] = await database
+    .select()
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.recipientUserId, firstStudent.id),
+        eq(notifications.resourceId, hostelNotice.id)
+      )
+    );
+  assert.equal(importantNotification.eventType, "important_notice");
+  assert.equal(importantNotification.linkPath, "/notices");
 });
 
 test("block notices use the resident's current room allocation", async () => {
@@ -170,6 +190,42 @@ test("admins can address all residents while expired notices leave the active in
   );
   assert.ok(!activeAfterExpiry.data.some((notice) => notice.id === residentNotice.id));
   assert.ok(history.data.some((notice) => notice.id === residentNotice.id && !notice.isActive));
+});
+
+test("notification inbox is recipient-owned and supports one or all read updates", async () => {
+  const inbox = await listMyNotifications(database, actorFor(firstStudent));
+  const otherInbox = await listMyNotifications(database, actorFor(otherStudent));
+  assert.ok(inbox.data.some((item) => item.id === importantNotification.id));
+  assert.ok(!otherInbox.data.some((item) => item.id === importantNotification.id));
+
+  const before = await getUnreadNotificationCount(database, actorFor(firstStudent));
+  const read = await markNotificationRead(
+    database,
+    actorFor(firstStudent),
+    importantNotification.id,
+    { now: new Date("2026-09-10T11:30:00Z") }
+  );
+  const repeated = await markNotificationRead(
+    database,
+    actorFor(firstStudent),
+    importantNotification.id,
+    { now: new Date("2026-09-10T11:45:00Z") }
+  );
+  assert.equal(repeated.readAt.toISOString(), read.readAt.toISOString());
+  await assert.rejects(
+    () => markNotificationRead(database, actorFor(otherStudent), importantNotification.id),
+    { code: "NOTIFICATION_NOT_FOUND" }
+  );
+
+  const allRead = await markAllNotificationsRead(
+    database,
+    actorFor(firstStudent),
+    { now: new Date("2026-09-10T11:45:00Z") }
+  );
+  const after = await getUnreadNotificationCount(database, actorFor(firstStudent));
+  assert.ok(before.unreadCount >= 1);
+  assert.ok(allRead.updatedCount >= 0);
+  assert.equal(after.unreadCount, 0);
 });
 
 test("reading is recipient-owned, idempotent, and updates the active unread count", async () => {
@@ -247,5 +303,19 @@ test("warden scope and database guards reject forged notice access", async () =>
       createdAt: directPublishedAt,
     }),
     (error) => errorCode(error) === "23514"
+  );
+  await assert.rejects(
+    database.insert(notifications).values({
+      recipientUserId: otherStudent.id,
+      eventType: "important_notice",
+      title: "Forged notification",
+      message: "This user was not a recipient of the referenced notice.",
+      resourceType: "notice",
+      resourceId: hostelNotice.id,
+      linkPath: "/notices",
+      dedupeKey: `forged-notice:${hostelNotice.id}:${otherStudent.id}`,
+      createdAt: new Date("2026-09-10T12:00:00Z"),
+    }),
+    (error) => errorCode(error) === "42501"
   );
 });

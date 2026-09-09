@@ -274,7 +274,7 @@ test("warden approval records one decision, status, timeline, and audit event", 
   assert.match(result.gatePass.qrUrl, /\/pass\/qr$/);
   assert.match(result.gatePass.pdfUrl, /\/pass\/pdf$/);
 
-  const [timeline, audit, pass] = await Promise.all([
+  const [timeline, audit, pass, notification] = await Promise.all([
     pool.query(
       "SELECT event_type, from_status, to_status, note FROM leave_events WHERE leave_request_id = $1 ORDER BY id",
       [pendingLeaves[0].id]
@@ -286,6 +286,12 @@ test("warden approval records one decision, status, timeline, and audit event", 
     pool.query(
       `SELECT token_hash, qr_storage_key, pdf_storage_key
        FROM gate_passes WHERE leave_request_id = $1`,
+      [pendingLeaves[0].id]
+    ),
+    pool.query(
+      `SELECT recipient_user_id, link_path
+       FROM notifications
+       WHERE event_type = 'leave_decided' AND resource_id = $1`,
       [pendingLeaves[0].id]
     ),
   ]);
@@ -305,6 +311,10 @@ test("warden approval records one decision, status, timeline, and audit event", 
   assert.equal(gatePassFiles.has(pass.rows[0].qr_storage_key), true);
   assert.equal(gatePassFiles.has(pass.rows[0].pdf_storage_key), true);
   assert.equal(JSON.stringify(result).includes(pass.rows[0].token_hash), false);
+  assert.deepEqual(notification.rows, [{
+    recipient_user_id: students[0].id,
+    link_path: "/student/leaves",
+  }]);
 });
 
 test("pass metadata and files follow ownership and hostel scope", async () => {
@@ -727,7 +737,7 @@ test("exit and return are atomic and idempotent under concurrent scans", async (
     [false, true]
   );
 
-  const [databaseState, timeline, audits] = await Promise.all([
+  const [databaseState, timeline, audits, movementNotifications] = await Promise.all([
     pool.query(
       `SELECT lr.status, count(ge.id)::integer AS event_count
        FROM leave_requests lr
@@ -746,6 +756,14 @@ test("exit and return are atomic and idempotent under concurrent scans", async (
        ORDER BY id`,
       [String(pendingLeaves[4].id)]
     ),
+    pool.query(
+      `SELECT resource_id, recipient_user_id, link_path
+       FROM notifications
+       WHERE event_type = 'gate_movement'
+         AND metadata->>'leaveRequestId' = $1
+       ORDER BY resource_id`,
+      [String(pendingLeaves[4].id)]
+    ),
   ]);
 
   assert.deepEqual(databaseState.rows[0], {
@@ -760,4 +778,9 @@ test("exit and return are atomic and idempotent under concurrent scans", async (
     audits.rows.map((event) => event.action),
     [AUDIT_ACTIONS.GATE_EXIT_RECORDED, AUDIT_ACTIONS.GATE_RETURN_RECORDED]
   );
+  assert.equal(movementNotifications.rows.length, 2);
+  assert.ok(movementNotifications.rows.every((notification) =>
+    notification.recipient_user_id === students[4].id &&
+    notification.link_path === "/student/leaves"
+  ));
 });

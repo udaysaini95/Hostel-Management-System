@@ -10,8 +10,10 @@ import {
   LEAVE_EVENT_TYPES,
   LEAVE_STATUSES,
 } from "../domain/leaveWorkflow.js";
+import { NOTIFICATION_EVENT_TYPES } from "../domain/notifications.js";
 import { ApiError } from "../utils/apiErrors.js";
 import { appendAuditEvent } from "./auditEventService.js";
+import { appendNotifications } from "./notificationService.js";
 import {
   evaluateGatePass,
   loadGateVerifier,
@@ -214,6 +216,20 @@ export const recordGateMovement = async (
       },
       assignedHostels: [{ id: record.hostelId, code: record.hostelCode }],
       requestId: values.idempotencyKey,
+      createdAt: now,
+    });
+
+    await appendNotifications(transaction, {
+      recipientUserIds: [record.studentUserId],
+      eventType: NOTIFICATION_EVENT_TYPES.GATE_MOVEMENT,
+      title: values.action === GATE_MOVEMENTS.EXIT ? "Hostel exit recorded" : "Hostel return recorded",
+      message: `Your ${values.action} was recorded at the hostel gate.`,
+      resourceId: event.id,
+      dedupeKey: `gate-event:${event.id}`,
+      metadata: {
+        leaveRequestId: record.leaveRequestId,
+        movement: values.action,
+      },
       createdAt: now,
     });
 
