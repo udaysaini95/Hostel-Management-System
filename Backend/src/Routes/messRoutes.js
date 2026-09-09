@@ -4,6 +4,7 @@ import {
   getCalendarMenu,
   getCalendarMenus,
   getCalendarMenuVersions,
+  getManageableMessHostels,
   getTodayMenu, 
   createFeedback, 
   getAllFeedback, 
@@ -31,6 +32,12 @@ import {
 
 const router = express.Router();
 
+router.get(
+  "/menus/hostels",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_MANAGE),
+  getManageableMessHostels
+);
 router.put(
   "/menus/:date",
   protect,

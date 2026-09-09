@@ -20,16 +20,17 @@ test("mess API exposes calendar routes before compatibility endpoints", () => {
   const routes = describeRoutes(messRoutes);
 
   assert.deepEqual(
-    routes.slice(0, 4).map((route) => `${route.methods[0]} ${route.path}`),
+    routes.slice(0, 5).map((route) => `${route.methods[0]} ${route.path}`),
     [
+      "get /menus/hostels",
       "put /menus/:date",
       "get /menus/:date/versions",
       "get /menus/:date",
       "get /menus",
     ]
   );
-  assert.ok(routes.slice(0, 4).every((route) => route.middlewareCount === 4));
+  assert.equal(routes[0].middlewareCount, 3);
+  assert.ok(routes.slice(1, 5).every((route) => route.middlewareCount === 4));
   assert.ok(routes.some((route) => route.path === "/today"));
   assert.ok(routes.some((route) => route.path === "/admin/create"));
 });
-

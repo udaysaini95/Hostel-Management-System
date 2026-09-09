@@ -7,10 +7,19 @@ import {
 } from "../utils/apiErrors.js";
 import {
   getMessMenuByDate,
+  listManageableMessHostels,
   listMessMenus,
   listMessMenuVersions,
   publishMessMenu,
 } from "../services/messMenuService.js";
+
+export const getManageableMessHostels = async (req, res) => {
+  try {
+    return res.json(await listManageableMessHostels(db, req.user));
+  } catch (error) {
+    return handleControllerError(res, error, "List Mess Hostels Error");
+  }
+};
 
 export const publishCalendarMenu = async (req, res) => {
   try {

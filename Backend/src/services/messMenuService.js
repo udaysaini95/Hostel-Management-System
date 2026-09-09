@@ -372,6 +372,31 @@ export const listMessMenus = async (database, requestActor, input) => {
   });
 };
 
+export const listManageableMessHostels = async (database, requestActor) => {
+  const actor = await requireActor(database, requestActor);
+  if (![USER_ROLES.WARDEN, USER_ROLES.ADMIN].includes(actor.role)) {
+    fail(403, "MESS_MENU_MANAGE_DENIED", "Only wardens and administrators can publish mess menus");
+  }
+
+  const conditions = [eq(hostels.isActive, true)];
+  let query = database
+    .select({ id: hostels.id, code: hostels.code, name: hostels.name })
+    .from(hostels);
+
+  if (actor.role === USER_ROLES.WARDEN) {
+    query = query.innerJoin(
+      hostelMemberships,
+      and(
+        eq(hostelMemberships.hostelId, hostels.id),
+        eq(hostelMemberships.userId, actor.id)
+      )
+    );
+  }
+
+  const records = await query.where(and(...conditions)).orderBy(asc(hostels.code));
+  return Object.freeze({ hostels: records.map((hostel) => Object.freeze(hostel)) });
+};
+
 export const listMessMenuVersions = async (database, requestActor, input) => {
   const date = normalizeMenuDate(input.date);
   const actor = await requireActor(database, requestActor);

@@ -17,6 +17,7 @@ import { ACCOUNT_STATUSES } from "../../src/domain/accountStatuses.js";
 import { USER_ROLES } from "../../src/domain/roles.js";
 import {
   getMessMenuByDate,
+  listManageableMessHostels,
   listMessMenuVersions,
   listMessMenus,
   publishMessMenu,
@@ -182,6 +183,21 @@ test("calendar queries return only the requested hostel and date range", async (
     }),
     { code: "HOSTEL_ACCESS_DENIED" }
   );
+});
+
+test("menu editors receive only hostels they are allowed to manage", async () => {
+  const wardenResult = await listManageableMessHostels(
+    database,
+    actorFor(warden)
+  );
+  const adminResult = await listManageableMessHostels(
+    database,
+    actorFor(administrator)
+  );
+
+  assert.deepEqual(wardenResult.hostels.map((hostel) => hostel.id), [firstHostel.id]);
+  assert.ok(adminResult.hostels.some((hostel) => hostel.id === firstHostel.id));
+  assert.ok(adminResult.hostels.some((hostel) => hostel.id === secondHostel.id));
 });
 
 test("normalized menu items retain positions and immutable old revision rows", async () => {
