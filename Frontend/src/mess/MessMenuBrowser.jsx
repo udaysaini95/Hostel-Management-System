@@ -10,7 +10,7 @@ import {
   menuByDate,
 } from "./messView.js";
 
-export const MessMenuBrowser = ({ hostelId }) => {
+export const MessMenuBrowser = ({ hostelId, onSelectionChange }) => {
   const today = useMemo(() => getLocalCalendarDate(), []);
   const [startDate, setStartDate] = useState(today);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -49,6 +49,15 @@ export const MessMenuBrowser = ({ hostelId }) => {
   }, [loadMenus]);
 
   const menusByDate = useMemo(() => menuByDate(menus), [menus]);
+
+  useEffect(() => {
+    onSelectionChange?.({
+      date: selectedDate,
+      menu: menusByDate.get(selectedDate) ?? null,
+      loading,
+    });
+  }, [loading, menusByDate, onSelectionChange, selectedDate]);
+
   const navigateWeek = (amount) => {
     const nextStart = addCalendarDays(startDate, amount);
     setStartDate(nextStart);
@@ -75,4 +84,3 @@ export const MessMenuBrowser = ({ hostelId }) => {
     </section>
   );
 };
-

@@ -33,7 +33,14 @@ export const getMyMessIssues = async () => {
 };
 
 export const submitMealFeedback = (payload) =>
-  api.post("/api/mess/create", payload);
+  api.post("/api/mess/feedback", payload);
+
+export const getMessFeedbackSummary = async ({ hostelId, from, to, mealType }) => {
+  const response = await api.get("/api/mess/feedback/summary", {
+    params: { hostelId, from, to, mealType: mealType || undefined },
+  });
+  return response.data;
+};
 
 export const createMessIssue = async (payload) => {
   const response = await api.post("/api/mess/issue/create", payload);
@@ -47,4 +54,3 @@ export const getManagedMessIssues = async () => {
 
 export const updateMessIssueStatus = (issueId, status) =>
   api.put(`/api/mess/${issueId}/status`, { status });
-

@@ -20,11 +20,22 @@ import {
 import { MessMenuBrowser } from "../mess/MessMenuBrowser.jsx";
 
 const ISSUE_TYPES = ["Food Quality", "Hygiene", "Quantity", "Staff Behavior"];
-const MEAL_TYPES = ["Breakfast", "Lunch", "Snacks", "Dinner"];
+const MEAL_LABELS = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  snacks: "Snacks",
+  dinner: "Dinner",
+};
 
 const MessPage = () => {
   const [rating, setRating] = useState("5");
-  const [mealType, setMealType] = useState("Breakfast");
+  const [mealType, setMealType] = useState("breakfast");
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [menuSelection, setMenuSelection] = useState({
+    date: "",
+    menu: null,
+    loading: true,
+  });
   const [issueType, setIssueType] = useState("Food Quality");
   const [issueDescription, setIssueDescription] = useState("");
   const [issues, setIssues] = useState([]);
@@ -52,19 +63,32 @@ const MessPage = () => {
     loadIssues();
   }, [loadIssues]);
 
+  const handleMenuSelection = useCallback((selection) => {
+    setMenuSelection(selection);
+    const availableMeals = Object.keys(selection.menu?.meals || {}).filter(
+      (meal) => selection.menu.meals[meal]?.length > 0
+    );
+    setMealType((current) =>
+      availableMeals.includes(current) ? current : (availableMeals[0] || "breakfast")
+    );
+  }, []);
+
   const handleFeedbackSubmit = async (event) => {
     event.preventDefault();
+    if (!menuSelection.menu) return;
     try {
       setFeedbackLoading(true);
       await submitMealFeedback({
+        menuId: menuSelection.menu.id,
         rating: Number(rating),
         mealType,
-        foodItem: mealType,
+        comment: feedbackComment.trim() || undefined,
       });
+      setFeedbackComment("");
       showToast({
         tone: "success",
         title: "Rating submitted",
-        message: `${mealType} was rated ${rating} out of 5.`,
+        message: `${MEAL_LABELS[mealType]} was rated ${rating} out of 5.`,
       });
     } catch (error) {
       showToast({
@@ -84,7 +108,7 @@ const MessPage = () => {
       setIssueLoading(true);
       const issue = await createMessIssue({
         issueType,
-        mealType,
+        mealType: MEAL_LABELS[mealType],
         description: issueDescription.trim(),
       });
       setIssues((current) => [issue, ...current]);
@@ -113,16 +137,30 @@ const MessPage = () => {
         description="Check published meals by date, share a rating, or report a service issue."
       />
 
-      <MessMenuBrowser />
+      <MessMenuBrowser onSelectionChange={handleMenuSelection} />
 
       <div className="hm-mess-actions">
         <Panel as="form" className="hm-mess-feedback" onSubmit={handleFeedbackSubmit}>
           <div className="hm-mess-section-heading">
             <Star aria-hidden="true" />
-            <div><h2>Rate a meal</h2><p>Choose a score from 1 to 5.</p></div>
+            <div>
+              <h2>Rate a meal</h2>
+              <p>
+                {menuSelection.menu
+                  ? `${menuSelection.menu.hostel.name} · ${menuSelection.date}`
+                  : "Select a date with a published menu."}
+              </p>
+            </div>
           </div>
-          <Select label="Meal" value={mealType} onChange={(event) => setMealType(event.target.value)}>
-            {MEAL_TYPES.map((meal) => <option key={meal}>{meal}</option>)}
+          <Select
+            label="Meal"
+            value={mealType}
+            disabled={!menuSelection.menu}
+            onChange={(event) => setMealType(event.target.value)}
+          >
+            {Object.entries(MEAL_LABELS)
+              .filter(([meal]) => menuSelection.menu?.meals?.[meal]?.length > 0)
+              .map(([meal, label]) => <option key={meal} value={meal}>{label}</option>)}
           </Select>
           <Select
             label={`Rating: ${rating} out of 5`}
@@ -133,7 +171,20 @@ const MessPage = () => {
               <option key={score} value={score}>{score} out of 5</option>
             ))}
           </Select>
-          <Button type="submit" loading={feedbackLoading} loadingLabel="Submitting rating">
+          <Textarea
+            label="Comment (optional)"
+            rows={3}
+            maxLength={1000}
+            value={feedbackComment}
+            onChange={(event) => setFeedbackComment(event.target.value)}
+            hint={`${feedbackComment.length}/1000 characters`}
+          />
+          <Button
+            type="submit"
+            disabled={!menuSelection.menu || menuSelection.loading}
+            loading={feedbackLoading}
+            loadingLabel="Submitting rating"
+          >
             Submit rating
           </Button>
         </Panel>

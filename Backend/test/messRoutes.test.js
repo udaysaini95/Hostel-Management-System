@@ -33,4 +33,6 @@ test("mess API exposes calendar routes before compatibility endpoints", () => {
   assert.ok(routes.slice(1, 5).every((route) => route.middlewareCount === 4));
   assert.ok(routes.some((route) => route.path === "/today"));
   assert.ok(routes.some((route) => route.path === "/admin/create"));
+  assert.ok(routes.some((route) => route.path === "/feedback" && route.methods.includes("post")));
+  assert.ok(routes.some((route) => route.path === "/feedback/summary" && route.methods.includes("get")));
 });

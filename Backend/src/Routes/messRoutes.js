@@ -7,7 +7,7 @@ import {
   getManageableMessHostels,
   getTodayMenu, 
   createFeedback, 
-  getAllFeedback, 
+  getFeedbackSummary,
   createIssue, 
   getMyIssues, 
   getAllIssues, 
@@ -20,13 +20,14 @@ import { PERMISSIONS } from "../domain/permissions.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import {
   menuRequestSchema,
-  messFeedbackSchema,
   messIssueCreationSchema,
   messIssueStatusSchema,
 } from "../validation/operationalSchemas.js";
 import {
   messMenuDateQuerySchema,
   messMenuRangeQuerySchema,
+  createMessFeedbackSchema,
+  messFeedbackSummarySchema,
   publishMessMenuSchema,
 } from "../validation/messSchemas.js";
 
@@ -81,17 +82,18 @@ router.get(
   getTodayMenu
 );
 router.post(
-  "/create",
+  "/feedback",
   protect,
   requirePermission(PERMISSIONS.MESS_FEEDBACK_CREATE),
-  validateRequest(messFeedbackSchema),
+  validateRequest(createMessFeedbackSchema),
   createFeedback
 );
 router.get(
-  "/admin",
+  "/feedback/summary",
   protect,
   requirePermission(PERMISSIONS.MESS_FEEDBACK_READ),
-  getAllFeedback
+  validateRequest(messFeedbackSummarySchema),
+  getFeedbackSummary
 );
 
 // Mess Issue Routes

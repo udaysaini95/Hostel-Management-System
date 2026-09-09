@@ -1247,17 +1247,45 @@ export const messMenuItems = pgTable(
   ]
 );
 
-// 8. Mess Feedbacks Table
-export const messFeedbacks = pgTable("mess_feedbacks", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  mealType: varchar("meal_type", { length: 100 }),
-  foodItem: varchar("food_item", { length: 255 }),
-  rating: integer("rating"),
-  feedbackDate: timestamp("feedback_date").defaultNow(),
-});
+// A rating belongs to the exact menu revision the student saw. The menu ID in
+// the unique index prevents repeat ratings when a menu is edited later.
+export const messFeedbacks = pgTable(
+  "mess_feedbacks",
+  {
+    id: serial("id").primaryKey(),
+    menuId: integer("menu_id")
+      .notNull()
+      .references(() => messMenus.id, { onDelete: "restrict" }),
+    menuVersionId: integer("menu_version_id")
+      .notNull()
+      .references(() => messMenuVersions.id, { onDelete: "restrict" }),
+    studentUserId: integer("student_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    mealType: messMealTypeEnum("meal_type").notNull(),
+    rating: integer("rating").notNull(),
+    comment: varchar("comment", { length: 1000 }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("mess_feedbacks_student_menu_meal_unique").on(
+      table.studentUserId,
+      table.menuId,
+      table.mealType
+    ),
+    check("mess_feedbacks_rating_check", sql`${table.rating} between 1 and 5`),
+    check(
+      "mess_feedbacks_comment_check",
+      sql`${table.comment} is null or length(trim(${table.comment})) between 1 and 1000`
+    ),
+    index("mess_feedbacks_menu_submitted_idx").on(
+      table.menuId,
+      table.submittedAt
+    ),
+  ]
+);
 
 // 9. Menu Votes Table
 export const menuVotes = pgTable("menu_votes", {

@@ -86,14 +86,6 @@ export const menuRequestSchema = {
   }),
 };
 
-export const messFeedbackSchema = {
-  body: z.strictObject({
-    rating: z.coerce.number().int().min(1).max(5),
-    mealType: requiredText("Meal type", 100),
-    foodItem: requiredText("Food item", 255),
-  }),
-};
-
 export const messIssueCreationSchema = {
   body: z.strictObject({
     issueType: requiredText("Issue type", 100),

@@ -9,6 +9,7 @@ import { expectNoAccessibilityViolations } from "../support/accessibility.js";
 const apiMocks = vi.hoisted(() => ({
   createMessIssue: vi.fn(),
   getManageableMessHostels: vi.fn(),
+  getMessFeedbackSummary: vi.fn(),
   getManagedMessIssues: vi.fn(),
   getMessMenu: vi.fn(),
   getMyMessIssues: vi.fn(),
@@ -50,6 +51,11 @@ describe("mess menu calendar screens", () => {
       { id: 1, code: "H1", name: "North Residence Hall" },
       { id: 2, code: "H2", name: "South Residence Hall" },
     ]);
+    apiMocks.getMessFeedbackSummary.mockResolvedValue({
+      overall: { averageRating: null, responseCount: 0 },
+      byMeal: [],
+      recentComments: [],
+    });
     apiMocks.listMessMenus.mockResolvedValue({ menus: [menu] });
     apiMocks.getMessMenu.mockResolvedValue(menu);
     apiMocks.saveMessMenu.mockResolvedValue({ ...menu, version: 3 });
@@ -75,6 +81,32 @@ describe("mess menu calendar screens", () => {
     expect(await screen.findByText(new RegExp(`No menu published for`))).toBeVisible();
     expect(screen.queryByText("Poha, Tea / Coffee, Boiled Eggs / Milk")).not.toBeInTheDocument();
     expect(screen.queryByText("Paneer Butter Masala, Jeera Rice, Chapati, Gulab Jamun")).not.toBeInTheDocument();
+  });
+
+  test("student rates the meal selected in the published calendar", async () => {
+    const user = userEvent.setup();
+    render(<MessPage />);
+
+    await screen.findByText("Vegetable upma");
+    await waitFor(() => expect(screen.getByLabelText("Meal")).not.toBeDisabled());
+    await user.selectOptions(screen.getByLabelText("Meal"), "lunch");
+    await user.selectOptions(screen.getByLabelText("Rating: 5 out of 5"), "4");
+    await user.type(screen.getByLabelText("Comment (optional)"), "Good rajma");
+    await user.click(screen.getByRole("button", { name: "Submit rating" }));
+
+    expect(apiMocks.submitMealFeedback).toHaveBeenCalledWith({
+      menuId: menu.id,
+      mealType: "lunch",
+      rating: 4,
+      comment: "Good rajma",
+    });
+  });
+
+  test("feedback analytics shows an honest no-data state", async () => {
+    render(<MessAdmin />);
+
+    expect(await screen.findByText("No feedback in this period")).toBeVisible();
+    expect(screen.queryByText("4.5 / 5")).not.toBeInTheDocument();
   });
 
   test("editor loads the selected hostel menu and saves a new version", async () => {

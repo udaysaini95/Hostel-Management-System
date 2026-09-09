@@ -1,9 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createMessFeedbackSchema,
+  messFeedbackSummarySchema,
   messMenuRangeQuerySchema,
   publishMessMenuSchema,
 } from "../src/validation/messSchemas.js";
+
+test("meal rating validation requires a menu and bounded score", () => {
+  assert.equal(createMessFeedbackSchema.body.safeParse({
+    menuId: 4,
+    mealType: "breakfast",
+    rating: 5,
+    comment: "Fresh and hot",
+  }).success, true);
+  assert.equal(createMessFeedbackSchema.body.safeParse({
+    menuId: 4,
+    mealType: "breakfast",
+    rating: 6,
+  }).success, false);
+  assert.equal(messFeedbackSummarySchema.query.safeParse({
+    hostelId: 1,
+    from: "2026-09-01",
+    to: "2026-09-30",
+  }).success, true);
+});
 
 test("calendar menu validation keeps the date separate from timestamps", () => {
   const valid = publishMessMenuSchema.params.safeParse({ date: "2026-09-10" });

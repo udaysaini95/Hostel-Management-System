@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import { messFeedbacks, messIssues, users } from "../db/schema.js";
+import { messIssues, users } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import {
   handleControllerError,
@@ -12,6 +12,10 @@ import {
   listMessMenuVersions,
   publishMessMenu,
 } from "../services/messMenuService.js";
+import {
+  getMessFeedbackSummary,
+  submitMessFeedback,
+} from "../services/messFeedbackService.js";
 
 export const getManageableMessHostels = async (req, res) => {
   try {
@@ -110,48 +114,18 @@ export const getTodayMenu = async (req, res) => {
 // ================= CREATE FEEDBACK =================
 export const createFeedback = async (req, res) => {
   try {
-    const userId = Number(req.user.id);
-    const { rating, mealType, foodItem } = req.body;
-
-    const [feedback] = await db
-      .insert(messFeedbacks)
-      .values({
-        userId,
-        rating: Number(rating) || 5,
-        mealType: mealType || "General",
-        foodItem: foodItem || "General",
-      })
-      .returning();
-
-    res.status(201).json({ message: "Feedback Saved", feedback });
+    const feedback = await submitMessFeedback(db, req.user, req.body);
+    return res.status(201).json({ message: "Rating submitted", feedback });
   } catch (error) {
-    return handleControllerError(res, error, "Create Mess Feedback Error");
+    return handleControllerError(res, error, "Submit Mess Feedback Error");
   }
 };
 
-// ================= GET ALL FEEDBACK (ADMIN) =================
-export const getAllFeedback = async (req, res) => {
+export const getFeedbackSummary = async (req, res) => {
   try {
-    const results = await db
-      .select({
-        id: messFeedbacks.id,
-        mealType: messFeedbacks.mealType,
-        foodItem: messFeedbacks.foodItem,
-        rating: messFeedbacks.rating,
-        feedbackDate: messFeedbacks.feedbackDate,
-        user: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
-        },
-      })
-      .from(messFeedbacks)
-      .leftJoin(users, eq(messFeedbacks.userId, users.id))
-      .orderBy(desc(messFeedbacks.feedbackDate));
-
-    res.json(results);
+    return res.json(await getMessFeedbackSummary(db, req.user, req.query));
   } catch (error) {
-    return handleControllerError(res, error, "Get Mess Feedback Error");
+    return handleControllerError(res, error, "Get Mess Feedback Summary Error");
   }
 };
 

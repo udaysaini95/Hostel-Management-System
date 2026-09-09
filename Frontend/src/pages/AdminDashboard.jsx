@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { getManageableMessHostels, getMessFeedbackSummary } from "../mess/messApi.js";
+import { addCalendarDays, getLocalCalendarDate } from "../mess/messView.js";
 import { 
   ShieldCheck, 
   AlertCircle, 
@@ -23,7 +25,7 @@ const AdminDashboard = () => {
 
   const [complaints, setComplaints] = useState([]);
   const [leaves, setLeaves] = useState([]);
-  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackSummary, setFeedbackSummary] = useState(null);
   const [outsideStudents, setOutsideStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,16 +33,26 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [complaintsRes, leavesRes, feedbacksRes, outsideRes] = await Promise.allSettled([
+        const today = getLocalCalendarDate();
+        const feedbackRequest = getManageableMessHostels().then(async (hostels) => {
+          if (!hostels[0]) return null;
+          const summary = await getMessFeedbackSummary({
+            hostelId: hostels[0].id,
+            from: addCalendarDays(today, -29),
+            to: today,
+          });
+          return { ...summary, selectedHostel: hostels[0] };
+        });
+        const [complaintsRes, leavesRes, feedbackRes, outsideRes] = await Promise.allSettled([
           api.get("/api/complaints/admin/complaints"),
           api.get("/api/leave/admin/all"),
-          api.get("/api/mess/admin"),
+          feedbackRequest,
           api.get("/api/gate/active-outside"),
         ]);
 
         if (complaintsRes.status === "fulfilled") setComplaints(complaintsRes.value.data || []);
         if (leavesRes.status === "fulfilled") setLeaves(leavesRes.value.data || []);
-        if (feedbacksRes.status === "fulfilled") setFeedbacks(feedbacksRes.value.data || []);
+        if (feedbackRes.status === "fulfilled") setFeedbackSummary(feedbackRes.value);
         if (outsideRes.status === "fulfilled") setOutsideStudents(outsideRes.value.data || []);
       } catch (err) {
         console.error(err);
@@ -60,9 +72,7 @@ const AdminDashboard = () => {
   }).length;
 
   const pendingLeaves = leaves.filter(l => l.status === "Pending").length;
-  const avgFeedbackRating = feedbacks.length > 0
-    ? (feedbacks.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedbacks.length).toFixed(1)
-    : "4.5";
+  const avgFeedbackRating = feedbackSummary?.overall?.averageRating;
 
   return (
     <div className="hm-page-stack hm-page-stack--wide">
@@ -136,9 +146,13 @@ const AdminDashboard = () => {
         <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mess Rating Score</div>
           <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : `${avgFeedbackRating} ★`}
+            {loading ? "-" : avgFeedbackRating == null ? "No data" : `${avgFeedbackRating} / 5`}
           </div>
-          <span className="text-[11px] text-emerald-700 mt-0.5 block font-mono font-medium">Average score</span>
+          <span className="text-[11px] text-emerald-700 mt-0.5 block font-mono font-medium">
+            {feedbackSummary?.overall?.responseCount
+              ? `${feedbackSummary.selectedHostel.code} · ${feedbackSummary.overall.responseCount} responses`
+              : "No ratings in the last 30 days"}
+          </span>
         </div>
 
       </div>

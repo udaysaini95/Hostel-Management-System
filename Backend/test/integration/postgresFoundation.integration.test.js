@@ -95,6 +95,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
         'mess_menus',
         'mess_menu_versions',
         'mess_menu_items'
+        ,'mess_feedbacks'
       )
     ORDER BY table_name
   `);
@@ -121,6 +122,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "leave_decisions",
       "leave_events",
       "leave_requests",
+      "mess_feedbacks",
       "mess_menu_items",
       "mess_menu_versions",
       "mess_menus",
@@ -131,7 +133,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "users",
     ]
   );
-  assert.equal(migrationsResult.rows[0].count, 17);
+  assert.equal(migrationsResult.rows[0].count, 18);
 });
 
 test("PostgreSQL enforces hostel and primary-membership constraints", async () => {

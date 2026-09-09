@@ -14,6 +14,7 @@ import {
   updateMessIssueStatus,
 } from "../mess/messApi.js";
 import { MessMenuEditor } from "../mess/MessMenuEditor.jsx";
+import { MessFeedbackAnalytics } from "../mess/MessFeedbackAnalytics.jsx";
 
 const MessAdmin = () => {
   const [issues, setIssues] = useState([]);
@@ -74,6 +75,8 @@ const MessAdmin = () => {
       />
 
       <MessMenuEditor />
+
+      <MessFeedbackAnalytics />
 
       <section className="hm-mess-managed-issues" aria-labelledby="managed-mess-issues-title">
         <div className="hm-mess-section-heading">

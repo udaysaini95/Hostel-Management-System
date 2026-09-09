@@ -171,7 +171,41 @@
   .hm-mess-section-heading { justify-content: flex-start; }
   .hm-mess-section-heading > svg { width: 1.125rem; height: 1.125rem; margin-top: 0.2rem; color: var(--color-text-muted); flex: 0 0 auto; }
   .hm-mess-issues,
-  .hm-mess-managed-issues { display: grid; gap: 1rem; }
+  .hm-mess-managed-issues,
+  .hm-mess-analytics { display: grid; gap: 1rem; }
+
+  .hm-mess-analytics__panel,
+  .hm-mess-analytics__results { display: grid; gap: 1.25rem; }
+  .hm-mess-analytics__filters {
+    display: grid;
+    grid-template-columns: minmax(13rem, 1fr) repeat(3, minmax(10rem, 0.65fr));
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hm-mess-analytics__results {
+    grid-template-columns: minmax(11rem, 0.35fr) minmax(20rem, 1fr);
+  }
+  .hm-mess-analytics__score {
+    padding: 1rem;
+    background: var(--color-brand-soft);
+    border-radius: var(--radius-lg);
+  }
+  .hm-mess-analytics__score span,
+  .hm-mess-analytics__score p,
+  .hm-mess-analytics__meals small { color: var(--color-text-secondary); font-size: var(--text-caption); }
+  .hm-mess-analytics__score strong { display: block; margin: 0.375rem 0; font-size: 1.75rem; }
+  .hm-mess-analytics__score strong small { font-size: var(--text-small); }
+  .hm-mess-analytics__score p { margin: 0; }
+  .hm-mess-analytics__meals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .hm-mess-analytics__meals div { display: grid; gap: 0.2rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+  .hm-mess-analytics__meals span { font-size: var(--text-caption); font-weight: 700; }
+  .hm-mess-analytics__comments { grid-column: 1 / -1; display: grid; }
+  .hm-mess-analytics__comments h3 { margin: 0 0 0.5rem; font-size: var(--text-card-title); }
+  .hm-mess-analytics__comments article { padding: 0.75rem 0; border-top: 1px solid var(--color-border); }
+  .hm-mess-analytics__comments article > div { display: flex; justify-content: space-between; gap: 1rem; }
+  .hm-mess-analytics__comments span { color: var(--color-text-muted); font-size: var(--text-caption); }
+  .hm-mess-analytics__comments p { margin: 0.375rem 0 0; color: var(--color-text-secondary); font-size: var(--text-small); }
   .hm-mess-issue-list {
     overflow: hidden;
     background: var(--color-surface);
@@ -233,7 +267,12 @@
     .hm-mess-menu__meals,
     .hm-mess-editor__controls,
     .hm-mess-editor__fields,
-    .hm-mess-actions { grid-template-columns: 1fr; }
+    .hm-mess-actions,
+    .hm-mess-analytics__filters,
+    .hm-mess-analytics__results,
+    .hm-mess-analytics__meals { grid-template-columns: 1fr; }
+    .hm-mess-analytics__comments { grid-column: auto; }
+    .hm-mess-analytics__comments article > div { align-items: flex-start; flex-direction: column; gap: 0.125rem; }
     .hm-mess-menu__meals section,
     .hm-mess-menu__meals section:first-child,
     .hm-mess-menu__meals section:nth-child(2),

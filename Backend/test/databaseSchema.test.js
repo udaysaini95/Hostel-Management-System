@@ -45,6 +45,7 @@ import {
   leaveRequests,
   leaveStatusEnum,
   messMealTypeEnum,
+  messFeedbacks,
   messMenuItems,
   messMenus,
   messMenuVersions,
@@ -78,6 +79,25 @@ test("mess menus use hostel-scoped dates and normalized versioned items", () => 
   assert.equal(messMenuItems.menuVersionId.notNull, true);
   assert.equal(messMenuItems.mealType.notNull, true);
   assert.ok(findIndex(messMenuItems, "mess_menu_items_position_unique"));
+});
+
+test("mess feedback stores one validated rating per student menu meal", () => {
+  const config = getTableConfig(messFeedbacks);
+  const uniqueRating = findIndex(
+    messFeedbacks,
+    "mess_feedbacks_student_menu_meal_unique"
+  );
+
+  assert.equal(messFeedbacks.menuId.notNull, true);
+  assert.equal(messFeedbacks.menuVersionId.notNull, true);
+  assert.equal(messFeedbacks.studentUserId.notNull, true);
+  assert.equal(messFeedbacks.rating.notNull, true);
+  assert.equal(config.foreignKeys.length, 3);
+  assert.ok(config.checks.some((entry) => entry.name === "mess_feedbacks_rating_check"));
+  assert.deepEqual(
+    uniqueRating.config.columns.map((column) => column.name),
+    ["student_user_id", "menu_id", "meal_type"]
+  );
 });
 
 test("database enums constrain supported roles and account states", () => {

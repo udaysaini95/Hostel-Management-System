@@ -51,3 +51,25 @@ export const messMenuRangeQuerySchema = {
     }),
 };
 
+export const createMessFeedbackSchema = {
+  body: z.strictObject({
+    menuId: hostelId,
+    mealType: z.enum(["breakfast", "lunch", "snacks", "dinner"]),
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: z.string().trim().min(1).max(1000).optional(),
+  }),
+};
+
+export const messFeedbackSummarySchema = {
+  query: z
+    .strictObject({
+      hostelId,
+      from: calendarDate,
+      to: calendarDate,
+      mealType: z.enum(["breakfast", "lunch", "snacks", "dinner"]).optional(),
+    })
+    .refine((query) => query.from <= query.to, {
+      path: ["to"],
+      message: "To must be after or equal to From",
+    }),
+};
