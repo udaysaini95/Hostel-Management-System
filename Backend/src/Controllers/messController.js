@@ -1,10 +1,5 @@
 import { db } from "../db/index.js";
-import { messIssues, users } from "../db/schema.js";
-import { eq, desc } from "drizzle-orm";
-import {
-  handleControllerError,
-  sendApiError,
-} from "../utils/apiErrors.js";
+import { handleControllerError } from "../utils/apiErrors.js";
 import {
   getMessMenuByDate,
   listManageableMessHostels,
@@ -16,6 +11,18 @@ import {
   getMessFeedbackSummary,
   submitMessFeedback,
 } from "../services/messFeedbackService.js";
+import {
+  createMessIssue as createNormalizedMessIssue,
+  listManagedMessIssues,
+  listOwnMessIssues,
+  readMessIssueEvidence,
+  transitionMessIssue,
+} from "../services/messIssueService.js";
+
+const contentDisposition = (filename) => {
+  const fallback = filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+};
 
 export const getManageableMessHostels = async (req, res) => {
   try {
@@ -132,26 +139,13 @@ export const getFeedbackSummary = async (req, res) => {
 // ================= MESS ISSUES =================
 export const createIssue = async (req, res) => {
   try {
-    const studentId = Number(req.user.id);
-    const { issueType, mealType, description } = req.body;
-
-    // Get student name
-    const [user] = await db.select().from(users).where(eq(users.id, studentId));
-    const studentName = user ? user.name : "Student";
-
-    const [issue] = await db
-      .insert(messIssues)
-      .values({
-        studentId,
-        studentName,
-        issueType,
-        mealType,
-        description,
-        status: "Pending",
-      })
-      .returning();
-
-    res.status(201).json({ ...issue, _id: issue.id });
+    const issue = await createNormalizedMessIssue(
+      db,
+      req.user,
+      req.body,
+      req.file
+    );
+    return res.status(201).json({ issue });
   } catch (error) {
     return handleControllerError(res, error, "Create Mess Issue Error");
   }
@@ -159,16 +153,7 @@ export const createIssue = async (req, res) => {
 
 export const getMyIssues = async (req, res) => {
   try {
-    const studentId = Number(req.user.id);
-
-    const issues = await db
-      .select()
-      .from(messIssues)
-      .where(eq(messIssues.studentId, studentId))
-      .orderBy(desc(messIssues.createdAt));
-
-    const formatted = issues.map((i) => ({ ...i, _id: i.id }));
-    res.json(formatted);
+    return res.json(await listOwnMessIssues(db, req.user, req.query));
   } catch (error) {
     return handleControllerError(res, error, "Get My Mess Issues Error");
   }
@@ -176,13 +161,7 @@ export const getMyIssues = async (req, res) => {
 
 export const getAllIssues = async (req, res) => {
   try {
-    const issues = await db
-      .select()
-      .from(messIssues)
-      .orderBy(desc(messIssues.createdAt));
-
-    const formatted = issues.map((i) => ({ ...i, _id: i.id }));
-    res.json(formatted);
+    return res.json(await listManagedMessIssues(db, req.user, req.query));
   } catch (error) {
     return handleControllerError(res, error, "Get All Mess Issues Error");
   }
@@ -190,35 +169,30 @@ export const getAllIssues = async (req, res) => {
 
 export const updateStatus = async (req, res) => {
   try {
-    const issueId = Number(req.params.id);
-    const { status } = req.body;
-
-    if (!["Pending", "In Progress", "Resolved"].includes(status)) {
-      return sendApiError(
-        res,
-        422,
-        "VALIDATION_ERROR",
-        "Enter a valid issue status"
-      );
-    }
-
-    const [updated] = await db
-      .update(messIssues)
-      .set({ status })
-      .where(eq(messIssues.id, issueId))
-      .returning();
-
-    if (!updated) {
-      return sendApiError(
-        res,
-        404,
-        "MESS_ISSUE_NOT_FOUND",
-        "Mess issue not found"
-      );
-    }
-
-    res.json({ ...updated, _id: updated.id });
+    const issue = await transitionMessIssue(
+      db,
+      req.user,
+      req.params.id,
+      req.body
+    );
+    return res.json({ issue });
   } catch (error) {
     return handleControllerError(res, error, "Update Mess Issue Status Error");
+  }
+};
+
+export const downloadIssueEvidence = async (req, res) => {
+  try {
+    const evidence = await readMessIssueEvidence(db, req.user, req.params.id);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": contentDisposition(evidence.originalName),
+      "Content-Length": String(evidence.contents.length),
+      "Content-Type": evidence.mimeType,
+      "X-Content-Type-Options": "nosniff",
+    });
+    return res.send(evidence.contents);
+  } catch (error) {
+    return handleControllerError(res, error, "Download Mess Issue Evidence Error");
   }
 };

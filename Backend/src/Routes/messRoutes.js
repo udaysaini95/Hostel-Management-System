@@ -11,6 +11,7 @@ import {
   createIssue, 
   getMyIssues, 
   getAllIssues, 
+  downloadIssueEvidence,
   publishCalendarMenu,
   updateStatus 
 } from "../Controllers/messController.js";
@@ -18,10 +19,9 @@ import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
+import messIssueEvidenceUpload from "../middlewares/messIssueEvidenceUpload.js";
 import {
   menuRequestSchema,
-  messIssueCreationSchema,
-  messIssueStatusSchema,
 } from "../validation/operationalSchemas.js";
 import {
   messMenuDateQuerySchema,
@@ -30,6 +30,13 @@ import {
   messFeedbackSummarySchema,
   publishMessMenuSchema,
 } from "../validation/messSchemas.js";
+import {
+  createMessIssueSchema,
+  managedMessIssueListSchema,
+  messIssueResourceSchema,
+  messIssueStatusUpdateSchema,
+  ownMessIssueListSchema,
+} from "../validation/messIssueSchemas.js";
 
 const router = express.Router();
 
@@ -98,30 +105,39 @@ router.get(
 
 // Mess Issue Routes
 router.post(
-  "/issue/create",
+  "/issues",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_CREATE),
-  validateRequest(messIssueCreationSchema),
+  messIssueEvidenceUpload.single("evidence"),
+  validateRequest(createMessIssueSchema),
   createIssue
 );
 router.get(
-  "/my",
+  "/issues/mine",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_READ_OWN),
+  validateRequest(ownMessIssueListSchema),
   getMyIssues
 );
 router.get(
-  "/",
+  "/issues/managed",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_MANAGE),
+  validateRequest(managedMessIssueListSchema),
   getAllIssues
 );
-router.put(
-  "/:id/status",
+router.patch(
+  "/issues/:id/status",
   protect,
   requirePermission(PERMISSIONS.MESS_ISSUE_MANAGE),
-  validateRequest(messIssueStatusSchema),
+  validateRequest(messIssueStatusUpdateSchema),
   updateStatus
+);
+router.get(
+  "/issues/:id/evidence",
+  protect,
+  validateRequest(messIssueResourceSchema),
+  downloadIssueEvidence
 );
 
 export default router;

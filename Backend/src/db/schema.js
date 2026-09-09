@@ -25,6 +25,10 @@ import {
 import { USER_ROLES } from "../domain/roles.js";
 import { MEAL_TYPE_ORDER } from "../domain/mess.js";
 import {
+  MESS_ISSUE_STATUSES,
+  MESS_ISSUE_TYPES,
+} from "../domain/messIssues.js";
+import {
   GATE_MOVEMENTS,
   GATE_VERIFICATION_METHODS,
   LEAVE_DECISION_OUTCOMES,
@@ -74,6 +78,14 @@ export const gateVerificationMethodEnum = pgEnum(
   Object.values(GATE_VERIFICATION_METHODS)
 );
 export const messMealTypeEnum = pgEnum("mess_meal_type", MEAL_TYPE_ORDER);
+export const messIssueTypeEnum = pgEnum(
+  "mess_issue_type",
+  Object.values(MESS_ISSUE_TYPES)
+);
+export const messIssueStatusEnum = pgEnum(
+  "mess_issue_status",
+  Object.values(MESS_ISSUE_STATUSES)
+);
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
 export const hostels = pgTable(
@@ -1153,20 +1165,115 @@ export const gateEvents = pgTable(
   ]
 );
 
-// 6. Mess Issues Table
-export const messIssues = pgTable("mess_issues", {
-  id: serial("id").primaryKey(),
-  studentId: integer("student_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  studentName: varchar("student_name", { length: 255 }).notNull(),
-  issueType: varchar("issue_type", { length: 100 }),
-  mealType: varchar("meal_type", { length: 100 }),
-  description: text("description"),
-  image: varchar("image", { length: 500 }),
-  status: varchar("status", { length: 50 }).default("Pending").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const messIssues = pgTable(
+  "mess_issues",
+  {
+    id: serial("id").primaryKey(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    reportedByUserId: integer("reported_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    issueType: messIssueTypeEnum("issue_type").notNull(),
+    mealType: messMealTypeEnum("meal_type").notNull(),
+    description: text("description").notNull(),
+    status: messIssueStatusEnum("status")
+      .default(MESS_ISSUE_STATUSES.REPORTED)
+      .notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "mess_issues_description_check",
+      sql`length(trim(${table.description})) between 10 and 2000`
+    ),
+    check(
+      "mess_issues_resolved_at_check",
+      sql`(${table.status} = 'resolved') = (${table.resolvedAt} is not null)`
+    ),
+    index("mess_issues_hostel_queue_idx").on(
+      table.hostelId,
+      table.status,
+      table.createdAt
+    ),
+    index("mess_issues_student_history_idx").on(
+      table.reportedByUserId,
+      table.createdAt
+    ),
+  ]
+);
+
+export const messIssueEvents = pgTable(
+  "mess_issue_events",
+  {
+    id: serial("id").primaryKey(),
+    messIssueId: integer("mess_issue_id")
+      .notNull()
+      .references(() => messIssues.id, { onDelete: "restrict" }),
+    actorUserId: integer("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    actorName: varchar("actor_name", { length: 255 }).notNull(),
+    actorRole: varchar("actor_role", { length: 50 }).notNull(),
+    fromStatus: messIssueStatusEnum("from_status"),
+    toStatus: messIssueStatusEnum("to_status").notNull(),
+    note: varchar("note", { length: 1000 }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "mess_issue_events_actor_check",
+      sql`length(trim(${table.actorName})) > 0 and length(trim(${table.actorRole})) > 0`
+    ),
+    check(
+      "mess_issue_events_note_check",
+      sql`${table.note} is null or length(trim(${table.note})) between 1 and 1000`
+    ),
+    index("mess_issue_events_timeline_idx").on(
+      table.messIssueId,
+      table.occurredAt,
+      table.id
+    ),
+  ]
+);
+
+export const messIssueAttachments = pgTable(
+  "mess_issue_attachments",
+  {
+    id: serial("id").primaryKey(),
+    messIssueId: integer("mess_issue_id")
+      .notNull()
+      .unique()
+      .references(() => messIssues.id, { onDelete: "restrict" }),
+    uploadedByUserId: integer("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    storageKey: varchar("storage_key", { length: 500 }).notNull().unique(),
+    originalName: varchar("original_name", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 100 }).notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: varchar("sha256", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check("mess_issue_attachments_storage_key_check", sql`length(trim(${table.storageKey})) > 0`),
+    check("mess_issue_attachments_original_name_check", sql`length(trim(${table.originalName})) > 0`),
+    check("mess_issue_attachments_mime_type_check", sql`${table.mimeType} in ('image/jpeg', 'image/png', 'image/webp')`),
+    check("mess_issue_attachments_size_check", sql`${table.sizeBytes} between 1 and 5242880`),
+    check("mess_issue_attachments_sha256_check", sql`${table.sha256} ~ '^[a-f0-9]{64}$'`),
+  ]
+);
 
 // Menus have one stable identity per hostel/date. Each publication creates an
 // immutable revision so an update never erases what residents previously saw.

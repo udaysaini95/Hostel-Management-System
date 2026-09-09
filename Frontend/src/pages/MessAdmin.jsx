@@ -9,15 +9,43 @@ import {
   Select,
 } from "../components/ui/index.js";
 import { useToast } from "../feedback/toastContext.js";
+import { MessFeedbackAnalytics } from "../mess/MessFeedbackAnalytics.jsx";
+import { MessIssueEvidenceButton } from "../mess/MessIssueEvidenceButton.jsx";
 import {
+  getManageableMessHostels,
   getManagedMessIssues,
   updateMessIssueStatus,
 } from "../mess/messApi.js";
 import { MessMenuEditor } from "../mess/MessMenuEditor.jsx";
-import { MessFeedbackAnalytics } from "../mess/MessFeedbackAnalytics.jsx";
+
+const issueTypeLabels = {
+  food_quality: "Food quality",
+  hygiene: "Hygiene",
+  quantity: "Quantity",
+  staff_behavior: "Staff behavior",
+  other: "Other",
+};
+const mealLabels = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  snacks: "Snacks",
+  dinner: "Dinner",
+};
+const statusLabels = {
+  reported: "Reported",
+  in_progress: "In progress",
+  resolved: "Resolved",
+};
+const nextStatus = {
+  reported: "in_progress",
+  in_progress: "resolved",
+};
 
 const MessAdmin = () => {
   const [issues, setIssues] = useState([]);
+  const [hostels, setHostels] = useState([]);
+  const [hostelId, setHostelId] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesError, setIssuesError] = useState("");
   const [updatingIssueId, setUpdatingIssueId] = useState(null);
@@ -27,7 +55,11 @@ const MessAdmin = () => {
     try {
       setIssuesLoading(true);
       setIssuesError("");
-      setIssues(await getManagedMessIssues());
+      const result = await getManagedMessIssues({
+        hostelId: hostelId || undefined,
+        status: statusFilter || undefined,
+      });
+      setIssues(Array.isArray(result?.data) ? result.data : []);
     } catch (error) {
       setIssuesError(
         getApiErrorMessage(error, "Reported mess issues could not be loaded.")
@@ -35,25 +67,27 @@ const MessAdmin = () => {
     } finally {
       setIssuesLoading(false);
     }
-  }, []);
+  }, [hostelId, statusFilter]);
 
   useEffect(() => {
     loadIssues();
   }, [loadIssues]);
 
+  useEffect(() => {
+    getManageableMessHostels().then(setHostels).catch(() => setHostels([]));
+  }, []);
+
   const handleStatusChange = async (issueId, status) => {
     try {
       setUpdatingIssueId(issueId);
-      await updateMessIssueStatus(issueId, status);
+      const updated = await updateMessIssueStatus(issueId, status);
       setIssues((current) =>
-        current.map((issue) =>
-          (issue.id || issue._id) === issueId ? { ...issue, status } : issue
-        )
+        current.map((issue) => issue.id === issueId ? updated : issue)
       );
       showToast({
         tone: "success",
         title: "Issue status updated",
-        message: `The report is now ${status.toLowerCase()}.`,
+        message: `The report is now ${statusLabels[status].toLowerCase()}.`,
       });
     } catch (error) {
       showToast({
@@ -71,11 +105,10 @@ const MessAdmin = () => {
       <PageHeader
         eyebrow="Mess administration"
         title="Menu schedule"
-        description="Publish date-specific menus for each assigned hostel. Updates retain their previous versions."
+        description="Publish menus, review meal feedback, and resolve student mess issues."
       />
 
       <MessMenuEditor />
-
       <MessFeedbackAnalytics />
 
       <section className="hm-mess-managed-issues" aria-labelledby="managed-mess-issues-title">
@@ -83,8 +116,23 @@ const MessAdmin = () => {
           <AlertTriangle aria-hidden="true" />
           <div>
             <h2 id="managed-mess-issues-title">Issue queue</h2>
-            <p>Menu editing is kept separate from student service reports.</p>
+            <p>Review hostel-scoped reports and move each issue through its permitted states.</p>
           </div>
+        </div>
+
+        <div className="hm-mess-issue-filters">
+          <Select label="Hostel" value={hostelId} onChange={(event) => setHostelId(event.target.value)}>
+            <option value="">All assigned hostels</option>
+            {hostels.map((hostel) => (
+              <option key={hostel.id} value={hostel.id}>{hostel.code} · {hostel.name}</option>
+            ))}
+          </Select>
+          <Select label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="">All statuses</option>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </Select>
         </div>
 
         {issuesLoading ? (
@@ -96,21 +144,30 @@ const MessAdmin = () => {
         ) : (
           <div className="hm-mess-issue-list">
             {issues.map((issue) => {
-              const issueId = issue.id || issue._id;
+              const permittedNextStatus = nextStatus[issue.status];
               return (
-                <article key={issueId}>
-                  <div><strong>{issue.studentName || "Student"}</strong><span>{issue.issueType} · {issue.mealType}</span></div>
+                <article key={issue.id}>
+                  <div>
+                    <strong>{issue.student.name}</strong>
+                    <span>
+                      {issue.hostel.code} · {issueTypeLabels[issue.issueType]} · {mealLabels[issue.mealType]}
+                    </span>
+                  </div>
                   <p>{issue.description}</p>
-                  <Select
-                    label="Status"
-                    value={issue.status}
-                    disabled={updatingIssueId === issueId}
-                    onChange={(event) => handleStatusChange(issueId, event.target.value)}
-                  >
-                    <option>Pending</option>
-                    <option>In Progress</option>
-                    <option>Resolved</option>
-                  </Select>
+                  <div className="hm-mess-issue-list__actions">
+                    <Select
+                      label="Status"
+                      value={issue.status}
+                      disabled={!permittedNextStatus || updatingIssueId === issue.id}
+                      onChange={(event) => handleStatusChange(issue.id, event.target.value)}
+                    >
+                      <option value={issue.status}>{statusLabels[issue.status]}</option>
+                      {permittedNextStatus && (
+                        <option value={permittedNextStatus}>{statusLabels[permittedNextStatus]}</option>
+                      )}
+                    </Select>
+                    <MessIssueEvidenceButton issue={issue} />
+                  </div>
                 </article>
               );
             })}

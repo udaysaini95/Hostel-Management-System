@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   createMessIssue: vi.fn(),
   getManageableMessHostels: vi.fn(),
   getMessFeedbackSummary: vi.fn(),
+  getMessIssueEvidenceBlob: vi.fn(),
   getManagedMessIssues: vi.fn(),
   getMessMenu: vi.fn(),
   getMyMessIssues: vi.fn(),
@@ -40,13 +41,29 @@ const menu = {
     dinner: ["Roti", "Dal"],
   },
 };
+const messIssue = {
+  id: 31,
+  hostel: menu.hostel,
+  student: { id: 7, name: "Aarav Mehta", email: "aarav@example.test" },
+  issueType: "hygiene",
+  mealType: "dinner",
+  description: "The dining tables were not cleaned after dinner.",
+  status: "reported",
+  evidence: {
+    id: 44,
+    originalName: "tables.png",
+    mimeType: "image/png",
+    sizeBytes: 8,
+  },
+  createdAt: "2026-09-10T12:00:00.000Z",
+};
 
 describe("mess menu calendar screens", () => {
   beforeEach(() => {
     Object.values(apiMocks).forEach((mock) => mock.mockReset());
     showToast.mockReset();
-    apiMocks.getMyMessIssues.mockResolvedValue([]);
-    apiMocks.getManagedMessIssues.mockResolvedValue([]);
+    apiMocks.getMyMessIssues.mockResolvedValue({ data: [], pagination: {} });
+    apiMocks.getManagedMessIssues.mockResolvedValue({ data: [], pagination: {} });
     apiMocks.getManageableMessHostels.mockResolvedValue([
       { id: 1, code: "H1", name: "North Residence Hall" },
       { id: 2, code: "H2", name: "South Residence Hall" },
@@ -107,6 +124,55 @@ describe("mess menu calendar screens", () => {
 
     expect(await screen.findByText("No feedback in this period")).toBeVisible();
     expect(screen.queryByText("4.5 / 5")).not.toBeInTheDocument();
+  });
+
+  test("student report appears immediately with its optional evidence", async () => {
+    apiMocks.createMessIssue.mockResolvedValue(messIssue);
+    const user = userEvent.setup();
+    render(<MessPage />);
+
+    await screen.findByText("No mess issues reported");
+    await user.selectOptions(screen.getByLabelText("Issue type"), "hygiene");
+    await user.selectOptions(screen.getByLabelText("Affected meal"), "dinner");
+    await user.type(
+      screen.getByLabelText("Description"),
+      "The dining tables were not cleaned after dinner."
+    );
+    const evidence = new File(["image"], "tables.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Photo evidence"), evidence);
+    await user.click(screen.getByRole("button", { name: "Report issue" }));
+
+    expect(apiMocks.createMessIssue).toHaveBeenCalledWith({
+      issueType: "hygiene",
+      mealType: "dinner",
+      description: "The dining tables were not cleaned after dinner.",
+      evidence,
+    });
+    expect(await screen.findByText(messIssue.description)).toBeVisible();
+    expect(screen.getByText("Reported")).toBeVisible();
+  });
+
+  test("warden queue exposes only the next permitted issue status", async () => {
+    apiMocks.getManagedMessIssues.mockResolvedValue({ data: [messIssue], pagination: {} });
+    apiMocks.updateMessIssueStatus.mockResolvedValue({
+      ...messIssue,
+      status: "in_progress",
+    });
+    const user = userEvent.setup();
+    render(<MessAdmin />);
+
+    expect(await screen.findByText(messIssue.description)).toBeVisible();
+    const rowStatus = screen.getAllByLabelText("Status")[1];
+    expect(rowStatus).not.toHaveTextContent("Resolved");
+    await user.selectOptions(rowStatus, "in_progress");
+
+    expect(apiMocks.updateMessIssueStatus).toHaveBeenCalledWith(
+      messIssue.id,
+      "in_progress"
+    );
+    await waitFor(() => {
+      expect(rowStatus).toHaveValue("in_progress");
+    });
   });
 
   test("editor loads the selected hostel menu and saves a new version", async () => {

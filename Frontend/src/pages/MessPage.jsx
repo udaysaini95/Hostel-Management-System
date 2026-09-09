@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Star, Utensils } from "lucide-react";
 import { getApiErrorMessage } from "../api/errors.js";
 import {
@@ -18,8 +18,20 @@ import {
   submitMealFeedback,
 } from "../mess/messApi.js";
 import { MessMenuBrowser } from "../mess/MessMenuBrowser.jsx";
+import { MessIssueEvidenceButton } from "../mess/MessIssueEvidenceButton.jsx";
 
-const ISSUE_TYPES = ["Food Quality", "Hygiene", "Quantity", "Staff Behavior"];
+const ISSUE_TYPES = {
+  food_quality: "Food quality",
+  hygiene: "Hygiene",
+  quantity: "Quantity",
+  staff_behavior: "Staff behavior",
+  other: "Other",
+};
+const STATUS_LABELS = {
+  reported: "Reported",
+  in_progress: "In progress",
+  resolved: "Resolved",
+};
 const MEAL_LABELS = {
   breakfast: "Breakfast",
   lunch: "Lunch",
@@ -36,20 +48,25 @@ const MessPage = () => {
     menu: null,
     loading: true,
   });
-  const [issueType, setIssueType] = useState("Food Quality");
+  const [issueType, setIssueType] = useState("food_quality");
+  const [issueMealType, setIssueMealType] = useState("breakfast");
   const [issueDescription, setIssueDescription] = useState("");
+  const [issueEvidence, setIssueEvidence] = useState(null);
+  const [evidenceError, setEvidenceError] = useState("");
   const [issues, setIssues] = useState([]);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesError, setIssuesError] = useState("");
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [issueLoading, setIssueLoading] = useState(false);
   const { showToast } = useToast();
+  const evidenceInput = useRef(null);
 
   const loadIssues = useCallback(async () => {
     try {
       setIssuesLoading(true);
       setIssuesError("");
-      setIssues(await getMyMessIssues());
+      const result = await getMyMessIssues();
+      setIssues(Array.isArray(result?.data) ? result.data : []);
     } catch (error) {
       setIssuesError(
         getApiErrorMessage(error, "Your mess issue history could not be loaded.")
@@ -108,11 +125,15 @@ const MessPage = () => {
       setIssueLoading(true);
       const issue = await createMessIssue({
         issueType,
-        mealType: MEAL_LABELS[mealType],
+        mealType: issueMealType,
         description: issueDescription.trim(),
+        evidence: issueEvidence,
       });
       setIssues((current) => [issue, ...current]);
       setIssueDescription("");
+      setIssueEvidence(null);
+      setEvidenceError("");
+      if (evidenceInput.current) evidenceInput.current.value = "";
       showToast({
         tone: "success",
         title: "Mess issue reported",
@@ -127,6 +148,26 @@ const MessPage = () => {
     } finally {
       setIssueLoading(false);
     }
+  };
+
+  const selectEvidence = (event) => {
+    const file = event.target.files?.[0] || null;
+    setEvidenceError("");
+    if (!file) {
+      setIssueEvidence(null);
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setIssueEvidence(null);
+      setEvidenceError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setIssueEvidence(null);
+      setEvidenceError("Evidence must be 5 MB or smaller.");
+      return;
+    }
+    setIssueEvidence(file);
   };
 
   return (
@@ -195,17 +236,43 @@ const MessPage = () => {
             <div><h2>Report an issue</h2><p>Give the mess team enough detail to respond.</p></div>
           </div>
           <Select label="Issue type" value={issueType} onChange={(event) => setIssueType(event.target.value)}>
-            {ISSUE_TYPES.map((type) => <option key={type}>{type}</option>)}
+            {Object.entries(ISSUE_TYPES).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </Select>
+          <Select
+            label="Affected meal"
+            value={issueMealType}
+            onChange={(event) => setIssueMealType(event.target.value)}
+          >
+            {Object.entries(MEAL_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </Select>
           <Textarea
             label="Description"
             rows={4}
+            minLength={10}
             maxLength={2000}
             required
             value={issueDescription}
             onChange={(event) => setIssueDescription(event.target.value)}
             hint="Describe what happened and which meal was affected."
           />
+          <div className="hm-mess-evidence-field">
+            <div><label htmlFor="mess-issue-evidence">Photo evidence</label><span>Optional</span></div>
+            <p>JPEG, PNG, or WebP. Maximum 5 MB.</p>
+            <input
+              ref={evidenceInput}
+              id="mess-issue-evidence"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-describedby={evidenceError ? "mess-evidence-error" : undefined}
+              aria-invalid={Boolean(evidenceError)}
+              onChange={selectEvidence}
+            />
+            {evidenceError && <p id="mess-evidence-error" className="hm-mess-evidence-field__error" role="alert">{evidenceError}</p>}
+          </div>
           <Button type="submit" loading={issueLoading} loadingLabel="Reporting issue">
             Report issue
           </Button>
@@ -227,9 +294,15 @@ const MessPage = () => {
           <div className="hm-mess-issue-list">
             {issues.map((issue) => (
               <article key={issue.id || issue._id}>
-                <div><strong>{issue.issueType}</strong><span>{issue.mealType}</span></div>
+                <div>
+                  <strong>{ISSUE_TYPES[issue.issueType]}</strong>
+                  <span>{MEAL_LABELS[issue.mealType]} · {issue.hostel.code}</span>
+                </div>
                 <p>{issue.description}</p>
-                <span className="hm-mess-issue-list__status">{issue.status}</span>
+                <div className="hm-mess-issue-list__actions">
+                  <span className="hm-mess-issue-list__status">{STATUS_LABELS[issue.status]}</span>
+                  <MessIssueEvidenceButton issue={issue} />
+                </div>
               </article>
             ))}
           </div>

@@ -6,8 +6,6 @@ import {
 } from "./commonSchemas.js";
 
 const complaintStatuses = ["Created", "In Progress", "Resolved", "Closed"];
-const messIssueStatuses = ["Pending", "In Progress", "Resolved"];
-
 const isCalendarDate = (value) => {
   const date = new Date(`${value}T00:00:00.000Z`);
 
@@ -83,21 +81,6 @@ export const menuRequestSchema = {
     breakfast: mealValue,
     lunch: mealValue,
     dinner: mealValue,
-  }),
-};
-
-export const messIssueCreationSchema = {
-  body: z.strictObject({
-    issueType: requiredText("Issue type", 100),
-    mealType: requiredText("Meal type", 100),
-    description: requiredText("Description", 2000),
-  }),
-};
-
-export const messIssueStatusSchema = {
-  params: idParamsSchema,
-  body: z.strictObject({
-    status: z.enum(messIssueStatuses),
   }),
 };
 

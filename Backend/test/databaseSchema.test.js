@@ -46,6 +46,11 @@ import {
   leaveStatusEnum,
   messMealTypeEnum,
   messFeedbacks,
+  messIssueAttachments,
+  messIssueEvents,
+  messIssues,
+  messIssueStatusEnum,
+  messIssueTypeEnum,
   messMenuItems,
   messMenus,
   messMenuVersions,
@@ -98,6 +103,30 @@ test("mess feedback stores one validated rating per student menu meal", () => {
     uniqueRating.config.columns.map((column) => column.name),
     ["student_user_id", "menu_id", "meal_type"]
   );
+});
+
+test("mess issues keep hostel scope, workflow history, and private evidence metadata", () => {
+  const issueConfig = getTableConfig(messIssues);
+  const eventConfig = getTableConfig(messIssueEvents);
+  const attachmentConfig = getTableConfig(messIssueAttachments);
+
+  assert.deepEqual(messIssueStatusEnum.enumValues, ["reported", "in_progress", "resolved"]);
+  assert.deepEqual(messIssueTypeEnum.enumValues, [
+    "food_quality",
+    "hygiene",
+    "quantity",
+    "staff_behavior",
+    "other",
+  ]);
+  assert.equal(messIssues.hostelId.notNull, true);
+  assert.equal(messIssues.reportedByUserId.notNull, true);
+  assert.equal(messIssues.description.notNull, true);
+  assert.ok(issueConfig.checks.some((entry) => entry.name === "mess_issues_description_check"));
+  assert.equal(eventConfig.foreignKeys.length, 2);
+  assert.equal(messIssueEvents.actorName.notNull, true);
+  assert.equal(attachmentConfig.foreignKeys.length, 2);
+  assert.equal(messIssueAttachments.storageKey.isUnique, true);
+  assert.equal(messIssueAttachments.sha256.notNull, true);
 });
 
 test("database enums constrain supported roles and account states", () => {

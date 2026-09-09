@@ -40,6 +40,8 @@ export const AUDIT_ACTIONS = Object.freeze({
   MESS_MENU_PUBLISHED: "mess.menu.published",
   MESS_MENU_UPDATED: "mess.menu.updated",
   MESS_FEEDBACK_SUBMITTED: "mess.feedback.submitted",
+  MESS_ISSUE_REPORTED: "mess.issue.reported",
+  MESS_ISSUE_STATUS_CHANGED: "mess.issue.status-changed",
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
@@ -56,4 +58,5 @@ export const AUDIT_RESOURCE_TYPES = Object.freeze({
   GATE_EVENT: "gate_event",
   MESS_MENU: "mess_menu",
   MESS_FEEDBACK: "mess_feedback",
+  MESS_ISSUE: "mess_issue",
 });
