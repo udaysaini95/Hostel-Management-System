@@ -102,7 +102,7 @@ function App() {
             />
           </Route>
 
-          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.GATE_TERMINAL} />}>
+          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.GATE_ACTIVITY} />}>
             <Route path="/guard/terminal" element={<GuardTerminal />} />
           </Route>
         </Route>

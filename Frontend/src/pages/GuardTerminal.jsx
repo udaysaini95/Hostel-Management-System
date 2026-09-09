@@ -1,356 +1,358 @@
-import React, { useCallback, useEffect, useState } from "react";
-import api from "../api/axios";
+import { useCallback, useEffect, useState } from "react";
+import { Camera, Search, ShieldCheck } from "lucide-react";
 import { getApiErrorMessage } from "../api/errors.js";
-import { EmptyState, ErrorState, LoadingState } from "../components/ui/index.js";
+import { useAuth } from "../auth/authContext.js";
+import { USER_ROLES } from "../auth/roles.js";
+import {
+  Button,
+  Input,
+  PageHeader,
+  Panel,
+} from "../components/ui/index.js";
 import { useToast } from "../feedback/toastContext.js";
-import { 
-  ShieldCheck, 
-  Search, 
-  Camera, 
-  CameraOff, 
-  CheckCircle2, 
-  XCircle, 
-  LogOut, 
-  LogIn, 
-  Calendar, 
-  Users
-} from "lucide-react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import {
+  listGateMovements,
+  listOutsideRoster,
+  recordGateMovement,
+  verifyGatePass,
+} from "../gate/gateApi.js";
+import { GateScanner } from "../gate/GateScanner.jsx";
+import { GateVerificationResult } from "../gate/GateVerificationResult.jsx";
+import { MovementHistory } from "../gate/MovementHistory.jsx";
+import { OutsideRoster } from "../gate/OutsideRoster.jsx";
+import {
+  createMovementKey,
+  normalizeGateCredential,
+  validateGateCredential,
+} from "../gate/gateView.js";
+
+const EMPTY_ROSTER_PAGE = Object.freeze({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  totalPages: 0,
+});
+
+const EMPTY_HISTORY_PAGE = Object.freeze({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  totalPages: 0,
+});
 
 const GuardTerminal = () => {
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const [actionSuccess, setActionSuccess] = useState("");
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [outsideStudents, setOutsideStudents] = useState([]);
-  const [rosterLoading, setRosterLoading] = useState(true);
-  const [rosterError, setRosterError] = useState("");
+  const { user } = useAuth();
+  const canOperate = [USER_ROLES.GUARD, USER_ROLES.ADMIN].includes(user?.role);
   const { showToast } = useToast();
 
-  const fetchLiveRoster = useCallback(async () => {
+  const [credential, setCredential] = useState("");
+  const [credentialError, setCredentialError] = useState("");
+  const [verifiedCredential, setVerifiedCredential] = useState("");
+  const [verification, setVerification] = useState(null);
+  const [verificationError, setVerificationError] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [movementKey, setMovementKey] = useState("");
+  const [movement, setMovement] = useState(null);
+  const [movementError, setMovementError] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const [roster, setRoster] = useState([]);
+  const [rosterPagination, setRosterPagination] = useState(EMPTY_ROSTER_PAGE);
+  const [rosterPage, setRosterPage] = useState(1);
+  const [rosterSearchDraft, setRosterSearchDraft] = useState("");
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [overdue, setOverdue] = useState("all");
+  const [generatedAt, setGeneratedAt] = useState("");
+  const [rosterLoading, setRosterLoading] = useState(true);
+  const [rosterRefreshing, setRosterRefreshing] = useState(false);
+  const [rosterError, setRosterError] = useState("");
+
+  const [history, setHistory] = useState([]);
+  const [historyPagination, setHistoryPagination] = useState(EMPTY_HISTORY_PAGE);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historySearchDraft, setHistorySearchDraft] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyMovement, setHistoryMovement] = useState("all");
+  const [verificationType, setVerificationType] = useState("all");
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
+
+  const loadRoster = useCallback(async ({ background = false } = {}) => {
     try {
+      if (background) setRosterRefreshing(true);
+      else setRosterLoading(true);
       setRosterError("");
-      const response = await api.get("/api/gate/active-outside");
-      setOutsideStudents(response.data || []);
-    } catch (err) {
+      const result = await listOutsideRoster({
+        page: rosterPage,
+        pageSize: 10,
+        ...(rosterSearch ? { search: rosterSearch } : {}),
+        ...(overdue === "overdue" ? { overdue: true } : {}),
+        ...(overdue === "on-time" ? { overdue: false } : {}),
+      });
+      setRoster(result?.data ?? []);
+      setRosterPagination(result?.pagination ?? EMPTY_ROSTER_PAGE);
+      setGeneratedAt(result?.generatedAt ?? new Date().toISOString());
+    } catch (error) {
       setRosterError(
-        getApiErrorMessage(err, "The live outside-campus roster could not be loaded.")
+        getApiErrorMessage(error, "The live outside roster could not be loaded.")
       );
     } finally {
       setRosterLoading(false);
+      setRosterRefreshing(false);
+    }
+  }, [overdue, rosterPage, rosterSearch]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      setHistoryError("");
+      const result = await listGateMovements({
+        page: historyPage,
+        pageSize: 10,
+        ...(historySearch ? { search: historySearch } : {}),
+        ...(historyMovement !== "all" ? { movement: historyMovement } : {}),
+        ...(verificationType === "override" ? { overrideOnly: true } : {}),
+        ...(verificationType === "standard" ? { overrideOnly: false } : {}),
+      });
+      setHistory(result?.data ?? []);
+      setHistoryPagination(result?.pagination ?? EMPTY_HISTORY_PAGE);
+    } catch (error) {
+      setHistoryError(
+        getApiErrorMessage(error, "Recent gate movements could not be loaded.")
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyMovement, historyPage, historySearch, verificationType]);
+
+  useEffect(() => {
+    loadRoster();
+  }, [loadRoster]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(
+      () => loadRoster({ background: true }),
+      15_000
+    );
+    return () => window.clearInterval(intervalId);
+  }, [loadRoster]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  const verifyCredential = useCallback(async (rawCredential) => {
+    const cleanCredential = normalizeGateCredential(rawCredential);
+    const validationError = validateGateCredential(cleanCredential);
+
+    setCredentialError(validationError);
+    setVerificationError("");
+    setMovementError("");
+    setMovement(null);
+    setVerifiedCredential("");
+    setMovementKey("");
+    if (validationError) return;
+
+    try {
+      setVerifying(true);
+      const result = await verifyGatePass(cleanCredential);
+      setVerification(result);
+      setVerifiedCredential(cleanCredential);
+      setMovementKey(
+        result?.permittedAction
+          ? createMovementKey(result.permittedAction)
+          : ""
+      );
+    } catch (error) {
+      setVerification(null);
+      setVerificationError(
+        getApiErrorMessage(error, "The gate pass could not be verified.")
+      );
+    } finally {
+      setVerifying(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchLiveRoster();
-    const interval = setInterval(fetchLiveRoster, 15000); // 15s polling
-    return () => clearInterval(interval);
-  }, [fetchLiveRoster]);
+  const submitVerification = (event) => {
+    event.preventDefault();
+    verifyCredential(credential);
+  };
 
-  const verifyPass = useCallback(async (searchValue) => {
-    const value = searchValue.trim();
-    if (!value) return;
+  const handleScan = useCallback((scannedCredential) => {
+    setScannerOpen(false);
+    setCredential(scannedCredential);
+    verifyCredential(scannedCredential);
+  }, [verifyCredential]);
 
-    setLoading(true);
-    setError("");
-    setActionSuccess("");
-    setResult(null);
-
+  const recordMovement = async (action) => {
     try {
-      const response = await api.post("/api/gate/verify", {
-        identifier: value,
+      setRecording(true);
+      setMovementError("");
+      const result = await recordGateMovement({
+        credential: verifiedCredential,
+        action,
+        idempotencyKey: movementKey,
       });
-      setResult(response.data);
-    } catch (err) {
-      setError(
+      setMovement(result);
+      showToast({
+        tone: "success",
+        title: action === "exit" ? "Student exit recorded" : "Student return recorded",
+        message: "The hostel roster and movement history have been updated.",
+      });
+      await Promise.all([
+        loadRoster({ background: true }),
+        loadHistory(),
+      ]);
+    } catch (error) {
+      setMovementError(
         getApiErrorMessage(
-          err,
-          "No valid pass was found for that roll number or pass code."
+          error,
+          "The movement was not recorded. Retry with the same verified pass."
         )
       );
     } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // In-Browser HTML5 Camera Scanner
-  useEffect(() => {
-    let scanner = null;
-    if (scannerOpen) {
-      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-      scanner.render(
-        (decodedText) => {
-          setQuery(decodedText);
-          verifyPass(decodedText);
-          scanner.clear();
-          setScannerOpen(false);
-        },
-        () => {
-          // ignore transient scan frames
-        }
-      );
-    }
-
-    return () => {
-      if (scanner) {
-        scanner.clear().catch(() => {});
-      }
-    };
-  }, [scannerOpen, verifyPass]);
-
-  const handleLogAction = async (action) => {
-    if (!result || !result.leave) return;
-
-    setLoading(true);
-    try {
-      const res = await api.post("/api/gate/log-action", {
-        leaveId: result.leave.leaveId || result.leave.id,
-        action: action, // "EXIT" or "ENTRY"
-      });
-
-      setActionSuccess(res.data.message);
-      showToast({
-        tone: "success",
-        title: action === "EXIT" ? "Student exit recorded" : "Student return recorded",
-        message: res.data.message,
-      });
-      await verifyPass(query);
-      await fetchLiveRoster();
-    } catch (err) {
-      showToast({
-        tone: "danger",
-        title: "Gate movement was not recorded",
-        message: getApiErrorMessage(err, "Verify the pass state and try again."),
-      });
-    } finally {
-      setLoading(false);
+      setRecording(false);
     }
   };
 
+  const submitRosterFilters = (event) => {
+    event.preventDefault();
+    const nextSearch = rosterSearchDraft.trim();
+    setRosterPage(1);
+    setRosterSearch(nextSearch);
+    if (rosterPage === 1 && rosterSearch === nextSearch) loadRoster();
+  };
+
+  const submitHistoryFilters = (event) => {
+    event.preventDefault();
+    const nextSearch = historySearchDraft.trim();
+    setHistoryPage(1);
+    setHistorySearch(nextSearch);
+    if (historyPage === 1 && historySearch === nextSearch) loadHistory();
+  };
+
   return (
-    <div className="hm-page-stack">
-      
-      {/* Header Banner */}
-      <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[11px] font-mono text-emerald-800 mb-1">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Gate Security Terminal
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Hostel Gate Pass & Attendance Verification
-          </h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Verify student gate outpasses via Roll Number, Pass Code, or Camera QR Scanner.
-          </p>
-        </div>
+    <div className="hm-page-stack hm-page-stack--wide hm-gate-terminal">
+      <PageHeader
+        eyebrow={canOperate ? "Gate security" : "Hostel operations"}
+        title={canOperate ? "Gate verification terminal" : "Gate activity"}
+        description={
+          canOperate
+            ? "Verify one secure pass, perform only the server-authorized movement, and monitor live hostel activity."
+            : "Monitor students outside campus and review gate movement history for your assigned hostels."
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setScannerOpen(!scannerOpen)}
-            className={`py-2 px-3.5 rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 ${
-              scannerOpen 
-                ? "bg-slate-800 text-white" 
-                : "bg-indigo-600 hover:bg-indigo-700 text-white"
-            }`}
-          >
-            {scannerOpen ? <CameraOff className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
-            <span>{scannerOpen ? "Close Camera" : "Open Camera Scanner"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Camera Scanner Viewport */}
-      {scannerOpen && (
-        <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs text-center space-y-3">
-          <h3 className="text-sm font-bold text-slate-900">Point Camera at Student QR Code</h3>
-          <div id="reader" className="w-full max-w-sm mx-auto overflow-hidden rounded-xl"></div>
-        </div>
-      )}
-
-      {/* Quick Search Bar */}
-      <div className="ui-panel p-5 rounded-2xl bg-white border-slate-200 shadow-xs">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            verifyPass(query);
-          }}
-          className="flex flex-col sm:flex-row items-center gap-3"
-        >
-          <div className="relative flex-1 w-full">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <Search className="w-4 h-4" />
+      {canOperate && (
+        <section className="hm-gate-verify" aria-labelledby="gate-verify-title">
+          <div className="hm-gate-section__heading">
+            <div>
+              <h2 id="gate-verify-title">Verify a gate pass</h2>
+              <p>Scan the student QR or enter the complete private pass token.</p>
             </div>
-            <input
-              type="text"
-              placeholder="Enter Student Roll No (e.g. 21BCS104) or Pass Code (e.g. LP-4821)..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg ui-input text-xs"
+          </div>
+
+          <Panel as="form" className="hm-gate-verify__controls" onSubmit={submitVerification}>
+            <Input
+              label="Gate-pass token"
+              placeholder="43-character token"
+              autoComplete="off"
+              spellCheck="false"
+              maxLength={70}
+              startIcon={<Search />}
+              error={credentialError}
+              value={credential}
+              onChange={(event) => {
+                setCredential(event.target.value);
+                setCredentialError("");
+                setVerification(null);
+                setVerificationError("");
+                setMovement(null);
+                setVerifiedCredential("");
+                setMovementKey("");
+              }}
             />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="w-full sm:w-auto py-2.5 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-          >
-            {loading ? "Verifying..." : "Verify Gate Pass"}
-          </button>
-        </form>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2.5">
-          <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Success Notification */}
-      {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionSuccess}</span>
-        </div>
-      )}
-
-      {/* Verification Card */}
-      {result && result.leave && (
-        <div className="ui-panel p-6 sm:p-8 rounded-2xl bg-white border-slate-200 shadow-sm space-y-6">
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-100 border border-indigo-200 text-indigo-700 flex items-center justify-center text-xl font-bold">
-                {result.leave.student?.name?.charAt(0) || "S"}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">{result.leave.student?.name || "Student"}</h2>
-                <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                  <span><strong>Roll No:</strong> {result.leave.student?.rollNo || "N/A"}</span>
-                  <span>•</span>
-                  <span><strong>Room:</strong> {result.leave.student?.roomNo || "N/A"}</span>
-                  <span>•</span>
-                  <span><strong>Pass:</strong> <span className="font-mono font-bold text-slate-900">{result.leave.passCode}</span></span>
-                </div>
-              </div>
-            </div>
-
-            <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
-              result.leave.status === "Approved"
-                ? "badge-resolved"
-                : result.leave.status === "Exited"
-                ? "badge-pending"
-                : "badge-created"
-            }`}>
-              {result.leave.status === "Approved" 
-                ? "🟢 Approved (Ready to Exit)" 
-                : result.leave.status === "Exited" 
-                ? "🟡 Outside Campus (Ready for Entry)" 
-                : result.leave.status}
-            </span>
-          </div>
-
-          {/* Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Approved Dates</span>
-              <div className="text-slate-800 font-medium flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span>{result.leave.fromDate} ➔ {result.leave.toDate}</span>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Reason for Leave</span>
-              <div className="text-slate-800 font-medium">{result.leave.reason || "N/A"}</div>
-            </div>
-          </div>
-
-          {/* State Action Controls */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-            {result.canExit && (
-              <button
-                onClick={() => handleLogAction("EXIT")}
-                disabled={loading}
-                className="flex-1 w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2"
+            <div className="hm-gate-verify__buttons">
+              <Button
+                type="submit"
+                variant="primary"
+                size="touch"
+                loading={verifying}
+                loadingLabel="Verifying pass"
               >
-                <LogOut className="w-4 h-4" />
-                <span>ALLOW & LOG EXIT (DEPARTURE)</span>
-              </button>
-            )}
-
-            {result.canEnter && (
-              <button
-                onClick={() => handleLogAction("ENTRY")}
-                disabled={loading}
-                className="flex-1 w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2"
+                Verify pass
+              </Button>
+              <Button
+                size="touch"
+                leadingIcon={<Camera aria-hidden="true" />}
+                onClick={() => setScannerOpen((open) => !open)}
               >
-                <LogIn className="w-4 h-4" />
-                <span>LOG ENTRY (STUDENT RETURNED)</span>
-              </button>
-            )}
-          </div>
+                {scannerOpen ? "Close camera" : "Scan QR"}
+              </Button>
+            </div>
+          </Panel>
 
-        </div>
+          {scannerOpen && (
+            <GateScanner onScan={handleScan} onClose={() => setScannerOpen(false)} />
+          )}
+
+          {verificationError && (
+            <div className="hm-gate-verify__error" role="alert">
+              <ShieldCheck aria-hidden="true" /> {verificationError}
+            </div>
+          )}
+
+          <GateVerificationResult
+            verification={verification}
+            movement={movement}
+            actionError={movementError}
+            recording={recording}
+            onRecord={recordMovement}
+          />
+        </section>
       )}
 
-      {/* Bottom Section: Real-time Live Outside Roster */}
-      <div className="space-y-4 pt-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-4 h-4 text-amber-600" />
-            <span>Students Currently Outside Campus ({outsideStudents.length})</span>
-          </h2>
-          <span className="text-[11px] text-slate-500 font-mono">Live Sync (15s)</span>
-        </div>
+      <OutsideRoster
+        records={roster}
+        pagination={rosterPagination}
+        generatedAt={generatedAt}
+        loading={rosterLoading}
+        refreshing={rosterRefreshing}
+        error={rosterError}
+        searchDraft={rosterSearchDraft}
+        overdue={overdue}
+        onSearchDraftChange={setRosterSearchDraft}
+        onOverdueChange={(value) => {
+          setOverdue(value);
+          setRosterPage(1);
+        }}
+        onSubmit={submitRosterFilters}
+        onRetry={() => loadRoster()}
+        onPageChange={setRosterPage}
+      />
 
-        {rosterLoading ? (
-          <LoadingState label="Loading the outside-campus roster" rows={2} compact />
-        ) : rosterError ? (
-          <ErrorState
-            title="Live roster is unavailable"
-            description={rosterError}
-            onRetry={fetchLiveRoster}
-          />
-        ) : outsideStudents.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No students are outside campus"
-            description="All hostel residents are currently accounted for."
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {outsideStudents.map((s) => (
-              <div key={s.leaveId} className="ui-card p-4 rounded-xl bg-white border-slate-200 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-bold text-slate-900">{s.student?.name}</div>
-                  <div className="text-[11px] text-slate-500">
-                    Roll: {s.student?.rollNo || "N/A"} • Room: {s.student?.roomNo || "N/A"}
-                  </div>
-                  <div className="text-[10px] text-amber-700 font-mono mt-1">
-                    Exited at: {s.leftAt ? new Date(s.leftAt).toLocaleTimeString() : "Earlier"}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setQuery(s.passCode || s.student?.rollNo || "");
-                    verifyPass(s.passCode || s.student?.rollNo || "");
-                  }}
-                  className="py-1.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 transition-colors"
-                >
-                  Check-In
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+      <MovementHistory
+        records={history}
+        pagination={historyPagination}
+        loading={historyLoading}
+        error={historyError}
+        searchDraft={historySearchDraft}
+        movement={historyMovement}
+        verificationType={verificationType}
+        onSearchDraftChange={setHistorySearchDraft}
+        onMovementChange={(value) => {
+          setHistoryMovement(value);
+          setHistoryPage(1);
+        }}
+        onVerificationTypeChange={(value) => {
+          setVerificationType(value);
+          setHistoryPage(1);
+        }}
+        onSubmit={submitHistoryFilters}
+        onRetry={loadHistory}
+        onPageChange={setHistoryPage}
+      />
     </div>
   );
 };

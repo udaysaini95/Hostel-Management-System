@@ -60,6 +60,18 @@ const operationsNavigation = Object.freeze([
   { label: "Mess", path: "/admin/mess", icon: Utensils, exact: true },
 ]);
 
+const gateActivityNavigation = Object.freeze({
+  label: "Gate activity",
+  path: "/guard/terminal",
+  icon: QrCode,
+  exact: true,
+});
+
+const wardenNavigation = Object.freeze([
+  ...operationsNavigation,
+  gateActivityNavigation,
+]);
+
 const adminNavigation = Object.freeze([
   operationsNavigation[0],
   {
@@ -69,12 +81,12 @@ const adminNavigation = Object.freeze([
     exact: true,
   },
   ...operationsNavigation.slice(1),
-  { label: "Gate terminal", path: "/guard/terminal", icon: QrCode, exact: true },
+  { ...gateActivityNavigation, label: "Gate terminal" },
 ]);
 
 const roleNavigation = Object.freeze({
   [USER_ROLES.STUDENT]: studentNavigation,
-  [USER_ROLES.WARDEN]: operationsNavigation,
+  [USER_ROLES.WARDEN]: wardenNavigation,
   [USER_ROLES.ADMIN]: adminNavigation,
   [USER_ROLES.GUARD]: Object.freeze([
     { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },

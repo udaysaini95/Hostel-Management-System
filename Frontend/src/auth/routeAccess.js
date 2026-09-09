@@ -9,7 +9,11 @@ export const ROLE_GROUPS = Object.freeze({
   MAINTENANCE: roles(USER_ROLES.MAINTENANCE),
   OPERATIONS: roles(USER_ROLES.ADMIN, USER_ROLES.WARDEN),
   MESS_READER: roles(USER_ROLES.STUDENT, USER_ROLES.MAINTENANCE),
-  GATE_TERMINAL: roles(USER_ROLES.ADMIN, USER_ROLES.GUARD),
+  GATE_ACTIVITY: roles(
+    USER_ROLES.ADMIN,
+    USER_ROLES.WARDEN,
+    USER_ROLES.GUARD
+  ),
 });
 
 export const ROUTE_ACCESS = Object.freeze({
@@ -27,7 +31,7 @@ export const ROUTE_ACCESS = Object.freeze({
   "/admin/complaints": ROLE_GROUPS.OPERATIONS,
   "/admin/leaves": ROLE_GROUPS.OPERATIONS,
   "/admin/mess": ROLE_GROUPS.OPERATIONS,
-  "/guard/terminal": ROLE_GROUPS.GATE_TERMINAL,
+  "/guard/terminal": ROLE_GROUPS.GATE_ACTIVITY,
   "/unauthorized": ROLE_GROUPS.ALL,
 });
 

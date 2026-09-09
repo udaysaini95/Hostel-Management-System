@@ -38,6 +38,7 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
+    "/guard/terminal",
   ]);
   assert.deepEqual(pathsForRole("admin"), [
     "/admin/dashboard",

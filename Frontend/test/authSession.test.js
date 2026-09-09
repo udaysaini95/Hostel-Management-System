@@ -81,7 +81,7 @@ test("route policy matches the current role boundaries", () => {
     canRoleAccessPath("admin", "/admin/student-approvals"),
     true
   );
-  assert.equal(canRoleAccessPath("warden", "/guard/terminal"), false);
+  assert.equal(canRoleAccessPath("warden", "/guard/terminal"), true);
   assert.equal(canRoleAccessPath("admin", "/guard/terminal"), true);
   assert.equal(canRoleAccessPath("guard", "/guard/terminal"), true);
   assert.equal(canRoleAccessPath("maintenance", "/student/mess"), true);
@@ -115,7 +115,7 @@ test("the application bootstraps auth and guards every private route group", asy
   assert.match(appSource, /ROLE_GROUPS\.OPERATIONS/);
   assert.match(appSource, /ROLE_GROUPS\.ADMIN/);
   assert.match(appSource, /ROLE_GROUPS\.MESS_READER/);
-  assert.match(appSource, /ROLE_GROUPS\.GATE_TERMINAL/);
+  assert.match(appSource, /ROLE_GROUPS\.GATE_ACTIVITY/);
   assert.match(appSource, /ROLE_GROUPS\.MAINTENANCE/);
   assert.match(appSource, /path="\/unauthorized"/);
   assert.match(appSource, /path="\*"/);
