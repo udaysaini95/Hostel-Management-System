@@ -1,216 +1,356 @@
-import React, { useEffect, useState } from "react";
-import api from "../api/axios";
+import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2, Search, ShieldCheck } from "lucide-react";
 import { getApiErrorMessage } from "../api/errors.js";
-import { buildUploadUrl } from "../config/serviceUrls";
 import {
-  ConfirmationDialog,
+  Badge,
+  Button,
   EmptyState,
   ErrorState,
+  Input,
   LoadingState,
+  PageHeader,
+  Panel,
+  Select,
+  StatusBadge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
 } from "../components/ui/index.js";
 import { useToast } from "../feedback/toastContext.js";
-import { 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  Calendar, 
-  User, 
-  Download
-} from "lucide-react";
+import { LeaveDecisionDialog } from "../leave/LeaveDecisionDialog.jsx";
+import { listLeaveReviewQueue } from "../leave/leaveReviewApi.js";
+import {
+  formatLeaveDateTime,
+  getLeaveStatusLabel,
+} from "../leave/leaveView.js";
+import {
+  formatLeaveRange,
+  getReviewWarning,
+} from "../leave/leaveReviewView.js";
+import { PaginationControls } from "../residents/PaginationControls.jsx";
+
+const EMPTY_PAGINATION = Object.freeze({
+  page: 1,
+  pageSize: 15,
+  total: 0,
+  totalPages: 0,
+});
+
+const statusOptions = Object.freeze([
+  ["pending", "Pending review"],
+  ["all", "All statuses"],
+  ["approved", "Approved"],
+  ["rejected", "Rejected"],
+  ["exited", "Currently outside"],
+  ["returned", "Returned"],
+  ["expired", "Expired"],
+]);
+
+const LeaveActions = ({ leave, onReview }) => {
+  if (leave.status !== "pending") {
+    return <span className="hm-leave-review__decided">Decision recorded</span>;
+  }
+
+  const approvalBlocked = getReviewWarning(leave)?.blocksApproval;
+
+  return (
+    <div className="hm-leave-review__actions">
+      <Button
+        variant="primary"
+        disabled={approvalBlocked}
+        onClick={() => onReview(leave, "approved")}
+      >
+        Approve
+      </Button>
+      <Button
+        variant="danger"
+        onClick={() => onReview(leave, "rejected")}
+      >
+        Reject
+      </Button>
+    </div>
+  );
+};
 
 const AdminLeaves = () => {
   const [leaves, setLeaves] = useState([]);
+  const [pagination, setPagination] = useState(EMPTY_PAGINATION);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState("pending");
+  const [searchDraft, setSearchDraft] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [decision, setDecision] = useState(null);
-  const [decisionLoading, setDecisionLoading] = useState(false);
+  const [review, setReview] = useState(null);
   const { showToast } = useToast();
 
-  const fetchLeaves = async ({ showLoading = true } = {}) => {
+  const loadQueue = useCallback(async ({ showLoading = true } = {}) => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
+      if (showLoading) setLoading(true);
       setLoadError("");
-      const res = await api.get("/api/leave/admin/all");
-      setLeaves(res.data || []);
-    } catch (err) {
+      const result = await listLeaveReviewQueue({
+        page,
+        pageSize: 15,
+        status,
+        ...(search ? { search } : {}),
+      });
+      setLeaves(result?.data ?? []);
+      setPagination(result?.pagination ?? EMPTY_PAGINATION);
+    } catch (error) {
       setLoadError(
-        getApiErrorMessage(err, "Leave applications could not be loaded.")
+        getApiErrorMessage(
+          error,
+          "The leave review queue could not be loaded."
+        )
       );
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
-  };
+  }, [page, search, status]);
 
   useEffect(() => {
-    fetchLeaves();
-  }, []);
+    loadQueue();
+  }, [loadQueue]);
 
-  const handleDecision = async () => {
-    if (!decision) {
-      return;
-    }
+  const submitFilters = (event) => {
+    event.preventDefault();
+    setPage(1);
+    setSearch(searchDraft.trim());
+  };
 
-    const leaveId = decision.leave.id || decision.leave._id;
-    const actionLabel = decision.action === "approve" ? "approved" : "rejected";
+  const resetFilters = () => {
+    setSearchDraft("");
+    setSearch("");
+    setStatus("pending");
+    setPage(1);
+  };
 
-    try {
-      setDecisionLoading(true);
-      await api.put(`/api/leave/admin/${decision.action}/${leaveId}`);
-      setDecision(null);
-      showToast({
-        tone: "success",
-        title: `Leave ${actionLabel}`,
-        message:
-          decision.action === "approve"
-            ? "The signed gate pass is ready for the student."
-            : "The student can now see that the request was rejected.",
-      });
-      await fetchLeaves({ showLoading: false });
-    } catch (err) {
-      showToast({
-        tone: "danger",
-        title: "Leave decision was not saved",
-        message: getApiErrorMessage(err, "Try again in a moment."),
-      });
-    } finally {
-      setDecisionLoading(false);
-    }
+  const openReview = (leave, outcome) => setReview({ leave, outcome });
+
+  const finishDecision = async (result) => {
+    const outcome = result.leaveRequest.status;
+    setReview(null);
+    showToast({
+      tone: "success",
+      title: outcome === "approved" ? "Leave approved" : "Leave rejected",
+      message:
+        outcome === "approved"
+          ? "A private gate pass is now available to the student."
+          : "The decision note is now visible in the request history.",
+    });
+    await loadQueue({ showLoading: false });
   };
 
   return (
-    <div className="hm-page-stack hm-page-stack--medium">
-      
-      {/* Header */}
-      <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Leave Applications & Digital PDF Outpasses
-          </h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Review student gate pass applications and issue Warden digital signatures.
-          </p>
-        </div>
-      </div>
+    <div className="hm-page-stack hm-page-stack--wide hm-leave-review">
+      <PageHeader
+        eyebrow="Leave operations"
+        title="Leave review queue"
+        description="Review requests from students in your assigned hostels and record an auditable decision."
+      />
 
-      {/* Grid */}
+      <Panel
+        as="form"
+        className="hm-leave-review__filters"
+        onSubmit={submitFilters}
+      >
+        <Input
+          label="Search requests"
+          placeholder="Student, roll number, email, or reason"
+          maxLength={100}
+          startIcon={<Search />}
+          value={searchDraft}
+          onChange={(event) => setSearchDraft(event.target.value)}
+        />
+        <Select
+          label="Request status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+        >
+          {statusOptions.map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </Select>
+        <div className="hm-leave-review__filter-actions">
+          <Button type="submit" variant="primary">Search</Button>
+          <Button onClick={resetFilters}>Reset</Button>
+        </div>
+      </Panel>
+
       {loading ? (
-        <LoadingState label="Loading leave applications" rows={4} />
+        <LoadingState label="Loading leave review queue" rows={5} />
       ) : loadError ? (
         <ErrorState
-          title="Leave applications are unavailable"
+          title="Leave review queue unavailable"
           description={loadError}
-          onRetry={fetchLeaves}
+          onRetry={loadQueue}
         />
       ) : leaves.length === 0 ? (
         <EmptyState
           icon={CheckCircle2}
-          title="No leave applications"
-          description="New student gate-pass requests will appear here for review."
+          title={
+            status === "pending" && !search
+              ? "No requests awaiting review"
+              : "No matching leave requests"
+          }
+          description={
+            status === "pending" && !search
+              ? "New student leave requests will appear here."
+              : "Adjust the status or search terms to find another request."
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {leaves.map((l) => {
-            const leaveId = l.id || l._id;
-            const passUrl = buildUploadUrl(l.pdfFile);
-            return (
-              <div key={leaveId} className="ui-card p-5 rounded-xl bg-white border-slate-200 flex flex-col justify-between space-y-3">
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                      <User className="w-3 h-3 text-slate-500" />
-                      {l.student?.name || "Student"}
-                    </span>
+        <Panel padding="none" className="hm-leave-review__results">
+          <Table
+            caption="Student leave requests"
+            hideCaption
+            wrapperClassName="hm-leave-review__table"
+          >
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell>Student</TableHeaderCell>
+                <TableHeaderCell>Leave details</TableHeaderCell>
+                <TableHeaderCell>Hostel and room</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+                <TableHeaderCell className="hm-table__actions">
+                  Actions
+                </TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {leaves.map((leave) => {
+                const warning = getReviewWarning(leave);
+                return (
+                  <TableRow key={leave.id}>
+                    <TableCell>
+                      <strong className="hm-leave-review__student-name">
+                        {leave.student.name}
+                      </strong>
+                      <span className="hm-leave-review__muted">
+                        {leave.student.rollNo}
+                      </span>
+                      <span className="hm-leave-review__muted">
+                        Submitted {formatLeaveDateTime(leave.createdAt)}
+                      </span>
+                      {leave.isEmergency && (
+                        <Badge tone="danger">Emergency</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="hm-leave-review__range">
+                        {formatLeaveRange(leave)}
+                      </span>
+                      <span className="hm-leave-review__reason">
+                        {leave.reason}
+                      </span>
+                      {warning && (
+                        <span
+                          className={`hm-leave-review__inline-warning hm-leave-review__inline-warning--${warning.tone}`}
+                        >
+                          {warning.title}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <strong>{leave.hostel.code}</strong>
+                      <span className="hm-leave-review__muted">
+                        {leave.hostel.name}
+                      </span>
+                      <span className="hm-leave-review__room">
+                        {leave.room?.label ?? "Room unavailable"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={leave.status}>
+                        {getLeaveStatusLabel(leave.status)}
+                      </StatusBadge>
+                      {leave.decision && (
+                        <span className="hm-leave-review__decision-note">
+                          {leave.decision.note}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell actions>
+                      <LeaveActions leave={leave} onReview={openReview} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
 
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold font-mono ${
-                      l.status === "Approved"
-                        ? "badge-resolved"
-                        : l.status === "Rejected"
-                        ? "badge-rejected"
-                        : "badge-pending"
-                    }`}>
-                      {l.status}
-                    </span>
+          <div className="hm-leave-review__mobile-list">
+            {leaves.map((leave) => {
+              const warning = getReviewWarning(leave);
+              return (
+                <article
+                  key={leave.id}
+                  className="hm-leave-review__mobile-record"
+                >
+                  <div className="hm-leave-review__mobile-heading">
+                    <div>
+                      <strong>{leave.student.name}</strong>
+                      <span>
+                        {leave.student.rollNo} · {leave.room?.label ?? "No room"}
+                      </span>
+                    </div>
+                    <StatusBadge status={leave.status}>
+                      {getLeaveStatusLabel(leave.status)}
+                    </StatusBadge>
                   </div>
-
-                  <div className="text-xs text-slate-600 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <span><strong className="text-slate-800">Dates:</strong> {l.fromDate} ➔ {l.toDate}</span>
-                  </div>
-
-                  <p className="text-slate-700 text-xs leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                    <strong className="text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">Reason</strong>
-                    {l.reason}
+                  <p className="hm-leave-review__range">
+                    {formatLeaveRange(leave)}
                   </p>
-                </div>
-
-                {l.status === "Pending" ? (
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() =>
-                        setDecision({ action: "approve", leave: l })
-                      }
-                      className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center justify-center gap-1"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Approve & Sign PDF</span>
-                    </button>
-                    <button
-                      onClick={() =>
-                        setDecision({ action: "reject", leave: l })
-                      }
-                      className="py-2 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
+                  <p className="hm-leave-review__reason">{leave.reason}</p>
+                  <div className="hm-leave-review__mobile-meta">
+                    <span>{leave.hostel.code}</span>
+                    <span>Submitted {formatLeaveDateTime(leave.createdAt)}</span>
+                    {leave.isEmergency && (
+                      <Badge tone="danger">Emergency</Badge>
+                    )}
                   </div>
-                ) : l.status === "Approved" && passUrl ? (
-                  <a
-                    href={passUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>View Approved PDF Pass</span>
-                  </a>
-                ) : (
-                  <div className="text-xs text-rose-700 font-medium pt-1">
-                    Application rejected by Warden.
-                  </div>
-                )}
+                  {warning && (
+                    <div
+                      className={`hm-leave-review__warning hm-leave-review__warning--${warning.tone}`}
+                    >
+                      <ShieldCheck aria-hidden="true" />
+                      <div>
+                        <strong>{warning.title}</strong>
+                        <span>{warning.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  {leave.decision && (
+                    <p className="hm-leave-review__decision-note">
+                      Decision note: {leave.decision.note}
+                    </p>
+                  )}
+                  <LeaveActions leave={leave} onReview={openReview} />
+                </article>
+              );
+            })}
+          </div>
 
-              </div>
-            );
-          })}
-        </div>
+          <PaginationControls
+            pagination={pagination}
+            onPageChange={setPage}
+            disabled={loading}
+            label="Leave review pages"
+          />
+        </Panel>
       )}
 
-      <ConfirmationDialog
-        open={Boolean(decision)}
-        title={
-          decision?.action === "approve"
-            ? "Approve this leave request?"
-            : "Reject this leave request?"
-        }
-        description={
-          decision?.action === "approve"
-            ? "HostelMate will issue the student's signed gate pass."
-            : "The student will see the rejected status for this request."
-        }
-        confirmLabel={decision?.action === "approve" ? "Approve leave" : "Reject leave"}
-        loadingLabel={decision?.action === "approve" ? "Approving" : "Rejecting"}
-        tone={decision?.action === "reject" ? "danger" : "default"}
-        loading={decisionLoading}
-        onConfirm={handleDecision}
-        onDismiss={() => setDecision(null)}
+      <LeaveDecisionDialog
+        review={review}
+        onDismiss={() => setReview(null)}
+        onDecided={finishDecision}
       />
-
     </div>
   );
 };

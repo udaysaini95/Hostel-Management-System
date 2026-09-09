@@ -46,3 +46,22 @@ export const studentLeaveListSchema = {
       .optional(),
   }),
 };
+
+export const leaveReviewListSchema = {
+  query: z.strictObject({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(15),
+    status: z
+      .enum([
+        "all",
+        "pending",
+        "rejected",
+        "approved",
+        "exited",
+        "returned",
+        "expired",
+      ])
+      .default("pending"),
+    search: z.string().trim().max(100).default(""),
+  }),
+};

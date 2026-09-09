@@ -13,6 +13,7 @@ import {
   createLeaveRequest,
   listStudentLeaveRequests,
 } from "../services/leaveRequestService.js";
+import { listLeaveRequestsForReview } from "../services/leaveReviewService.js";
 import { decideLeaveRequest } from "../services/leaveDecisionService.js";
 import {
   getGatePass,
@@ -36,6 +37,15 @@ export const listMyStudentLeaveRequests = async (req, res) => {
     return res.json(result);
   } catch (error) {
     return handleControllerError(res, error, "List Student Leave Requests Error");
+  }
+};
+
+export const listLeaveReviewQueue = async (req, res) => {
+  try {
+    const result = await listLeaveRequestsForReview(db, req.user, req.query);
+    return res.json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "List Leave Review Queue Error");
   }
 };
 

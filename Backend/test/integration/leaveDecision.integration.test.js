@@ -24,6 +24,7 @@ import { verifySecureGatePass } from "../../src/services/gatePassVerificationSer
 import { recordGateMovement } from "../../src/services/gateMovementService.js";
 import { decideLeaveRequest } from "../../src/services/leaveDecisionService.js";
 import { createLeaveRequest } from "../../src/services/leaveRequestService.js";
+import { listLeaveRequestsForReview } from "../../src/services/leaveReviewService.js";
 
 const { Pool } = pg;
 
@@ -210,6 +211,48 @@ before(async () => {
 
 after(async () => {
   await pool.end();
+});
+
+test("leave review queue is pending by default and respects hostel scope", async () => {
+  const wardenQueue = await listLeaveRequestsForReview(
+    database,
+    { id: firstWarden.id, role: USER_ROLES.WARDEN }
+  );
+  const otherHostelQueue = await listLeaveRequestsForReview(
+    database,
+    { id: secondWarden.id, role: USER_ROLES.WARDEN }
+  );
+  const searchResult = await listLeaveRequestsForReview(
+    database,
+    { id: administrator.id, role: USER_ROLES.ADMIN },
+    { status: "all", search: "LD-002" }
+  );
+
+  assert.equal(wardenQueue.pagination.total, 5);
+  assert.equal(wardenQueue.data[0].isEmergency, true);
+  assert.equal(wardenQueue.data.every((leave) => leave.status === "pending"), true);
+  assert.equal(wardenQueue.data[0].room.label, "A-201");
+  assert.deepEqual(wardenQueue.data[0].reviewWarnings.activeRequests, []);
+  assert.equal(otherHostelQueue.pagination.total, 0);
+  assert.equal(searchResult.pagination.total, 1);
+  assert.equal(searchResult.data[0].student.rollNo, "LD-002");
+
+  await assert.rejects(
+    listLeaveRequestsForReview(
+      database,
+      { id: suspendedWarden.id, role: USER_ROLES.WARDEN }
+    ),
+    (error) =>
+      error.statusCode === 403 && error.code === "STAFF_ACCOUNT_INACTIVE"
+  );
+  await assert.rejects(
+    listLeaveRequestsForReview(
+      database,
+      { id: students[0].id, role: USER_ROLES.STUDENT }
+    ),
+    (error) =>
+      error.statusCode === 403 && error.code === "LEAVE_REVIEW_DENIED"
+  );
 });
 
 test("warden approval records one decision, status, timeline, and audit event", async () => {

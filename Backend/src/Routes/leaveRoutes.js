@@ -7,6 +7,7 @@ import {
   downloadStudentGatePassPdf,
   getAllLeaves,
   getStudentGatePass,
+  listLeaveReviewQueue,
   listMyStudentLeaveRequests,
   myLeaves,
   rejectLeave,
@@ -23,6 +24,7 @@ import {
 import {
   leaveCreateRequestSchema,
   leaveDecisionRequestSchema,
+  leaveReviewListSchema,
   studentLeaveListSchema,
 } from "../validation/leaveSchemas.js";
 
@@ -41,6 +43,13 @@ router.get(
   requirePermission(PERMISSIONS.LEAVE_READ_OWN),
   validateRequest(studentLeaveListSchema),
   listMyStudentLeaveRequests
+);
+router.get(
+  "/review",
+  protect,
+  requirePermission(PERMISSIONS.LEAVE_REVIEW),
+  validateRequest(leaveReviewListSchema),
+  listLeaveReviewQueue
 );
 router.post(
   "/:id/decision",
