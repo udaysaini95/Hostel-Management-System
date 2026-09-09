@@ -9,6 +9,7 @@ import {
   COMPLAINT_STATUSES,
 } from "../src/domain/complaintWorkflow.js";
 import { USER_ROLES } from "../src/domain/roles.js";
+import { MEAL_TYPE_ORDER } from "../src/domain/mess.js";
 import {
   GATE_MOVEMENTS,
   GATE_VERIFICATION_METHODS,
@@ -43,6 +44,10 @@ import {
   leaveEvents,
   leaveRequests,
   leaveStatusEnum,
+  messMealTypeEnum,
+  messMenuItems,
+  messMenus,
+  messMenuVersions,
   legacyGateLogs,
   legacyLeaves,
   roomAllocations,
@@ -58,6 +63,22 @@ import {
 
 const findIndex = (table, name) =>
   getTableConfig(table).indexes.find((entry) => entry.config.name === name);
+
+test("mess menus use hostel-scoped dates and normalized versioned items", () => {
+  assert.deepEqual(messMealTypeEnum.enumValues, MEAL_TYPE_ORDER);
+  assert.equal(messMenus.hostelId.notNull, true);
+  assert.equal(messMenus.menuDate.notNull, true);
+  assert.equal(messMenus.currentVersion.notNull, true);
+  assert.ok(findIndex(messMenus, "mess_menus_hostel_date_unique"));
+  assert.equal(messMenuVersions.menuId.notNull, true);
+  assert.equal(messMenuVersions.publishedByUserId.notNull, true);
+  assert.ok(
+    findIndex(messMenuVersions, "mess_menu_versions_menu_version_unique")
+  );
+  assert.equal(messMenuItems.menuVersionId.notNull, true);
+  assert.equal(messMenuItems.mealType.notNull, true);
+  assert.ok(findIndex(messMenuItems, "mess_menu_items_position_unique"));
+});
 
 test("database enums constrain supported roles and account states", () => {
   assert.deepEqual(userRoleEnum.enumValues, Object.values(USER_ROLES));

@@ -1,12 +1,16 @@
 import express from "express";
 import { 
   createMenu, 
+  getCalendarMenu,
+  getCalendarMenus,
+  getCalendarMenuVersions,
   getTodayMenu, 
   createFeedback, 
   getAllFeedback, 
   createIssue, 
   getMyIssues, 
   getAllIssues, 
+  publishCalendarMenu,
   updateStatus 
 } from "../Controllers/messController.js";
 import { protect } from "../middlewares/authMiddleware.js";
@@ -19,8 +23,42 @@ import {
   messIssueCreationSchema,
   messIssueStatusSchema,
 } from "../validation/operationalSchemas.js";
+import {
+  messMenuDateQuerySchema,
+  messMenuRangeQuerySchema,
+  publishMessMenuSchema,
+} from "../validation/messSchemas.js";
 
 const router = express.Router();
+
+router.put(
+  "/menus/:date",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_MANAGE),
+  validateRequest(publishMessMenuSchema),
+  publishCalendarMenu
+);
+router.get(
+  "/menus/:date/versions",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_MANAGE),
+  validateRequest(messMenuDateQuerySchema),
+  getCalendarMenuVersions
+);
+router.get(
+  "/menus/:date",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_READ),
+  validateRequest(messMenuDateQuerySchema),
+  getCalendarMenu
+);
+router.get(
+  "/menus",
+  protect,
+  requirePermission(PERMISSIONS.MESS_MENU_READ),
+  validateRequest(messMenuRangeQuerySchema),
+  getCalendarMenus
+);
 
 router.post(
   "/admin/create",

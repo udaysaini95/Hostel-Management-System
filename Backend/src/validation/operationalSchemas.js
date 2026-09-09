@@ -79,6 +79,7 @@ export const leaveApplicationSchema = {
 export const menuRequestSchema = {
   body: z.strictObject({
     date: menuDateString.optional(),
+    hostelId: z.coerce.number().int().positive().optional(),
     breakfast: mealValue,
     lunch: mealValue,
     dinner: mealValue,

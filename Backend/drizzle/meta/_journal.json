@@ -113,6 +113,13 @@
       "when": 1789498800000,
       "tag": "0015_gate_roster_and_exceptions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789585200000,
+      "tag": "0016_calendar_mess_menus",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -22,6 +23,7 @@ import {
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
 import { USER_ROLES } from "../domain/roles.js";
+import { MEAL_TYPE_ORDER } from "../domain/mess.js";
 import {
   GATE_MOVEMENTS,
   GATE_VERIFICATION_METHODS,
@@ -71,6 +73,7 @@ export const gateVerificationMethodEnum = pgEnum(
   "gate_verification_method",
   Object.values(GATE_VERIFICATION_METHODS)
 );
+export const messMealTypeEnum = pgEnum("mess_meal_type", MEAL_TYPE_ORDER);
 
 // A single institution can manage multiple hostel buildings (for example H1 and H2).
 export const hostels = pgTable(
@@ -1165,15 +1168,84 @@ export const messIssues = pgTable("mess_issues", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 7. Mess Menus Table
-export const messMenus = pgTable("mess_menus", {
-  id: serial("id").primaryKey(),
-  menuDate: timestamp("menu_date").notNull().unique(),
-  breakfast: text("breakfast"),
-  lunch: text("lunch"),
-  dinner: text("dinner"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+// Menus have one stable identity per hostel/date. Each publication creates an
+// immutable revision so an update never erases what residents previously saw.
+export const messMenus = pgTable(
+  "mess_menus",
+  {
+    id: serial("id").primaryKey(),
+    hostelId: integer("hostel_id")
+      .notNull()
+      .references(() => hostels.id, { onDelete: "restrict" }),
+    menuDate: date("menu_date", { mode: "string" }).notNull(),
+    currentVersion: integer("current_version").default(1).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("mess_menus_hostel_date_unique").on(
+      table.hostelId,
+      table.menuDate
+    ),
+    check("mess_menus_version_check", sql`${table.currentVersion} > 0`),
+    index("mess_menus_date_idx").on(table.menuDate, table.hostelId),
+  ]
+);
+
+export const messMenuVersions = pgTable(
+  "mess_menu_versions",
+  {
+    id: serial("id").primaryKey(),
+    menuId: integer("menu_id")
+      .notNull()
+      .references(() => messMenus.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    publishedByUserId: integer("published_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("mess_menu_versions_menu_version_unique").on(
+      table.menuId,
+      table.version
+    ),
+    check("mess_menu_versions_version_check", sql`${table.version} > 0`),
+    index("mess_menu_versions_menu_idx").on(table.menuId, table.version),
+  ]
+);
+
+export const messMenuItems = pgTable(
+  "mess_menu_items",
+  {
+    id: serial("id").primaryKey(),
+    menuVersionId: integer("menu_version_id")
+      .notNull()
+      .references(() => messMenuVersions.id, { onDelete: "cascade" }),
+    mealType: messMealTypeEnum("meal_type").notNull(),
+    position: integer("position").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("mess_menu_items_position_unique").on(
+      table.menuVersionId,
+      table.mealType,
+      table.position
+    ),
+    check("mess_menu_items_position_check", sql`${table.position} > 0`),
+    check(
+      "mess_menu_items_name_check",
+      sql`length(trim(${table.name})) between 1 and 100`
+    ),
+    index("mess_menu_items_version_idx").on(table.menuVersionId),
+  ]
+);
 
 // 8. Mess Feedbacks Table
 export const messFeedbacks = pgTable("mess_feedbacks", {

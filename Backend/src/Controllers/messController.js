@@ -1,47 +1,81 @@
 import { db } from "../db/index.js";
-import { messMenus, messFeedbacks, messIssues, users } from "../db/schema.js";
+import { messFeedbacks, messIssues, users } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import {
   handleControllerError,
   sendApiError,
 } from "../utils/apiErrors.js";
+import {
+  getMessMenuByDate,
+  listMessMenus,
+  listMessMenuVersions,
+  publishMessMenu,
+} from "../services/messMenuService.js";
+
+export const publishCalendarMenu = async (req, res) => {
+  try {
+    const menu = await publishMessMenu(db, req.user, {
+      date: req.params.date,
+      hostelId: req.body.hostelId,
+      meals: req.body.meals,
+    });
+    return res.status(menu.version === 1 ? 201 : 200).json({ menu });
+  } catch (error) {
+    return handleControllerError(res, error, "Publish Mess Menu Error");
+  }
+};
+
+export const getCalendarMenu = async (req, res) => {
+  try {
+    const menu = await getMessMenuByDate(db, req.user, {
+      date: req.params.date,
+      hostelId: req.query.hostelId,
+    });
+    return res.json({ menu });
+  } catch (error) {
+    return handleControllerError(res, error, "Get Mess Menu Error");
+  }
+};
+
+export const getCalendarMenus = async (req, res) => {
+  try {
+    return res.json(await listMessMenus(db, req.user, req.query));
+  } catch (error) {
+    return handleControllerError(res, error, "List Mess Menus Error");
+  }
+};
+
+export const getCalendarMenuVersions = async (req, res) => {
+  try {
+    return res.json(await listMessMenuVersions(db, req.user, {
+      date: req.params.date,
+      hostelId: req.query.hostelId,
+    }));
+  } catch (error) {
+    return handleControllerError(res, error, "List Mess Menu Versions Error");
+  }
+};
 
 // ================= CREATE / UPDATE MENU =================
 export const createMenu = async (req, res) => {
   try {
     const { date, breakfast, lunch, dinner } = req.body;
-    const menuDate = date ? new Date(date) : new Date();
-
-    const [existing] = await db
-      .select()
-      .from(messMenus)
-      .where(eq(messMenus.menuDate, menuDate));
-
-    const breakfastStr = Array.isArray(breakfast) ? JSON.stringify(breakfast) : breakfast;
-    const lunchStr = Array.isArray(lunch) ? JSON.stringify(lunch) : lunch;
-    const dinnerStr = Array.isArray(dinner) ? JSON.stringify(dinner) : dinner;
-
-    if (existing) {
-      await db
-        .update(messMenus)
-        .set({
-          breakfast: breakfastStr,
-          lunch: lunchStr,
-          dinner: dinnerStr,
-        })
-        .where(eq(messMenus.id, existing.id));
-
-      return res.json({ message: "Menu Updated" });
-    }
-
-    await db.insert(messMenus).values({
-      menuDate,
-      breakfast: breakfastStr,
-      lunch: lunchStr,
-      dinner: dinnerStr,
+    const calendarDate = (date || new Date().toISOString()).slice(0, 10);
+    const menu = await publishMessMenu(db, req.user, {
+      date: calendarDate,
+      hostelId: req.body.hostelId,
+      meals: {
+        breakfast: Array.isArray(breakfast) ? breakfast : [breakfast],
+        lunch: Array.isArray(lunch) ? lunch : [lunch],
+        dinner: Array.isArray(dinner) ? dinner : [dinner],
+      },
+    }, {
+      allowDefaultHostel: true,
     });
-
-    res.status(201).json({ message: "Menu Created" });
+    return res.status(menu.version === 1 ? 201 : 200).json({
+      message: menu.version === 1 ? "Menu Created" : "Menu Updated",
+      menu,
+    });
   } catch (error) {
     return handleControllerError(res, error, "Create Menu Error");
   }
@@ -50,22 +84,14 @@ export const createMenu = async (req, res) => {
 // ================= GET TODAY MENU =================
 export const getTodayMenu = async (req, res) => {
   try {
-    const todayMenus = await db
-      .select()
-      .from(messMenus)
-      .orderBy(desc(messMenus.menuDate))
-      .limit(1);
-
-    if (todayMenus.length === 0) {
-      return sendApiError(res, 404, "MENU_NOT_FOUND", "No menu is available");
-    }
-
-    const menu = todayMenus[0];
-    res.json({
+    const date = new Date().toISOString().slice(0, 10);
+    const menu = await getMessMenuByDate(db, req.user, { date });
+    return res.json({
       ...menu,
-      breakfast: menu.breakfast ? JSON.parse(menu.breakfast) : [],
-      lunch: menu.lunch ? JSON.parse(menu.lunch) : [],
-      dinner: menu.dinner ? JSON.parse(menu.dinner) : [],
+      menuDate: menu.date,
+      breakfast: menu.meals.breakfast,
+      lunch: menu.meals.lunch,
+      dinner: menu.meals.dinner,
     });
   } catch (error) {
     return handleControllerError(res, error, "Get Today Menu Error");
