@@ -5,7 +5,7 @@ import { useAuth } from "../auth/authContext.js";
 import { Button, Drawer } from "../components/ui";
 import { NotificationCenter } from "../notifications/NotificationCenter.jsx";
 import {
-  getNavigationForRole,
+  getNavigationGroupsForRole,
   getRoleHome,
   getRouteTitle,
   isNavigationItemActive,
@@ -13,29 +13,63 @@ import {
 } from "./navigation.js";
 import { ProductBrand } from "./ProductBrand.jsx";
 
-const NavigationList = ({ items, pathname, onNavigate }) => (
+const NavigationList = ({ groups, pathname, onNavigate }) => (
   <nav className="hm-app-navigation" aria-label="Primary navigation">
-    {items.map((item) => {
-      const isActive = isNavigationItemActive(pathname, item);
+    {groups.map((group) => (
+      <div
+        key={group.label}
+        className="hm-navigation-group"
+        role="group"
+        aria-label={group.label}
+      >
+        <p className="hm-navigation-group__label">{group.label}</p>
+        <div className="hm-navigation-group__links">
+          {group.items.map((item) => {
+            const isActive = isNavigationItemActive(pathname, item);
 
-      return (
-        <Link
-          key={item.path}
-          to={item.path}
-          onClick={onNavigate}
-          className="hm-app-navigation__link"
-          aria-current={isActive ? "page" : undefined}
-        >
-          {createElement(item.icon, {
-            className: "hm-app-navigation__icon",
-            "aria-hidden": "true",
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onNavigate}
+                className="hm-app-navigation__link"
+                aria-current={isActive ? "page" : undefined}
+              >
+                {createElement(item.icon, {
+                  className: "hm-app-navigation__icon",
+                  "aria-hidden": "true",
+                })}
+                <span>{item.label}</span>
+              </Link>
+            );
           })}
-          <span>{item.label}</span>
-        </Link>
-      );
-    })}
+        </div>
+      </div>
+    ))}
   </nav>
 );
+
+const accessScopeByRole = Object.freeze({
+  admin: ["Institution access", "All hostels"],
+  warden: ["Assigned access", "Hostel memberships"],
+  student: ["Resident access", "Primary hostel"],
+  guard: ["Operational access", "Assigned hostels"],
+  maintenance: ["Operational access", "Assigned hostels"],
+});
+
+const SidebarAccess = ({ role }) => {
+  const [label, value] = accessScopeByRole[role] ?? [
+    "Workspace access",
+    "Role based",
+  ];
+
+  return (
+    <div className="hm-sidebar__scope">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+};
 
 const AccountSummary = ({ user, roleLabel, compact = false }) => {
   const displayName = user?.name || "Signed-in user";
@@ -67,7 +101,7 @@ export const AuthenticatedShell = () => {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const role = user.role;
   const roleLabel = ROLE_LABELS[role] || "Account";
-  const navigationItems = getNavigationForRole(role);
+  const navigationGroups = getNavigationGroupsForRole(role);
   const pageTitle = getRouteTitle(location.pathname);
   const contentIsFullWidth = location.pathname === "/guard/terminal";
 
@@ -88,16 +122,13 @@ export const AuthenticatedShell = () => {
           <ProductBrand to={getRoleHome(role)} />
         </div>
         <div className="hm-sidebar__context">
-          <span>Workspace</span>
-          <strong>{roleLabel}</strong>
+          <span>{roleLabel}</span>
         </div>
         <NavigationList
-          items={navigationItems}
+          groups={navigationGroups}
           pathname={location.pathname}
         />
-        <div className="hm-sidebar__account">
-          <AccountSummary user={user} roleLabel={roleLabel} />
-        </div>
+        <SidebarAccess role={role} />
       </aside>
 
       <div className="hm-app-shell__column">
@@ -153,7 +184,7 @@ export const AuthenticatedShell = () => {
         className="hm-navigation-drawer"
       >
         <NavigationList
-          items={navigationItems}
+          groups={navigationGroups}
           pathname={location.pathname}
           onNavigate={() => setNavigationOpen(false)}
         />

@@ -114,18 +114,18 @@ Use semantic tokens rather than raw colors in components.
 
 | Token | Hex | Use |
 | --- | --- | --- |
-| `canvas` | `#F6F7F9` | Application background |
+| `canvas` | `#F7F5F0` | Warm application background |
 | `surface` | `#FFFFFF` | Primary panels, menus, forms |
-| `surface-subtle` | `#F0F2F5` | Secondary grouped content and hover rows |
-| `surface-selected` | `#EEF2FF` | Selected navigation or row state |
-| `text-primary` | `#172033` | Headings and primary text |
-| `text-secondary` | `#526071` | Supporting text |
-| `text-muted` | `#7A8699` | Metadata and disabled labels |
-| `border` | `#DCE1E8` | Default borders and dividers |
-| `border-strong` | `#BCC5D1` | Active field and emphasized divider |
-| `brand` | `#3157D5` | Primary action and active navigation |
-| `brand-hover` | `#2748B8` | Primary hover |
-| `brand-soft` | `#E9EEFF` | Selected/soft brand background |
+| `surface-subtle` | `#EEF1F6` | Secondary grouped content and hover rows |
+| `surface-selected` | `#E7EDFF` | Selected navigation or row state |
+| `text-primary` | `#111C35` | Navy headings and primary text |
+| `text-secondary` | `#4F5D72` | Supporting text |
+| `text-muted` | `#748095` | Metadata and disabled labels |
+| `border` | `#D8DCE3` | Default borders and dividers |
+| `border-strong` | `#B9C0CC` | Active field and emphasized divider |
+| `brand` | `#2F57D5` | Cobalt primary action and active navigation |
+| `brand-hover` | `#2448BA` | Primary hover |
+| `brand-soft` | `#E7EDFF` | Selected/soft brand background |
 | `success` | `#13795B` | Completed, valid, approved |
 | `success-soft` | `#EAF7F1` | Success background |
 | `warning` | `#A85D00` | Pending, expiring, at risk |
@@ -136,8 +136,8 @@ Use semantic tokens rather than raw colors in components.
 | `danger-border` | `#F2B8B5` | Border for inline errors and destructive warnings |
 | `info` | `#175CD3` | Informational state |
 | `info-soft` | `#EAF2FF` | Informational background |
-| `focus` | `#84ADFF` | Focus ring |
-| `overlay` | `rgba(23, 32, 51, 0.56)` | Modal and drawer scrim |
+| `focus` | `#86A4FF` | Focus ring |
+| `overlay` | `rgba(17, 28, 53, 0.60)` | Modal and drawer scrim |
 
 Rules:
 
@@ -145,7 +145,8 @@ Rules:
 - Green means a confirmed successful or valid state; it is not decorative.
 - Red means error, breach, invalid state, or destructive action; it is not decorative.
 - Amber means pending, expiring, warning, or SLA risk.
-- Use neutral colors for ordinary cards and navigation.
+- Use neutral colors for ordinary cards and navigation. Cobalt identifies the
+  current route or primary action; it must not become a role-specific theme.
 - Data visualizations may use an approved chart palette, but UI controls must continue using semantic tokens.
 - Text and control contrast must meet WCAG AA expectations.
 
@@ -240,8 +241,11 @@ Use for landing, sign-in, account activation, and password reset.
 - Main content maximum width: 1280px, except table-heavy pages which may use the available width.
 - Main content padding: 32px on wide desktop, 24px on laptop/tablet.
 - Canvas background with white surfaces.
-- Sidebar remains neutral; active item uses `brand-soft` and brand text.
-- Top bar contains page context, notification access, and account menu—not duplicated primary navigation.
+- Sidebar uses a white editorial surface with small operational group labels.
+  Active items use cobalt text and a 2px left rule, never a filled pill.
+- Top bar contains page context, notification access, and the user identity.
+  Do not duplicate the same user card in the desktop sidebar; its footer shows
+  access scope instead.
 
 ### 5.3 Tablet shell
 

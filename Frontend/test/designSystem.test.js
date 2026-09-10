@@ -64,18 +64,18 @@ const createFocusFixture = (elementCount = 2) => {
 test("the theme defines every approved semantic color in one place", async () => {
   const theme = await readFile(themePath, "utf8");
   const approvedColors = {
-    canvas: "#f6f7f9",
+    canvas: "#f7f5f0",
     surface: "#ffffff",
-    "surface-subtle": "#f0f2f5",
-    "surface-selected": "#eef2ff",
-    "text-primary": "#172033",
-    "text-secondary": "#526071",
-    "text-muted": "#7a8699",
-    border: "#dce1e8",
-    "border-strong": "#bcc5d1",
-    brand: "#3157d5",
-    "brand-hover": "#2748b8",
-    "brand-soft": "#e9eeff",
+    "surface-subtle": "#eef1f6",
+    "surface-selected": "#e7edff",
+    "text-primary": "#111c35",
+    "text-secondary": "#4f5d72",
+    "text-muted": "#748095",
+    border: "#d8dce3",
+    "border-strong": "#b9c0cc",
+    brand: "#2f57d5",
+    "brand-hover": "#2448ba",
+    "brand-soft": "#e7edff",
     success: "#13795b",
     "success-soft": "#eaf7f1",
     warning: "#a85d00",
@@ -86,8 +86,8 @@ test("the theme defines every approved semantic color in one place", async () =>
     "danger-border": "#f2b8b5",
     info: "#175cd3",
     "info-soft": "#eaf2ff",
-    focus: "#84adff",
-    overlay: "rgba(23, 32, 51, 0.56)",
+    focus: "#86a4ff",
+    overlay: "rgba(17, 28, 53, 0.6)",
   };
 
   for (const [token, value] of Object.entries(approvedColors)) {

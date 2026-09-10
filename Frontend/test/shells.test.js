@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
+  getNavigationGroupsForRole,
   getNavigationForRole,
   getRoleHome,
   getRouteTitle,
@@ -66,6 +67,30 @@ test("navigation exposes only the currently implemented destinations per role", 
   assert.deepEqual(pathsForRole("unknown"), []);
 });
 
+test("navigation groups reflect each role's working context", () => {
+  const groupLabels = (role) =>
+    getNavigationGroupsForRole(role).map((group) => group.label);
+
+  assert.deepEqual(groupLabels("student"), [
+    "Workspace",
+    "My hostel",
+    "Updates",
+    "Account",
+  ]);
+  assert.deepEqual(groupLabels("admin"), [
+    "Workspace",
+    "Resident management",
+    "Hostel operations",
+    "Communication",
+    "Security",
+  ]);
+  assert.deepEqual(groupLabels("guard"), [
+    "Workspace",
+    "Security",
+    "Communication",
+  ]);
+});
+
 test("every navigation destination exists in the application route tree", async () => {
   const appSource = await readFile(appPath, "utf8");
   const allNavigationPaths = new Set(
@@ -119,6 +144,8 @@ test("shell styles preserve the documented dimensions and breakpoints", async ()
   assert.match(styles, /\.hm-utility-bar\s*{[\s\S]*?height:\s*3\.5rem/);
   assert.match(styles, /max-width:\s*75rem/);
   assert.match(styles, /max-width:\s*80rem/);
+  assert.match(styles, /\.hm-navigation-group__label\s*{/);
+  assert.match(styles, /border-left-color:\s*var\(--color-brand\)/);
   assert.match(styles, /@media\s*\(max-width:\s*767px\)/);
   assert.match(styles, /@media\s*\(min-width:\s*1024px\)/);
   assert.match(styles, /@media\s*\(min-width:\s*1280px\)/);
@@ -137,4 +164,5 @@ test("both shells provide keyboard navigation landmarks", async () => {
   assert.match(authenticatedShell, /aria-current={isActive \? "page"/);
   assert.match(authenticatedShell, /aria-label="Open navigation"/);
   assert.match(authenticatedShell, /aria-label="Sign out"/);
+  assert.match(authenticatedShell, /<SidebarAccess role={role} \/>/);
 });

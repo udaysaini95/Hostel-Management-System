@@ -1,123 +1,97 @@
 import {
   ClipboardList,
-  Wrench,
   FileCheck2,
   LayoutDashboard,
   Megaphone,
   QrCode,
-  UserRound,
   UserCheck,
+  UserRound,
   UsersRound,
   Utensils,
+  Wrench,
 } from "lucide-react";
 import { USER_ROLES } from "../auth/roles.js";
 
-const noticesNavigation = Object.freeze({
-  label: "Notices",
-  path: "/notices",
-  icon: Megaphone,
-  exact: true,
+const item = (label, path, icon, exact = true) =>
+  Object.freeze({ label, path, icon, exact });
+
+const overview = {
+  student: item("Overview", "/student/dashboard", LayoutDashboard),
+  operations: item("Overview", "/admin/dashboard", LayoutDashboard),
+  guard: item("Overview", "/guard/dashboard", LayoutDashboard),
+  maintenance: item("Overview", "/maintenance/dashboard", LayoutDashboard),
+};
+
+const notices = item("Notices", "/notices", Megaphone);
+const studentMess = item("Mess", "/student/mess", Utensils);
+
+const operations = {
+  onboarding: item(
+    "Student onboarding",
+    "/admin/student-approvals",
+    UserCheck
+  ),
+  residents: item("Residents and rooms", "/admin/residents", UsersRound),
+  complaints: item("Complaints", "/admin/complaints", ClipboardList),
+  leaves: item("Leave requests", "/admin/leaves", FileCheck2),
+  mess: item("Mess", "/admin/mess", Utensils),
+  gateActivity: item("Gate activity", "/guard/terminal", QrCode),
+  gateTerminal: item("Gate terminal", "/guard/terminal", QrCode),
+};
+
+const group = (label, items) => Object.freeze({
+  label,
+  items: Object.freeze(items),
 });
 
-const studentNavigation = Object.freeze([
-  {
-    label: "Overview",
-    path: "/student/dashboard",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    label: "Complaints",
-    path: "/student/complaints",
-    icon: ClipboardList,
-  },
-  {
-    label: "Leave and gate pass",
-    path: "/student/leaves",
-    icon: FileCheck2,
-  },
-  { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
-  noticesNavigation,
-  { label: "Profile", path: "/student/profile", icon: UserRound, exact: true },
-]);
-
-const operationsNavigation = Object.freeze([
-  {
-    label: "Overview",
-    path: "/admin/dashboard",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    label: "Residents and rooms",
-    path: "/admin/residents",
-    icon: UsersRound,
-    exact: true,
-  },
-  {
-    label: "Complaints",
-    path: "/admin/complaints",
-    icon: ClipboardList,
-    exact: true,
-  },
-  {
-    label: "Leave requests",
-    path: "/admin/leaves",
-    icon: FileCheck2,
-    exact: true,
-  },
-  { label: "Mess", path: "/admin/mess", icon: Utensils, exact: true },
-  noticesNavigation,
-]);
-
-const gateActivityNavigation = Object.freeze({
-  label: "Gate activity",
-  path: "/guard/terminal",
-  icon: QrCode,
-  exact: true,
-});
-
-const wardenNavigation = Object.freeze([
-  ...operationsNavigation,
-  gateActivityNavigation,
-]);
-
-const adminNavigation = Object.freeze([
-  operationsNavigation[0],
-  {
-    label: "Student onboarding",
-    path: "/admin/student-approvals",
-    icon: UserCheck,
-    exact: true,
-  },
-  ...operationsNavigation.slice(1),
-  { ...gateActivityNavigation, label: "Gate terminal" },
-]);
-
-const roleNavigation = Object.freeze({
-  [USER_ROLES.STUDENT]: studentNavigation,
-  [USER_ROLES.WARDEN]: wardenNavigation,
-  [USER_ROLES.ADMIN]: adminNavigation,
+const roleNavigationGroups = Object.freeze({
+  [USER_ROLES.STUDENT]: Object.freeze([
+    group("Workspace", [overview.student]),
+    group("My hostel", [
+      item("Complaints", "/student/complaints", ClipboardList, false),
+      item("Leave and gate pass", "/student/leaves", FileCheck2, false),
+      studentMess,
+    ]),
+    group("Updates", [notices]),
+    group("Account", [item("Profile", "/student/profile", UserRound)]),
+  ]),
+  [USER_ROLES.WARDEN]: Object.freeze([
+    group("Workspace", [overview.operations]),
+    group("Resident management", [operations.residents]),
+    group("Hostel operations", [
+      operations.complaints,
+      operations.leaves,
+      operations.mess,
+    ]),
+    group("Communication", [notices]),
+    group("Security", [operations.gateActivity]),
+  ]),
+  [USER_ROLES.ADMIN]: Object.freeze([
+    group("Workspace", [overview.operations]),
+    group("Resident management", [
+      operations.onboarding,
+      operations.residents,
+    ]),
+    group("Hostel operations", [
+      operations.complaints,
+      operations.leaves,
+      operations.mess,
+    ]),
+    group("Communication", [notices]),
+    group("Security", [operations.gateTerminal]),
+  ]),
   [USER_ROLES.GUARD]: Object.freeze([
-    { label: "Overview", path: "/guard/dashboard", icon: LayoutDashboard, exact: true },
-    { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },
-    noticesNavigation,
+    group("Workspace", [overview.guard]),
+    group("Security", [operations.gateTerminal]),
+    group("Communication", [notices]),
   ]),
   [USER_ROLES.MAINTENANCE]: Object.freeze([
-    {
-      label: "Overview",
-      path: "/maintenance/dashboard",
-      icon: LayoutDashboard,
-      exact: true,
-    },
-    {
-      label: "Work orders",
-      path: "/maintenance/work-orders",
-      icon: Wrench,
-      exact: true,
-    },
-    { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
-    noticesNavigation,
+    group("Workspace", [overview.maintenance]),
+    group("Maintenance", [
+      item("Work orders", "/maintenance/work-orders", Wrench),
+    ]),
+    group("Hostel services", [studentMess]),
+    group("Communication", [notices]),
   ]),
 });
 
@@ -129,14 +103,23 @@ export const ROLE_LABELS = Object.freeze({
   [USER_ROLES.ADMIN]: "Administrator",
 });
 
-export const getNavigationForRole = (role) => roleNavigation[role] ?? [];
+export const getNavigationGroupsForRole = (role) =>
+  roleNavigationGroups[role] ?? [];
 
-export const isNavigationItemActive = (pathname, item) => {
-  if (item.exact) {
-    return pathname === item.path;
+export const getNavigationForRole = (role) =>
+  getNavigationGroupsForRole(role).flatMap((navigationGroup) =>
+    navigationGroup.items
+  );
+
+export const isNavigationItemActive = (pathname, navigationItem) => {
+  if (navigationItem.exact) {
+    return pathname === navigationItem.path;
   }
 
-  return pathname === item.path || pathname.startsWith(`${item.path}/`);
+  return (
+    pathname === navigationItem.path ||
+    pathname.startsWith(`${navigationItem.path}/`)
+  );
 };
 
 export const getRoleHome = (role) => {

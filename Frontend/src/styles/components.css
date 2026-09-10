@@ -19,7 +19,7 @@
     gap: 0.5rem;
     padding: 0.5rem 0.875rem;
     border: 1px solid transparent;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     font-size: var(--text-small);
     line-height: var(--text-small--line-height);
     font-weight: 600;
@@ -275,8 +275,8 @@
     color: var(--color-text-primary);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-md);
+    box-shadow: none;
   }
 
   .hm-panel--subtle {
@@ -303,6 +303,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--color-border-strong);
   }
 
   .hm-page-header__copy {
@@ -311,7 +313,8 @@
 
   .hm-page-header__eyebrow {
     margin: 0 0 0.25rem;
-    color: var(--color-text-muted);
+    color: var(--color-brand);
+    font-family: var(--font-mono);
     font-size: var(--text-caption);
     line-height: var(--text-caption--line-height);
     font-weight: 600;
@@ -347,7 +350,7 @@
     overflow-x: auto;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
   }
 
   .hm-table {
@@ -689,6 +692,10 @@
 }
 
 @media (max-width: 767px) {
+  .hm-button {
+    min-height: 2.75rem;
+  }
+
   .hm-button--icon {
     width: 2.75rem;
     min-width: 2.75rem;
