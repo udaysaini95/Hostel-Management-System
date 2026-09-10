@@ -215,7 +215,7 @@ export const getComplaintSlaMetrics = async (
       count(*) filter (where complaint.status = 'resolved')::integer
         as awaiting_confirmation_count,
       count(*) filter (
-        where complaint.status in ('created', 'assigned', 'in_progress')
+        where complaint.status <> 'closed'
           and complaint.sla_deadline < ${generatedAt}
       )::integer as sla_breached_count,
       count(*) filter (where complaint.sla_breached_at is not null)::integer

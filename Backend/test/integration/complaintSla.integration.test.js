@@ -250,7 +250,7 @@ test("SLA metrics reconcile and respect institution, hostel, and assignment scop
       breached: adminMetrics.counts.slaBreached,
       unassigned: adminMetrics.counts.unassigned,
     },
-    { open: 3, actionable: 2, awaiting: 1, breached: 1, unassigned: 1 }
+    { open: 3, actionable: 2, awaiting: 1, breached: 2, unassigned: 1 }
   );
   assert.deepEqual(adminMetrics.counts.byPriority, {
     critical: 0,
@@ -270,13 +270,13 @@ test("SLA metrics reconcile and respect institution, hostel, and assignment scop
 
   assert.equal(wardenMetrics.scope.kind, "managed_hostels");
   assert.equal(wardenMetrics.counts.open, 3);
-  assert.equal(wardenMetrics.counts.slaBreached, 1);
+  assert.equal(wardenMetrics.counts.slaBreached, 2);
 
   assert.equal(maintenanceMetrics.scope.kind, "active_assignments");
   assert.equal(maintenanceMetrics.counts.open, 2);
   assert.equal(maintenanceMetrics.counts.actionable, 1);
   assert.equal(maintenanceMetrics.counts.awaitingStudentConfirmation, 1);
-  assert.equal(maintenanceMetrics.counts.slaBreached, 0);
+  assert.equal(maintenanceMetrics.counts.slaBreached, 1);
   assert.equal(maintenanceMetrics.resolution.firstResolvedComplaints, 1);
 });
 
