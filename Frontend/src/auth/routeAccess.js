@@ -7,6 +7,7 @@ export const ROLE_GROUPS = Object.freeze({
   STUDENT: roles(USER_ROLES.STUDENT),
   ADMIN: roles(USER_ROLES.ADMIN),
   MAINTENANCE: roles(USER_ROLES.MAINTENANCE),
+  GUARD: roles(USER_ROLES.GUARD),
   OPERATIONS: roles(USER_ROLES.ADMIN, USER_ROLES.WARDEN),
   MESS_READER: roles(USER_ROLES.STUDENT, USER_ROLES.MAINTENANCE),
   GATE_ACTIVITY: roles(
@@ -25,6 +26,7 @@ export const ROUTE_ACCESS = Object.freeze({
   "/student/mess": ROLE_GROUPS.MESS_READER,
   "/student/profile": ROLE_GROUPS.STUDENT,
   "/maintenance/work-orders": ROLE_GROUPS.MAINTENANCE,
+  "/maintenance/dashboard": ROLE_GROUPS.MAINTENANCE,
   "/admin/dashboard": ROLE_GROUPS.OPERATIONS,
   "/admin/residents": ROLE_GROUPS.OPERATIONS,
   "/admin/student-approvals": ROLE_GROUPS.ADMIN,
@@ -32,6 +34,7 @@ export const ROUTE_ACCESS = Object.freeze({
   "/admin/leaves": ROLE_GROUPS.OPERATIONS,
   "/admin/mess": ROLE_GROUPS.OPERATIONS,
   "/guard/terminal": ROLE_GROUPS.GATE_ACTIVITY,
+  "/guard/dashboard": ROLE_GROUPS.GUARD,
   "/notices": ROLE_GROUPS.ALL,
   "/unauthorized": ROLE_GROUPS.ALL,
 });

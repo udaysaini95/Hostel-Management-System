@@ -1,210 +1,161 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import api from "../api/axios";
-import { 
-  AlertCircle, 
-  FileText, 
-  Utensils, 
-  Plus, 
-  Clock, 
-  CheckCircle2, 
-  ArrowRight
-} from "lucide-react";
+import { Bell, ClipboardList, FileCheck2, Utensils } from "lucide-react";
+import { ButtonLink, PageHeader, Panel, StatusBadge } from "../components/ui/index.js";
+import { DashboardMetric } from "../dashboard/DashboardMetric.jsx";
+import { DashboardState } from "../dashboard/DashboardState.jsx";
+import {
+  formatDashboardDateTime,
+  formatDashboardStatus,
+  groupMenuItems,
+  isDashboardMetric,
+} from "../dashboard/dashboardView.js";
+import { useDashboardSummary } from "../dashboard/useDashboardSummary.js";
 
 const StudentDashboard = () => {
-  const userStr = localStorage.getItem("user");
-  let user = null;
-  try {
-    user = userStr ? JSON.parse(userStr) : null;
-  } catch {
-    user = null;
-  }
-
-  const [complaints, setComplaints] = useState([]);
-  const [leaves, setLeaves] = useState([]);
-  const [todayMenu, setTodayMenu] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [complaintsRes, leavesRes, menuRes] = await Promise.allSettled([
-          api.get("/api/complaints/my"),
-          api.get("/api/leave/mine"),
-          api.get("/api/mess/today"),
-        ]);
-
-        if (complaintsRes.status === "fulfilled") setComplaints(complaintsRes.value.data || []);
-        if (leavesRes.status === "fulfilled") setLeaves(leavesRes.value.data || []);
-        if (menuRes.status === "fulfilled") setTodayMenu(menuRes.value.data);
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const pendingComplaints = complaints.filter(c => c.status !== "Resolved").length;
-  const approvedLeaves = leaves.filter(l => l.status === "Approved").length;
+  const { summary, loading, error, reload } = useDashboardSummary();
+  const dashboard = summary?.data;
+  const leave = dashboard?.latestLeave?.value;
+  const menu = dashboard?.todayMenu?.value;
+  const menuGroups = groupMenuItems(menu?.items);
+  const leaveAvailable = isDashboardMetric(dashboard?.latestLeave);
+  const menuAvailable = isDashboardMetric(dashboard?.todayMenu);
+  const overdue = leave?.status === "exited" &&
+    new Date(leave.expectedReturnAt).getTime() < new Date(summary.generatedAt).getTime();
 
   return (
-    <div className="hm-page-stack hm-page-stack--wide">
-      
-      {/* Top Welcome Header */}
-      <div className="ui-panel p-6 rounded-2xl bg-white border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {user?.name || "Student"}
-          </h1>
-          <p className="text-slate-600 text-xs mt-0.5">
-            Student Hostel Portal • Track complaints, leaves, and mess menus
-          </p>
-        </div>
+    <div className="hm-page-stack hm-page-stack--wide hm-dashboard">
+      <PageHeader
+        eyebrow="Student overview"
+        title="Your hostel today"
+        description="Check the requests and information that need your attention."
+        actions={
+          <>
+            <ButtonLink variant="primary" to="/student/complaints/raise">
+              Raise complaint
+            </ButtonLink>
+            <ButtonLink to="/student/leaves/apply">Apply for leave</ButtonLink>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <Link
-            to="/student/complaints/raise"
-            className="py-2 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Raise Ticket</span>
-          </Link>
-          <Link
-            to="/student/leaves/apply"
-            className="py-2 px-3.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors flex items-center gap-1.5"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Apply Leave</span>
-          </Link>
-        </div>
-      </div>
+      <DashboardState loading={loading} error={error} onRetry={reload} />
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Complaints</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : pendingComplaints}
-          </div>
-          <span className="text-[11px] text-amber-600 mt-0.5 block font-mono font-medium">
-            {pendingComplaints > 0 ? `${pendingComplaints} unresolved` : "Zero pending"}
-          </span>
-        </div>
-
-        <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Complaints</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : complaints.length}
-          </div>
-          <span className="text-[11px] text-slate-500 mt-0.5 block font-mono">Lifetime tickets</span>
-        </div>
-
-        <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approved Passes</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : approvedLeaves}
-          </div>
-          <span className="text-[11px] text-emerald-600 mt-0.5 block font-mono font-medium">Digital PDF outpasses</span>
-        </div>
-
-        <div className="ui-card p-4 rounded-xl bg-white border-slate-200">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Leave Applications</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-            {loading ? "-" : leaves.length}
-          </div>
-          <span className="text-[11px] text-indigo-600 mt-0.5 block font-mono font-medium">Gate pass requests</span>
-        </div>
-
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Recent Complaints */}
-        <div className="lg:col-span-2 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900">Recent Complaints</h2>
-            <Link to="/student/complaints" className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1">
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="ui-panel p-6 rounded-xl text-center text-slate-500 text-xs">
-              Loading complaints...
-            </div>
-          ) : complaints.length === 0 ? (
-            <div className="ui-panel p-6 rounded-xl text-center text-xs text-slate-500">
-              No active complaints filed yet.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {complaints.slice(0, 4).map((c) => (
-                <div key={c.id || c._id} className="ui-card p-3.5 rounded-xl bg-white border-slate-200 flex items-center justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-slate-900">{c.type} — Room {c.room}</div>
-                    <div className="text-[11px] text-slate-600 line-clamp-1">{c.description}</div>
-                  </div>
-
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                    c.status === "Resolved"
-                      ? "badge-resolved"
-                      : c.status === "In Progress"
-                      ? "badge-pending"
-                      : "badge-created"
-                  }`}>
-                    {c.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Mess Today Preview */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900">Today's Mess Schedule</h2>
-            <Link to="/student/mess" className="text-xs font-semibold text-indigo-600 hover:underline">
-              Rate Food
-            </Link>
-          </div>
-
-          <div className="ui-panel p-4 rounded-xl bg-white border-slate-200 space-y-3">
-            {todayMenu ? (
+      {!loading && !error && dashboard && (
+        <>
+          <Panel className={`hm-dashboard-focus${overdue ? " hm-dashboard-focus--danger" : ""}`}>
+            {leaveAvailable ? (
               <>
+              <div className="hm-dashboard-section-heading">
                 <div>
-                  <span className="text-[10px] font-mono font-bold text-amber-700 uppercase">Breakfast</span>
-                  <p className="text-xs text-slate-800 font-medium mt-0.5">
-                    {Array.isArray(todayMenu.breakfast) ? todayMenu.breakfast.join(", ") : todayMenu.breakfast}
-                  </p>
+                  <p className="hm-dashboard-section-heading__eyebrow">Latest leave request</p>
+                  <h2>
+                    {leave
+                      ? overdue
+                        ? "Your expected return time has passed"
+                        : "Current leave status"
+                      : "No leave requests submitted"}
+                  </h2>
                 </div>
-                <div className="border-t border-slate-100 pt-2">
-                  <span className="text-[10px] font-mono font-bold text-cyan-700 uppercase">Lunch</span>
-                  <p className="text-xs text-slate-800 font-medium mt-0.5">
-                    {Array.isArray(todayMenu.lunch) ? todayMenu.lunch.join(", ") : todayMenu.lunch}
-                  </p>
-                </div>
-                <div className="border-t border-slate-100 pt-2">
-                  <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase">Dinner</span>
-                  <p className="text-xs text-slate-800 font-medium mt-0.5">
-                    {Array.isArray(todayMenu.dinner) ? todayMenu.dinner.join(", ") : todayMenu.dinner}
-                  </p>
-                </div>
+                {leave && (
+                  <StatusBadge status={overdue ? "overdue" : leave.status}>
+                    {overdue ? "Overdue" : formatDashboardStatus(leave.status)}
+                  </StatusBadge>
+                )}
+              </div>
+              {leave ? (
+                <dl className="hm-dashboard-details">
+                  <div>
+                    <dt>Departure</dt>
+                    <dd>{formatDashboardDateTime(leave.departureAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Expected return</dt>
+                    <dd>{formatDashboardDateTime(leave.expectedReturnAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Gate pass</dt>
+                    <dd>{leave.gatePass ? "Issued" : "Not issued"}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="hm-dashboard-empty-copy">
+                  Apply for leave when you need permission to leave campus.
+                </p>
+              )}
+              <ButtonLink to={dashboard.latestLeave.href}>View leave and gate pass</ButtonLink>
               </>
             ) : (
-              <p className="text-xs text-slate-500 py-4 text-center">No menu uploaded for today yet.</p>
+              <p className="hm-dashboard-empty-copy" role="alert">
+                Leave information is unavailable. Refresh the dashboard to try again.
+              </p>
             )}
+          </Panel>
+
+          <div className="hm-dashboard-metrics hm-dashboard-metrics--two">
+            <DashboardMetric
+              label="Active complaints"
+              metric={dashboard.activeComplaints}
+              tone={dashboard.activeComplaints?.value > 0 ? "warning" : "neutral"}
+            />
+            <DashboardMetric
+              label="Unread notices"
+              metric={dashboard.unreadNotices}
+              tone={dashboard.unreadNotices?.value > 0 ? "info" : "neutral"}
+            />
           </div>
-        </div>
 
-      </div>
+          <div className="hm-dashboard-columns">
+            <Panel>
+              <div className="hm-dashboard-section-heading">
+                <div>
+                  <p className="hm-dashboard-section-heading__eyebrow">Mess</p>
+                  <h2>Today&apos;s menu</h2>
+                </div>
+                <Utensils aria-hidden="true" />
+              </div>
+              {!menuAvailable ? (
+                <p className="hm-dashboard-empty-copy" role="alert">
+                  Menu information is unavailable. Refresh the dashboard to try again.
+                </p>
+              ) : menuGroups.length > 0 ? (
+                <div className="hm-dashboard-menu">
+                  {menuGroups.map((group) => (
+                    <div key={group.mealType}>
+                      <h3>{formatDashboardStatus(group.mealType)}</h3>
+                      <p>{group.names.join(", ")}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="hm-dashboard-empty-copy">No menu has been published for today.</p>
+              )}
+              {menuAvailable && (
+                <ButtonLink to={dashboard.todayMenu.href}>Open mess menu</ButtonLink>
+              )}
+            </Panel>
 
+            <Panel>
+              <div className="hm-dashboard-section-heading">
+                <div>
+                  <p className="hm-dashboard-section-heading__eyebrow">Quick access</p>
+                  <h2>Student records</h2>
+                </div>
+                <ClipboardList aria-hidden="true" />
+              </div>
+              <nav className="hm-dashboard-link-list" aria-label="Student record shortcuts">
+                <ButtonLink to="/student/complaints">
+                  <ClipboardList aria-hidden="true" /> View complaints
+                </ButtonLink>
+                <ButtonLink to="/student/leaves">
+                  <FileCheck2 aria-hidden="true" /> View leave requests
+                </ButtonLink>
+                <ButtonLink to="/notices">
+                  <Bell aria-hidden="true" /> Read notices
+                </ButtonLink>
+              </nav>
+            </Panel>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -99,10 +99,17 @@ const roleNavigation = Object.freeze({
   [USER_ROLES.WARDEN]: wardenNavigation,
   [USER_ROLES.ADMIN]: adminNavigation,
   [USER_ROLES.GUARD]: Object.freeze([
+    { label: "Overview", path: "/guard/dashboard", icon: LayoutDashboard, exact: true },
     { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },
     noticesNavigation,
   ]),
   [USER_ROLES.MAINTENANCE]: Object.freeze([
+    {
+      label: "Overview",
+      path: "/maintenance/dashboard",
+      icon: LayoutDashboard,
+      exact: true,
+    },
     {
       label: "Work orders",
       path: "/maintenance/work-orders",
@@ -147,6 +154,7 @@ const routeTitles = Object.freeze({
   "/student/mess": "Mess",
   "/student/profile": "My profile",
   "/maintenance/work-orders": "Assigned work",
+  "/maintenance/dashboard": "Overview",
   "/admin/dashboard": "Operations overview",
   "/admin/residents": "Residents and rooms",
   "/admin/student-approvals": "Student onboarding",
@@ -154,6 +162,7 @@ const routeTitles = Object.freeze({
   "/admin/leaves": "Leave requests",
   "/admin/mess": "Mess management",
   "/guard/terminal": "Gate terminal",
+  "/guard/dashboard": "Overview",
   "/notices": "Notices",
   "/unauthorized": "Access denied",
 });

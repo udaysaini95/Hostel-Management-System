@@ -14,12 +14,14 @@ import ApprovedStudents from "./pages/ApprovedStudents.jsx";
 import AllComplaintsAdmin from "./pages/AllComplaintsAdmin";
 import ApplyLeave from "./pages/ApplyLeave";
 import ComplaintDetail from "./pages/ComplaintDetail.jsx";
+import GuardDashboard from "./pages/GuardDashboard.jsx";
 import GuardTerminal from "./pages/GuardTerminal";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import MessAdmin from "./pages/MessAdmin";
 import MessPage from "./pages/MessPage";
 import MaintenanceWorkOrders from "./pages/MaintenanceWorkOrders.jsx";
+import MaintenanceDashboard from "./pages/MaintenanceDashboard.jsx";
 import MyComplaints from "./pages/MyComplaints";
 import MyLeaves from "./pages/MyLeaves";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -84,6 +86,10 @@ function App() {
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.MAINTENANCE} />}>
             <Route
+              path="/maintenance/dashboard"
+              element={<MaintenanceDashboard />}
+            />
+            <Route
               path="/maintenance/work-orders"
               element={<MaintenanceWorkOrders />}
             />
@@ -109,6 +115,10 @@ function App() {
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.GATE_ACTIVITY} />}>
             <Route path="/guard/terminal" element={<GuardTerminal />} />
+          </Route>
+
+          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.GUARD} />}>
+            <Route path="/guard/dashboard" element={<GuardDashboard />} />
           </Route>
         </Route>
       </Route>

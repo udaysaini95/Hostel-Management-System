@@ -90,6 +90,9 @@ test("route policy matches the current role boundaries", () => {
     true
   );
   assert.equal(canRoleAccessPath("student", "/maintenance/work-orders"), false);
+  assert.equal(canRoleAccessPath("maintenance", "/maintenance/dashboard"), true);
+  assert.equal(canRoleAccessPath("guard", "/guard/dashboard"), true);
+  assert.equal(canRoleAccessPath("warden", "/guard/dashboard"), false);
   assert.equal(canRoleAccessPath("unknown", "/unauthorized"), false);
   assert.equal(canRoleAccessPath("admin", "/missing"), false);
 
