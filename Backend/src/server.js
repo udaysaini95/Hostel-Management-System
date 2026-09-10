@@ -18,6 +18,7 @@ import roomAllocationRoutes from "./Routes/roomAllocationRoutes.js";
 import noticeRoutes from "./Routes/noticeRoutes.js";
 import notificationRoutes from "./Routes/notificationRoutes.js";
 import dashboardRoutes from "./Routes/dashboardRoutes.js";
+import reportRoutes from "./Routes/reportRoutes.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 import { getStudentActivationEmailConfig } from "./config/studentActivationEmailConfig.js";
 import {
@@ -51,6 +52,7 @@ app.use("/api/mess", messRoutes);
 app.use("/api/notices", noticeRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/gate", gateRoutes);
 
 // Test Route
