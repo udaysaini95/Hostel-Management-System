@@ -3,6 +3,7 @@ import { LogOut, Menu } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/authContext.js";
 import { Button, Drawer } from "../components/ui";
+import { NotificationCenter } from "../notifications/NotificationCenter.jsx";
 import {
   getNavigationForRole,
   getRoleHome,
@@ -116,6 +117,7 @@ export const AuthenticatedShell = () => {
           </div>
 
           <div className="hm-utility-bar__account">
+            <NotificationCenter />
             <AccountSummary user={user} roleLabel={roleLabel} compact />
             <Button
               variant="quiet"

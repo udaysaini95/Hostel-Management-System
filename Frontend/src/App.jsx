@@ -23,6 +23,7 @@ import MaintenanceWorkOrders from "./pages/MaintenanceWorkOrders.jsx";
 import MyComplaints from "./pages/MyComplaints";
 import MyLeaves from "./pages/MyLeaves";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
+import Notices from "./pages/Notices.jsx";
 import RaiseComplaint from "./pages/RaiseComplaint";
 import ResidentRoomManagement from "./pages/ResidentRoomManagement.jsx";
 import StudentActivationComplete from "./pages/StudentActivationComplete.jsx";
@@ -56,6 +57,10 @@ function App() {
       <Route element={<RequireAuthentication />}>
         <Route element={<AuthenticatedShell />}>
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+          <Route element={<RequireRole allowedRoles={ROLE_GROUPS.ALL} />}>
+            <Route path="/notices" element={<Notices />} />
+          </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.STUDENT} />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />

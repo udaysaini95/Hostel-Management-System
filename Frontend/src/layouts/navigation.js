@@ -3,6 +3,7 @@ import {
   Wrench,
   FileCheck2,
   LayoutDashboard,
+  Megaphone,
   QrCode,
   UserRound,
   UserCheck,
@@ -10,6 +11,13 @@ import {
   Utensils,
 } from "lucide-react";
 import { USER_ROLES } from "../auth/roles.js";
+
+const noticesNavigation = Object.freeze({
+  label: "Notices",
+  path: "/notices",
+  icon: Megaphone,
+  exact: true,
+});
 
 const studentNavigation = Object.freeze([
   {
@@ -29,6 +37,7 @@ const studentNavigation = Object.freeze([
     icon: FileCheck2,
   },
   { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
+  noticesNavigation,
   { label: "Profile", path: "/student/profile", icon: UserRound, exact: true },
 ]);
 
@@ -58,6 +67,7 @@ const operationsNavigation = Object.freeze([
     exact: true,
   },
   { label: "Mess", path: "/admin/mess", icon: Utensils, exact: true },
+  noticesNavigation,
 ]);
 
 const gateActivityNavigation = Object.freeze({
@@ -90,6 +100,7 @@ const roleNavigation = Object.freeze({
   [USER_ROLES.ADMIN]: adminNavigation,
   [USER_ROLES.GUARD]: Object.freeze([
     { label: "Gate terminal", path: "/guard/terminal", icon: QrCode },
+    noticesNavigation,
   ]),
   [USER_ROLES.MAINTENANCE]: Object.freeze([
     {
@@ -99,6 +110,7 @@ const roleNavigation = Object.freeze({
       exact: true,
     },
     { label: "Mess", path: "/student/mess", icon: Utensils, exact: true },
+    noticesNavigation,
   ]),
 });
 
@@ -142,6 +154,7 @@ const routeTitles = Object.freeze({
   "/admin/leaves": "Leave requests",
   "/admin/mess": "Mess management",
   "/guard/terminal": "Gate terminal",
+  "/notices": "Notices",
   "/unauthorized": "Access denied",
 });
 

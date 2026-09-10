@@ -32,6 +32,7 @@ export const ROUTE_ACCESS = Object.freeze({
   "/admin/leaves": ROLE_GROUPS.OPERATIONS,
   "/admin/mess": ROLE_GROUPS.OPERATIONS,
   "/guard/terminal": ROLE_GROUPS.GATE_ACTIVITY,
+  "/notices": ROLE_GROUPS.ALL,
   "/unauthorized": ROLE_GROUPS.ALL,
 });
 

@@ -30,6 +30,7 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/student/complaints",
     "/student/leaves",
     "/student/mess",
+    "/notices",
     "/student/profile",
   ]);
   assert.deepEqual(pathsForRole("warden"), [
@@ -38,6 +39,7 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
+    "/notices",
     "/guard/terminal",
   ]);
   assert.deepEqual(pathsForRole("admin"), [
@@ -47,12 +49,14 @@ test("navigation exposes only the currently implemented destinations per role", 
     "/admin/complaints",
     "/admin/leaves",
     "/admin/mess",
+    "/notices",
     "/guard/terminal",
   ]);
-  assert.deepEqual(pathsForRole("guard"), ["/guard/terminal"]);
+  assert.deepEqual(pathsForRole("guard"), ["/guard/terminal", "/notices"]);
   assert.deepEqual(pathsForRole("maintenance"), [
     "/maintenance/work-orders",
     "/student/mess",
+    "/notices",
   ]);
   assert.deepEqual(pathsForRole("unknown"), []);
 });
@@ -96,6 +100,7 @@ test("utility-bar titles describe every implemented authenticated route", () => 
     "Student onboarding"
   );
   assert.equal(getRouteTitle("/guard/terminal"), "Gate terminal");
+  assert.equal(getRouteTitle("/notices"), "Notices");
   assert.equal(getRouteTitle("/not-yet-defined"), "HostelMate");
 });
 
