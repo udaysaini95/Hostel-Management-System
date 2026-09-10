@@ -47,6 +47,7 @@ export const PublicShell = () => {
   const location = useLocation();
   const { status, user } = useAuth();
   const actions = getPublicActions(location.pathname, status, user);
+  const isLandingPage = location.pathname === "/";
 
   return (
     <div className="hm-public-shell">
@@ -57,6 +58,17 @@ export const PublicShell = () => {
       <header className="hm-public-header">
         <div className="hm-public-header__inner">
           <ProductBrand />
+          {isLandingPage && (
+            <nav
+              className="hm-public-header__landing-nav"
+              aria-label="Landing page"
+            >
+              <a href="#platform">Platform</a>
+              <a href="#workflows">Workflows</a>
+              <a href="#workspaces">Role workspaces</a>
+              <a href="#campus-model">Campus model</a>
+            </nav>
+          )}
           <nav className="hm-public-header__actions" aria-label="Account access">
             {actions.map((action) => (
               <ButtonLink
