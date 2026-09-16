@@ -165,6 +165,7 @@ Phase 2 exit gate:
 | RES-02 | Add student profile read/update APIs with ownership/privacy enforcement | RES-01–RES-02 | Student cross-profile access fails; own profile validation succeeds | `feat(residents): add secure student profiles` |
 | RES-03 | Add resident directory with server pagination/search/filter | RES-03, API Section 11 | Role and query tests cover hostel/block/room/status filters | `feat(residents): add paginated resident directory` |
 | RES-04 | Add transactional room allocation and capacity enforcement | RES-04–RES-05 | Concurrent over-capacity allocation tests fail safely | `feat(rooms): enforce room allocation capacity` |
+| RES-05 | Add transactional room transfer with preserved history | RES-08 | Transfer closes the old allocation, opens one new allocation, and emits an audit event | `feat(rooms): add transactional room transfers` |
 | RES-05 | Build student profile and warden room-allocation screens | RES-01–RES-06, design page rules | Responsive, permission, loading, empty, error, and form tests pass | `feat(frontend): add resident and room management` |
 | RES-06 | Add validated CSV resident import | RES-07 P1; run only after P0 phase is stable | Dry-run/error reporting and transactional import tests pass | `feat(residents): add validated CSV import` |
 | SETUP-01 | Add administrator hostel setup and boys/girls/co-ed classification | RES-09 | Admin-only CRUD, lifecycle guards, audit, and responsive UI tests pass | `feat(admin): add hostel setup` |

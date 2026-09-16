@@ -24,6 +24,7 @@ import { USER_ROLES } from "../../src/domain/roles.js";
 import {
   allocateRoom,
   listRoomInventory,
+  transferRoomAllocation,
   vacateRoomAllocation,
 } from "../../src/services/roomAllocationService.js";
 
@@ -425,4 +426,78 @@ test("vacating closes history and allows a later allocation", async () => {
     ),
     (error) => error.code === "ROOM_ALREADY_VACATED"
   );
+});
+
+test("room transfer atomically closes the old allocation and opens the new one", async () => {
+  const actor = { id: firstWarden.id, role: USER_ROLES.WARDEN };
+  const [profile] = await database
+    .select({ id: studentProfiles.id })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.userId, students[0].id));
+  const [currentAllocation] = await database
+    .select()
+    .from(roomAllocations)
+    .where(
+      and(
+        eq(roomAllocations.studentProfileId, profile.id),
+        isNull(roomAllocations.vacatedAt)
+      )
+    );
+
+  await assert.rejects(
+    transferRoomAllocation(database, actor, currentAllocation.id, {
+      roomId: sharedRoom.id,
+      reason: "Attempted transfer to the current room",
+    }),
+    (error) => error.code === "ROOM_TRANSFER_SAME_ROOM"
+  );
+  await assert.rejects(
+    transferRoomAllocation(database, actor, currentAllocation.id, {
+      roomId: secondHostelRoom.id,
+      reason: "Attempted transfer outside assigned hostel",
+    }),
+    (error) => error.code === "HOSTEL_SCOPE_DENIED"
+  );
+
+  const result = await transferRoomAllocation(
+    database,
+    actor,
+    currentAllocation.id,
+    {
+      roomId: singleRoom.id,
+      reason: "Approved quieter-room request",
+    },
+    { now: new Date("2026-09-09T10:00:00.000Z") }
+  );
+  const history = await database
+    .select()
+    .from(roomAllocations)
+    .where(eq(roomAllocations.studentProfileId, profile.id));
+  const [storedStudent] = await database
+    .select({ roomNo: users.roomNo })
+    .from(users)
+    .where(eq(users.id, students[0].id));
+  const [transferAudit] = await database
+    .select()
+    .from(auditEvents)
+    .where(
+      and(
+        eq(auditEvents.action, AUDIT_ACTIONS.ROOM_ALLOCATION_TRANSFERRED),
+        eq(auditEvents.resourceId, String(result.allocation.id))
+      )
+    );
+
+  assert.equal(result.previousAllocationId, currentAllocation.id);
+  assert.equal(result.allocation.room.label, "A-101");
+  assert.equal(history.length, 3);
+  assert.equal(history.filter((allocation) => !allocation.vacatedAt).length, 1);
+  assert.equal(
+    history.find((allocation) => allocation.id === currentAllocation.id)
+      .vacateReason,
+    "Approved quieter-room request"
+  );
+  assert.equal(storedStudent.roomNo, "A-101");
+  assert.equal(transferAudit.actorUserId, firstWarden.id);
+  assert.equal(transferAudit.metadata.fromRoom, "A-102");
+  assert.equal(transferAudit.metadata.toRoom, "A-101");
 });

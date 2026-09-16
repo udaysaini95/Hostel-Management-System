@@ -103,6 +103,7 @@ test("resident screens use live APIs, dialogs, and responsive list alternatives"
   assert.match(directory, /api\.get\("\/api\/residents"/);
   assert.match(allocationDialog, /api\.get\("\/api\/rooms"/);
   assert.match(allocationDialog, /api\.post\("\/api\/room-allocations"/);
+  assert.match(allocationDialog, /currentAllocation\.id}\/transfer/);
   assert.match(managementPage, /\/vacate`/);
   assert.match(managementPage, /<ConfirmationDialog/);
   assert.match(profilePage, /api\.get\("\/api\/student\/profile"/);

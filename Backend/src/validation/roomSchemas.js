@@ -36,3 +36,14 @@ export const vacateRoomAllocationRequestSchema = {
     ),
   }),
 };
+
+export const transferRoomAllocationRequestSchema = {
+  params: idParamsSchema,
+  body: z.strictObject({
+    roomId: z.number().int().positive(),
+    reason: requiredText("Transfer reason", 500).min(
+      5,
+      "Transfer reason must contain at least 5 characters"
+    ),
+  }),
+};

@@ -22,6 +22,7 @@ const VIEWS = Object.freeze({
 const ResidentRoomManagement = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [allocationResident, setAllocationResident] = useState(null);
+  const [transferResident, setTransferResident] = useState(null);
   const [vacancyResident, setVacancyResident] = useState(null);
   const [vacancyReason, setVacancyReason] = useState("");
   const [vacancyReasonError, setVacancyReasonError] = useState("");
@@ -68,6 +69,17 @@ const ResidentRoomManagement = () => {
       tone: "success",
       title: "Room allocated",
       message: `${resident.name} now has an active room assignment.`,
+    });
+  };
+
+  const transferComplete = (resident) => {
+    setTransferResident(null);
+    residentDirectoryRef.current?.refresh();
+    roomInventoryRef.current?.refresh();
+    showToast({
+      tone: "success",
+      title: "Room transferred",
+      message: `${resident.name}'s previous room remains in allocation history.`,
     });
   };
 
@@ -132,7 +144,9 @@ const ResidentRoomManagement = () => {
     }
   };
 
-  const actionPending = Boolean(allocationResident || vacancyResident);
+  const actionPending = Boolean(
+    allocationResident || transferResident || vacancyResident
+  );
 
   return (
     <div className="hm-page-stack hm-page-stack--wide hm-residents">
@@ -176,6 +190,7 @@ const ResidentRoomManagement = () => {
         active={currentView === VIEWS.RESIDENTS}
         actionPending={actionPending}
         onAllocate={setAllocationResident}
+        onTransfer={setTransferResident}
         onVacate={openVacancyDialog}
       />
       <RoomInventory
@@ -188,6 +203,14 @@ const ResidentRoomManagement = () => {
         resident={allocationResident}
         onDismiss={() => setAllocationResident(null)}
         onAllocated={allocationComplete}
+      />
+
+      <RoomAllocationDialog
+        open={Boolean(transferResident)}
+        resident={transferResident}
+        mode="transfer"
+        onDismiss={() => setTransferResident(null)}
+        onAllocated={transferComplete}
       />
 
       <ConfirmationDialog

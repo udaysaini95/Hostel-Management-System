@@ -647,3 +647,207 @@ export const vacateRoomAllocation = async (
     };
   });
 };
+
+export const transferRoomAllocation = async (
+  database,
+  requestActor,
+  allocationId,
+  input = {},
+  { now = new Date() } = {}
+) => {
+  const id = requirePositiveInteger(allocationId, "Allocation ID");
+  const targetRoomId = requirePositiveInteger(input.roomId, "Room ID");
+  const reason = typeof input.reason === "string" ? input.reason.trim() : "";
+  requireDate(now);
+
+  if (reason.length < 5 || reason.length > 500) {
+    fail(
+      400,
+      "INVALID_TRANSFER_REASON",
+      "Transfer reason must contain between 5 and 500 characters"
+    );
+  }
+
+  return database.transaction(async (transaction) => {
+    const actor = await loadManager(transaction, requestActor);
+    const [knownAllocation] = await transaction
+      .select({ studentProfileId: roomAllocations.studentProfileId })
+      .from(roomAllocations)
+      .where(eq(roomAllocations.id, id))
+      .limit(1);
+
+    if (!knownAllocation) {
+      fail(404, "ROOM_ALLOCATION_NOT_FOUND", "Room allocation was not found");
+    }
+
+    const [knownProfile] = await transaction
+      .select({ userId: studentProfiles.userId })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.id, knownAllocation.studentProfileId))
+      .limit(1);
+
+    if (!knownProfile) {
+      fail(409, "ROOM_ALLOCATION_INVALID", "Allocation details are incomplete");
+    }
+
+    // Use the same student-then-room lock order as a normal allocation. This
+    // keeps concurrent allocations and transfers from creating two active rows.
+    const { profile, student } = await lockStudent(
+      transaction,
+      knownProfile.userId
+    );
+    const [currentAllocation] = await transaction
+      .select()
+      .from(roomAllocations)
+      .where(eq(roomAllocations.id, id))
+      .for("update")
+      .limit(1);
+
+    if (
+      !currentAllocation ||
+      currentAllocation.studentProfileId !== profile.id ||
+      currentAllocation.vacatedAt
+    ) {
+      fail(
+        409,
+        "ROOM_ALLOCATION_NOT_CURRENT",
+        "The selected allocation is no longer current"
+      );
+    }
+    if (currentAllocation.roomId === targetRoomId) {
+      fail(409, "ROOM_TRANSFER_SAME_ROOM", "Choose a different room");
+    }
+
+    const [sourceRoom] = await transaction
+      .select({
+        id: rooms.id,
+        roomNumber: rooms.roomNumber,
+        blockCode: hostelBlocks.code,
+        blockName: hostelBlocks.name,
+        hostelId: hostels.id,
+        hostelCode: hostels.code,
+        hostelName: hostels.name,
+      })
+      .from(rooms)
+      .innerJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
+      .innerJoin(hostels, eq(hostelBlocks.hostelId, hostels.id))
+      .where(eq(rooms.id, currentAllocation.roomId))
+      .limit(1);
+    const { room: targetRoom, location: targetLocation } = await lockRoom(
+      transaction,
+      targetRoomId
+    );
+
+    if (!sourceRoom) {
+      fail(409, "ROOM_ALLOCATION_INVALID", "Allocation details are incomplete");
+    }
+
+    await assertHostelAccess(transaction, actor, sourceRoom.hostelId);
+    await assertHostelAccess(transaction, actor, targetLocation.hostelId);
+
+    if (
+      profile.hostelId !== targetLocation.hostelId ||
+      sourceRoom.hostelId !== targetLocation.hostelId
+    ) {
+      fail(
+        409,
+        "ROOM_HOSTEL_MISMATCH",
+        "A student can only transfer within their assigned hostel"
+      );
+    }
+    if (
+      profile.housingType &&
+      !isHousingCompatible(
+        profile.housingType,
+        targetLocation.hostelResidentType
+      )
+    ) {
+      fail(
+        409,
+        "ROOM_HOUSING_MISMATCH",
+        "The student's housing eligibility does not match this hostel"
+      );
+    }
+
+    const [occupancyResult] = await transaction
+      .select({ total: count() })
+      .from(roomAllocations)
+      .where(
+        and(
+          eq(roomAllocations.roomId, targetRoom.id),
+          isNull(roomAllocations.vacatedAt)
+        )
+      );
+    const targetOccupancy = Number(occupancyResult?.total ?? 0);
+
+    if (targetOccupancy >= targetRoom.capacity) {
+      fail(409, "ROOM_CAPACITY_REACHED", "This room has no available beds");
+    }
+
+    const transferredAt = new Date(
+      Math.max(now.getTime(), currentAllocation.allocatedAt.getTime() + 1)
+    );
+    const [previousAllocation] = await transaction
+      .update(roomAllocations)
+      .set({
+        vacatedAt: transferredAt,
+        vacatedByUserId: actor.id,
+        vacateReason: reason,
+      })
+      .where(eq(roomAllocations.id, currentAllocation.id))
+      .returning();
+    const [nextAllocation] = await transaction
+      .insert(roomAllocations)
+      .values({
+        studentProfileId: profile.id,
+        roomId: targetRoom.id,
+        allocatedByUserId: actor.id,
+        allocatedAt: transferredAt,
+        createdAt: transferredAt,
+      })
+      .returning();
+
+    await transaction
+      .update(users)
+      .set({
+        roomNo: `${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+        updatedAt: transferredAt,
+      })
+      .where(eq(users.id, student.id));
+
+    await appendAuditEvent(transaction, {
+      actor,
+      category: AUDIT_CATEGORIES.ROOM,
+      action: AUDIT_ACTIONS.ROOM_ALLOCATION_TRANSFERRED,
+      resourceType: AUDIT_RESOURCE_TYPES.ROOM_ALLOCATION,
+      resourceId: nextAllocation.id,
+      description: `Transferred ${profile.rollNo} from ${sourceRoom.blockCode}-${sourceRoom.roomNumber} to ${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+      metadata: {
+        studentUserId: student.id,
+        rollNo: profile.rollNo,
+        hostelCode: targetLocation.hostelCode,
+        previousAllocationId: previousAllocation.id,
+        nextAllocationId: nextAllocation.id,
+        fromRoom: `${sourceRoom.blockCode}-${sourceRoom.roomNumber}`,
+        toRoom: `${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+        reason,
+        occupancyAfter: targetOccupancy + 1,
+      },
+      assignedHostels: [
+        { id: targetLocation.hostelId, code: targetLocation.hostelCode },
+      ],
+      createdAt: transferredAt,
+    });
+
+    return {
+      previousAllocationId: previousAllocation.id,
+      allocation: toAllocationResult({
+        allocation: nextAllocation,
+        student,
+        profile,
+        room: targetRoom,
+        location: targetLocation,
+      }),
+    };
+  });
+};

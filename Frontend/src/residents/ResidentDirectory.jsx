@@ -55,16 +55,27 @@ const RoomAssignment = ({ allocation }) =>
     <span className="hm-residents__muted">Not allocated</span>
   );
 
-const ResidentAction = ({ resident, disabled, onAllocate, onVacate }) => {
+const ResidentAction = ({
+  resident,
+  disabled,
+  onAllocate,
+  onTransfer,
+  onVacate,
+}) => {
   if (resident.currentAllocation) {
     return (
-      <Button
-        variant="danger-secondary"
-        disabled={disabled}
-        onClick={() => onVacate(resident)}
-      >
-        Vacate room
-      </Button>
+      <div className="hm-residents__row-actions">
+        <Button disabled={disabled} onClick={() => onTransfer(resident)}>
+          Transfer room
+        </Button>
+        <Button
+          variant="danger-secondary"
+          disabled={disabled}
+          onClick={() => onVacate(resident)}
+        >
+          Vacate room
+        </Button>
+      </div>
     );
   }
 
@@ -80,7 +91,7 @@ const ResidentAction = ({ resident, disabled, onAllocate, onVacate }) => {
 };
 
 export const ResidentDirectory = forwardRef(function ResidentDirectory(
-  { active, actionPending, onAllocate, onVacate },
+  { active, actionPending, onAllocate, onTransfer, onVacate },
   ref
 ) {
   const [residents, setResidents] = useState([]);
@@ -341,6 +352,7 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
                         resident={resident}
                         disabled={actionPending}
                         onAllocate={onAllocate}
+                        onTransfer={onTransfer}
                         onVacate={onVacate}
                       />
                     </TableCell>
@@ -399,6 +411,7 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
                   resident={resident}
                   disabled={actionPending}
                   onAllocate={onAllocate}
+                  onTransfer={onTransfer}
                   onVacate={onVacate}
                 />
               </Panel>

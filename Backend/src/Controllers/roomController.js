@@ -2,6 +2,7 @@ import { db } from "../db/index.js";
 import {
   allocateRoom,
   listRoomInventory,
+  transferRoomAllocation,
   vacateRoomAllocation,
 } from "../services/roomAllocationService.js";
 import { handleControllerError } from "../utils/apiErrors.js";
@@ -35,5 +36,19 @@ export const vacateAllocation = async (req, res) => {
     return res.json(result);
   } catch (error) {
     return handleControllerError(res, error, "Vacate Room Allocation Error");
+  }
+};
+
+export const transferAllocation = async (req, res) => {
+  try {
+    const result = await transferRoomAllocation(
+      db,
+      req.user,
+      req.params.id,
+      req.body
+    );
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleControllerError(res, error, "Transfer Room Allocation Error");
   }
 };

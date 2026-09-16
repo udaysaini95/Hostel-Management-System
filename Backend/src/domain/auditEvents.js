@@ -26,6 +26,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   STUDENT_ACTIVATION_REISSUED: "student.activation.reissued",
   ROOM_ALLOCATION_CREATED: "room.allocation.created",
   ROOM_ALLOCATION_VACATED: "room.allocation.vacated",
+  ROOM_ALLOCATION_TRANSFERRED: "room.allocation.transferred",
   ROOM_CREATED: "room.created",
   ROOM_UPDATED: "room.updated",
   ROOM_STATUS_CHANGED: "room.status-changed",

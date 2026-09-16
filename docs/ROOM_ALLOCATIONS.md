@@ -64,6 +64,29 @@ Create and vacancy actions append immutable room-category audit events in the
 same database transaction. The temporary legacy `users.room_no` value is also
 kept synchronized for screens that have not yet moved to the normalized model.
 
+## Transfer a resident
+
+```http
+POST /api/room-allocations/25/transfer
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "roomId": 9,
+  "reason": "Approved quieter-room request"
+}
+```
+
+Administrators and wardens can manually transfer a resident to another active
+room in the resident's assigned hostel. The destination must have an open bed
+and match the resident's boys/girls housing eligibility. The reason is required
+and must contain 5 through 500 characters.
+
+Transfer is one database transaction. It locks the resident and destination
+room, closes the existing allocation, creates the new allocation, updates the
+legacy room number, and records an audit event. If any check fails, none of
+those changes are saved. The previous allocation remains available as history.
+
 ## Common conflict codes
 
 - `STUDENT_ACCOUNT_INACTIVE`: the resident account is not active.
@@ -72,16 +95,15 @@ kept synchronized for screens that have not yet moved to the normalized model.
 - `ROOM_HOUSING_MISMATCH`: the resident is not eligible for that hostel type.
 - `ROOM_CAPACITY_REACHED`: all configured beds are occupied.
 - `ROOM_ALREADY_VACATED`: the history row was already closed.
+- `ROOM_ALLOCATION_NOT_CURRENT`: the selected allocation is no longer active.
+- `ROOM_TRANSFER_SAME_ROOM`: the destination is the resident's current room.
 - `HOSTEL_SCOPE_DENIED`: the warden is not assigned to the target hostel.
-
-Room transfer remains a separate P1 workflow. It will close the current
-allocation and create the new one atomically instead of asking clients to chain
-two independent requests.
 
 ## Frontend workflow
 
 Administrators and wardens use `/admin/residents`. The resident view provides
-server-backed search and filters plus explicit allocation or vacancy actions.
+server-backed search and filters plus explicit allocation, transfer, or vacancy
+actions.
 The room-inventory peer view shows configured capacity, active occupancy, and
 open beds. The selected view is stored in the URL, and both tables become
 structured records on narrow screens.

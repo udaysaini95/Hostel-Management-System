@@ -197,6 +197,7 @@ const toResidentListItem = (record) => ({
           name: record.blockName,
         },
         room: {
+          id: record.roomId,
           number: record.roomNumber,
           label: `${record.blockCode}-${record.roomNumber}`,
           floor: record.roomFloor,
@@ -234,6 +235,7 @@ export const searchResidents = async (database, requestActor, input = {}) => {
         hostelName: hostels.name,
         allocationId: roomAllocations.id,
         allocatedAt: roomAllocations.allocatedAt,
+        roomId: rooms.id,
         blockCode: hostelBlocks.code,
         blockName: hostelBlocks.name,
         roomNumber: rooms.roomNumber,

@@ -309,6 +309,12 @@
     gap: 0.125rem;
   }
 
+  .hm-residents__row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
   .hm-residents__room strong {
     font-family: var(--font-mono);
     font-size: var(--text-small);
@@ -508,5 +514,10 @@
   .hm-residents__room-filter .hm-button {
     width: 100%;
     min-height: 2.75rem;
+  }
+
+  .hm-residents__row-actions,
+  .hm-residents__row-actions .hm-button {
+    width: 100%;
   }
 }

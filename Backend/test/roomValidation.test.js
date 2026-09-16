@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   createRoomAllocationRequestSchema,
   roomInventoryRequestSchema,
+  transferRoomAllocationRequestSchema,
   vacateRoomAllocationRequestSchema,
 } from "../src/validation/roomSchemas.js";
 
@@ -22,6 +23,34 @@ test("room inventory validation normalizes supported query values", () => {
     blockCode: "A",
     availability: "available",
   });
+});
+
+test("transfer validation requires allocation and room IDs plus a reason", () => {
+  const valid = {
+    params: transferRoomAllocationRequestSchema.params.safeParse({ id: "15" }),
+    body: transferRoomAllocationRequestSchema.body.safeParse({
+      roomId: 8,
+      reason: "Approved accessibility request",
+    }),
+  };
+
+  assert.equal(valid.params.success, true);
+  assert.equal(valid.params.data.id, 15);
+  assert.equal(valid.body.success, true);
+  assert.equal(
+    transferRoomAllocationRequestSchema.body.safeParse({
+      roomId: 8,
+      reason: "move",
+    }).success,
+    false
+  );
+  assert.equal(
+    transferRoomAllocationRequestSchema.body.safeParse({
+      roomId: "8",
+      reason: "Approved accessibility request",
+    }).success,
+    false
+  );
 });
 
 test("allocation validation requires numeric identifiers and rejects extra fields", () => {

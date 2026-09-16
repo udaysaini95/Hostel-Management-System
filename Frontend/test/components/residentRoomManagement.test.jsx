@@ -44,7 +44,7 @@ const residents = Object.freeze([
       id: 31,
       allocatedAt: "2026-09-01T10:00:00.000Z",
       block: { code: "A", name: "Ashoka Block" },
-      room: { number: "101", label: "A-101", floor: 1, capacity: 2 },
+      room: { id: 40, number: "101", label: "A-101", floor: 1, capacity: 2 },
     },
     profileComplete: true,
   },
@@ -104,8 +104,51 @@ describe("resident and room management", () => {
       "true"
     );
     expect(screen.getAllByRole("button", { name: "Allocate room" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("button", { name: "Transfer room" })).not.toHaveLength(0);
     expect(screen.getAllByRole("button", { name: "Vacate room" })).not.toHaveLength(0);
     await expectNoAccessibilityViolations(view.container);
+  });
+
+  test("transfers a resident to another available room with a reason", async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { allocation: { id: 51 } } });
+    renderPage();
+
+    await screen.findAllByText("Bharat Sen");
+    await user.click(
+      screen.getAllByRole("button", { name: "Transfer room" })[0]
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Transfer room" });
+    await user.selectOptions(
+      await within(dialog).findByLabelText("Available room"),
+      "41"
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Transfer room" })
+    );
+
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Enter at least 5 characters"
+    );
+    expect(api.post).not.toHaveBeenCalled();
+
+    await user.type(
+      within(dialog).getByLabelText("Reason for transfer"),
+      "Approved room-change request"
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Transfer room" })
+    );
+
+    expect(api.post).toHaveBeenCalledWith(
+      "/api/room-allocations/31/transfer",
+      { roomId: 41, reason: "Approved room-change request" }
+    );
+    expect(showToast).toHaveBeenCalledWith({
+      tone: "success",
+      title: "Room transferred",
+      message: "Bharat Sen's previous room remains in allocation history.",
+    });
   });
 
   test("allocates an available room to the selected resident", async () => {

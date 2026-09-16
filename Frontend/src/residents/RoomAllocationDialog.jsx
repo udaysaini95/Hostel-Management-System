@@ -9,6 +9,7 @@ import {
   Input,
   LoadingState,
   Select,
+  Textarea,
 } from "../components/ui/index.js";
 import { PaginationControls } from "./PaginationControls.jsx";
 import { EMPTY_PAGINATION } from "./residentView.js";
@@ -18,9 +19,11 @@ const ROOM_PAGE_SIZE = 20;
 export const RoomAllocationDialog = ({
   open,
   resident,
+  mode = "allocate",
   onDismiss,
   onAllocated,
 }) => {
+  const transferring = mode === "transfer";
   const [rooms, setRooms] = useState([]);
   const [pagination, setPagination] = useState(EMPTY_PAGINATION);
   const [page, setPage] = useState(1);
@@ -31,9 +34,12 @@ export const RoomAllocationDialog = ({
   const [loadError, setLoadError] = useState("");
   const [selectionError, setSelectionError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState("");
   const [saving, setSaving] = useState(false);
   const latestRequest = useRef(0);
   const roomSelectRef = useRef(null);
+  const reasonRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
@@ -46,6 +52,8 @@ export const RoomAllocationDialog = ({
     setSelectedRoomId("");
     setSelectionError("");
     setActionError("");
+    setReason("");
+    setReasonError("");
   }, [open, resident?.userId]);
 
   const loadRooms = useCallback(async () => {
@@ -75,7 +83,12 @@ export const RoomAllocationDialog = ({
       }
 
       const nextPagination = response.data?.pagination ?? EMPTY_PAGINATION;
-      setRooms(Array.isArray(response.data?.data) ? response.data.data : []);
+      const nextRooms = Array.isArray(response.data?.data)
+        ? response.data.data.filter(
+            (room) => room.id !== resident.currentAllocation?.room.id
+          )
+        : [];
+      setRooms(nextRooms);
       setPagination(nextPagination);
 
       if (nextPagination.totalPages > 0 && page > nextPagination.totalPages) {
@@ -107,24 +120,42 @@ export const RoomAllocationDialog = ({
 
   const allocate = async () => {
     const roomId = Number(selectedRoomId);
+    const transferReason = reason.trim();
 
     if (!Number.isSafeInteger(roomId) || roomId < 1) {
       setSelectionError("Select an available room.");
       window.requestAnimationFrame(() => roomSelectRef.current?.focus());
       return;
     }
+    if (transferring && transferReason.length < 5) {
+      setReasonError("Enter at least 5 characters explaining the transfer.");
+      window.requestAnimationFrame(() => reasonRef.current?.focus());
+      return;
+    }
 
     try {
       setSaving(true);
       setActionError("");
-      await api.post("/api/room-allocations", {
-        studentUserId: resident.userId,
-        roomId,
-      });
+      if (transferring) {
+        await api.post(
+          `/api/room-allocations/${resident.currentAllocation.id}/transfer`,
+          { roomId, reason: transferReason }
+        );
+      } else {
+        await api.post("/api/room-allocations", {
+          studentUserId: resident.userId,
+          roomId,
+        });
+      }
       onAllocated(resident);
     } catch (error) {
       setActionError(
-        getApiErrorMessage(error, "The room could not be allocated.")
+        getApiErrorMessage(
+          error,
+          transferring
+            ? "The resident could not be transferred."
+            : "The room could not be allocated."
+        )
       );
 
       if (error?.response?.data?.code === "ROOM_CAPACITY_REACHED") {
@@ -140,10 +171,14 @@ export const RoomAllocationDialog = ({
   return (
     <Dialog
       open={open}
-      title="Allocate room"
+      title={transferring ? "Transfer room" : "Allocate room"}
       description={
         resident
-          ? `Choose an available room in ${resident.hostel.code} for ${resident.name} (${resident.rollNo}).`
+          ? `${
+              transferring
+                ? `Move from ${resident.currentAllocation?.room.label} to another room`
+                : "Choose an available room"
+            } in ${resident.hostel.code} for ${resident.name} (${resident.rollNo}).`
           : undefined
       }
       dismissDisabled={saving}
@@ -156,11 +191,13 @@ export const RoomAllocationDialog = ({
           <Button
             variant="primary"
             loading={saving}
-            loadingLabel="Allocating room"
+            loadingLabel={
+              transferring ? "Transferring room" : "Allocating room"
+            }
             disabled={loading || rooms.length === 0}
             onClick={allocate}
           >
-            Allocate room
+            {transferring ? "Transfer room" : "Allocate room"}
           </Button>
         </>
       }
@@ -230,15 +267,35 @@ export const RoomAllocationDialog = ({
               <option value="">Select a room</option>
               {rooms.map((room) => (
                 <option key={room.id} value={room.id}>
-                  {room.label} — floor {room.floor}, {room.availableBeds} open {room.availableBeds === 1 ? "bed" : "beds"}
+                  {room.label} — floor {room.floor}, {room.availableBeds} open{" "}
+                  {room.availableBeds === 1 ? "bed" : "beds"}
                 </option>
               ))}
             </Select>
 
             {selectedRoom && (
               <p className="hm-residents__selection-note">
-                {selectedRoom.block.name}, {selectedRoom.occupancy} of {selectedRoom.capacity} beds currently occupied.
+                {selectedRoom.block.name}, {selectedRoom.occupancy} of{" "}
+                {selectedRoom.capacity} beds currently occupied.
               </p>
+            )}
+
+            {transferring && (
+              <Textarea
+                ref={reasonRef}
+                label="Reason for transfer"
+                name="transferReason"
+                maxLength={500}
+                required
+                placeholder="Example: Approved room-change request"
+                value={reason}
+                error={reasonError}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  setReasonError("");
+                  setActionError("");
+                }}
+              />
             )}
 
             <PaginationControls

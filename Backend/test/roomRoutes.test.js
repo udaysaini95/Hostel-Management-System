@@ -26,9 +26,10 @@ test("room inventory exposes one protected read route", () => {
   ]);
 });
 
-test("room allocations expose protected create and vacancy routes", () => {
+test("room allocations expose protected create, vacancy, and transfer routes", () => {
   assert.deepEqual(describeRoutes(roomAllocationRoutes), [
     { path: "/", methods: ["post"], middlewareCount: 4 },
     { path: "/:id/vacate", methods: ["patch"], middlewareCount: 4 },
+    { path: "/:id/transfer", methods: ["post"], middlewareCount: 4 },
   ]);
 });

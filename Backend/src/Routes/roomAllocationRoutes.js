@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createRoomAllocation,
+  transferAllocation,
   vacateAllocation,
 } from "../Controllers/roomController.js";
 import { PERMISSIONS } from "../domain/permissions.js";
@@ -9,6 +10,7 @@ import { requirePermission } from "../middlewares/authorizationMiddleware.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import {
   createRoomAllocationRequestSchema,
+  transferRoomAllocationRequestSchema,
   vacateRoomAllocationRequestSchema,
 } from "../validation/roomSchemas.js";
 
@@ -31,6 +33,14 @@ router.patch(
   canManageAllocations,
   validateRequest(vacateRoomAllocationRequestSchema),
   vacateAllocation
+);
+
+router.post(
+  "/:id/transfer",
+  protect,
+  canManageAllocations,
+  validateRequest(transferRoomAllocationRequestSchema),
+  transferAllocation
 );
 
 export default router;
