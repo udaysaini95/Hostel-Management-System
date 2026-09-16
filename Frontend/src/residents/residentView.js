@@ -97,14 +97,12 @@ export const getStudentContactFieldErrors = (error) => {
 export const normalizeResidentFilters = (filters) => ({
   search: filters.search.trim(),
   hostelCode: filters.hostelCode.trim().toUpperCase(),
-  blockCode: filters.blockCode.trim().toUpperCase(),
   roomNumber: filters.roomNumber.trim().toUpperCase(),
   accountStatus: filters.accountStatus,
 });
 
 export const normalizeRoomFilters = (filters) => ({
   hostelCode: filters.hostelCode.trim().toUpperCase(),
-  blockCode: filters.blockCode.trim().toUpperCase(),
   availability: filters.availability,
 });
 

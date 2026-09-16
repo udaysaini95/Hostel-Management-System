@@ -11,12 +11,12 @@ GET /api/rooms?page=1&pageSize=20&hostelCode=H1&availability=available
 Authorization: Bearer <access-token>
 ```
 
-Supported filters are `hostelCode`, `blockCode`, and `availability`. Availability
-accepts `all`, `available`, or `full`. Each row contains the hostel and block,
-room number and label, floor, capacity, current occupancy, available beds, and
-full state. Results include the standard pagination object.
+Supported filters are `hostelCode` and `availability`. Availability accepts
+`all`, `available`, or `full`. Each row contains the hostel, room number, floor,
+capacity, current occupancy, available beds, and full state. Results include the
+standard pagination object.
 
-Inactive hostels, blocks, and rooms are not returned. A warden cannot broaden
+Inactive hostels and rooms are not returned. A warden cannot broaden
 their assigned-hostel scope by supplying a different hostel code.
 
 ## Allocate a resident

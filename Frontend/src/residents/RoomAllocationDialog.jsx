@@ -6,7 +6,6 @@ import {
   Dialog,
   EmptyState,
   ErrorState,
-  Input,
   LoadingState,
   Select,
   Textarea,
@@ -27,8 +26,6 @@ export const RoomAllocationDialog = ({
   const [rooms, setRooms] = useState([]);
   const [pagination, setPagination] = useState(EMPTY_PAGINATION);
   const [page, setPage] = useState(1);
-  const [blockInput, setBlockInput] = useState("");
-  const [blockCode, setBlockCode] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -47,8 +44,6 @@ export const RoomAllocationDialog = ({
     }
 
     setPage(1);
-    setBlockInput("");
-    setBlockCode("");
     setSelectedRoomId("");
     setSelectionError("");
     setActionError("");
@@ -73,7 +68,6 @@ export const RoomAllocationDialog = ({
           page,
           pageSize: ROOM_PAGE_SIZE,
           hostelCode: resident.hostel.code,
-          blockCode: blockCode || undefined,
           availability: "available",
         },
       });
@@ -106,17 +100,11 @@ export const RoomAllocationDialog = ({
         setLoading(false);
       }
     }
-  }, [blockCode, open, page, resident]);
+  }, [open, page, resident]);
 
   useEffect(() => {
     loadRooms();
   }, [loadRooms]);
-
-  const filterRooms = (event) => {
-    event.preventDefault();
-    setBlockCode(blockInput.trim().toUpperCase());
-    setPage(1);
-  };
 
   const allocate = async () => {
     const roomId = Number(selectedRoomId);
@@ -203,21 +191,6 @@ export const RoomAllocationDialog = ({
       }
     >
       <div className="hm-residents__allocation-form">
-        <form className="hm-residents__room-filter" onSubmit={filterRooms}>
-          <Input
-            label="Block code"
-            name="allocationBlockCode"
-            maxLength={20}
-            pattern="[A-Za-z][A-Za-z0-9-]*"
-            title="Start with a letter and use only letters, numbers, or hyphens"
-            placeholder="All blocks"
-            hint="Optional. Leave blank to show every block in this hostel."
-            value={blockInput}
-            onChange={(event) => setBlockInput(event.target.value)}
-          />
-          <Button type="submit">Filter rooms</Button>
-        </form>
-
         {loading ? (
           <LoadingState compact label="Loading available rooms" rows={3} />
         ) : loadError ? (
@@ -230,22 +203,7 @@ export const RoomAllocationDialog = ({
           <EmptyState
             title="No available rooms"
             description={
-              blockCode
-                ? `No rooms with open beds were found in block ${blockCode}.`
-                : `No rooms with open beds were found in ${resident?.hostel.code}.`
-            }
-            action={
-              blockCode ? (
-                <Button
-                  onClick={() => {
-                    setBlockInput("");
-                    setBlockCode("");
-                    setPage(1);
-                  }}
-                >
-                  Show all blocks
-                </Button>
-              ) : null
+              `No rooms with open beds were found in ${resident?.hostel.code}.`
             }
           />
         ) : (
@@ -275,8 +233,8 @@ export const RoomAllocationDialog = ({
 
             {selectedRoom && (
               <p className="hm-residents__selection-note">
-                {selectedRoom.block.name}, {selectedRoom.occupancy} of{" "}
-                {selectedRoom.capacity} beds currently occupied.
+                {selectedRoom.occupancy} of {selectedRoom.capacity} beds are
+                currently occupied.
               </p>
             )}
 

@@ -8,7 +8,6 @@ import {
   STUDENT_HOUSING_TYPES,
 } from "../domain/hostels.js";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -35,29 +34,21 @@ export const DEMO_HOSTELS = Object.freeze([
   }),
 ]);
 
-export const DEMO_BLOCKS = Object.freeze([
-  Object.freeze({ hostelCode: "H1", code: "A", name: "Ashoka Block" }),
-  Object.freeze({ hostelCode: "H2", code: "B", name: "Banyan Block" }),
-]);
-
 export const DEMO_ROOMS = Object.freeze([
   Object.freeze({
     hostelCode: "H1",
-    blockCode: "A",
     roomNumber: "101",
     floor: 1,
     capacity: 2,
   }),
   Object.freeze({
     hostelCode: "H1",
-    blockCode: "A",
     roomNumber: "102",
     floor: 1,
     capacity: 2,
   }),
   Object.freeze({
     hostelCode: "H2",
-    blockCode: "B",
     roomNumber: "204",
     floor: 2,
     capacity: 2,
@@ -114,8 +105,8 @@ export const DEMO_USERS = Object.freeze([
     phone: "0000000001",
     guardianName: "Anita Nair",
     guardianPhone: "0000000201",
-    roomNo: "A-101",
-    room: Object.freeze({ blockCode: "A", roomNumber: "101" }),
+    roomNo: "101",
+    room: Object.freeze({ roomNumber: "101" }),
     hostelCodes: Object.freeze(["H1"]),
     primaryHostelCode: "H1",
   }),
@@ -128,8 +119,8 @@ export const DEMO_USERS = Object.freeze([
     phone: "0000000002",
     guardianName: "Meera Patel",
     guardianPhone: "0000000202",
-    roomNo: "B-204",
-    room: Object.freeze({ blockCode: "B", roomNumber: "204" }),
+    roomNo: "204",
+    room: Object.freeze({ roomNumber: "204" }),
     hostelCodes: Object.freeze(["H2"]),
     primaryHostelCode: "H2",
   }),
@@ -192,18 +183,7 @@ export const resetDemoData = async (database) => {
   const demoHostelIds = demoHostels.map((hostel) => hostel.id);
 
   if (demoHostelIds.length > 0) {
-    const demoBlocks = await database
-      .select({ id: hostelBlocks.id })
-      .from(hostelBlocks)
-      .where(inArray(hostelBlocks.hostelId, demoHostelIds));
-    const demoBlockIds = demoBlocks.map((block) => block.id);
-
-    if (demoBlockIds.length > 0) {
-      await database.delete(rooms).where(inArray(rooms.blockId, demoBlockIds));
-      await database
-        .delete(hostelBlocks)
-        .where(inArray(hostelBlocks.id, demoBlockIds));
-    }
+    await database.delete(rooms).where(inArray(rooms.hostelId, demoHostelIds));
 
     await database.delete(hostels).where(inArray(hostels.id, demoHostelIds));
   }
@@ -218,7 +198,6 @@ export const seedDemoData = async (database, password) => {
   const verifiedAt = new Date(DEMO_EMAIL_VERIFIED_AT);
   const passwordHash = await bcrypt.hash(password, 10);
   const hostelIds = new Map();
-  const blockIds = new Map();
   const roomIds = new Map();
   const userIds = new Map();
   const studentProfileIds = new Map();
@@ -242,44 +221,17 @@ export const seedDemoData = async (database, password) => {
     hostelIds.set(savedHostel.code, savedHostel.id);
   }
 
-  for (const block of DEMO_BLOCKS) {
-    const hostelId = hostelIds.get(block.hostelCode);
+  for (const room of DEMO_ROOMS) {
+    const hostelId = hostelIds.get(room.hostelCode);
 
     if (!hostelId) {
-      throw new Error(`Unknown demo hostel code: ${block.hostelCode}`);
-    }
-
-    const [savedBlock] = await database
-      .insert(hostelBlocks)
-      .values({
-        hostelId,
-        code: block.code,
-        name: block.name,
-        isActive: true,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [hostelBlocks.hostelId, hostelBlocks.code],
-        set: { name: block.name, isActive: true, updatedAt: now },
-      })
-      .returning({ id: hostelBlocks.id });
-
-    blockIds.set(`${block.hostelCode}:${block.code}`, savedBlock.id);
-  }
-
-  for (const room of DEMO_ROOMS) {
-    const blockId = blockIds.get(`${room.hostelCode}:${room.blockCode}`);
-
-    if (!blockId) {
-      throw new Error(
-        `Unknown demo block: ${room.hostelCode}/${room.blockCode}`
-      );
+      throw new Error(`Unknown demo hostel: ${room.hostelCode}`);
     }
 
     const [savedRoom] = await database
       .insert(rooms)
       .values({
-        blockId,
+        hostelId,
         roomNumber: room.roomNumber,
         floor: room.floor,
         capacity: room.capacity,
@@ -287,7 +239,7 @@ export const seedDemoData = async (database, password) => {
         updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: [rooms.blockId, rooms.roomNumber],
+        target: [rooms.hostelId, rooms.roomNumber],
         set: {
           floor: room.floor,
           capacity: room.capacity,
@@ -297,10 +249,7 @@ export const seedDemoData = async (database, password) => {
       })
       .returning({ id: rooms.id });
 
-    roomIds.set(
-      `${room.hostelCode}:${room.blockCode}:${room.roomNumber}`,
-      savedRoom.id
-    );
+    roomIds.set(`${room.hostelCode}:${room.roomNumber}`, savedRoom.id);
   }
 
   for (const user of DEMO_USERS) {
@@ -418,7 +367,7 @@ export const seedDemoData = async (database, password) => {
   for (const user of DEMO_USERS.filter((entry) => entry.room)) {
     const studentProfileId = studentProfileIds.get(user.email);
     const roomId = roomIds.get(
-      `${user.primaryHostelCode}:${user.room.blockCode}:${user.room.roomNumber}`
+      `${user.primaryHostelCode}:${user.room.roomNumber}`
     );
 
     if (!studentProfileId || !roomId || !allocationActorId) {
@@ -449,7 +398,6 @@ export const seedDemoData = async (database, password) => {
 
   return {
     hostels: DEMO_HOSTELS.length,
-    blocks: DEMO_BLOCKS.length,
     rooms: DEMO_ROOMS.length,
     users: DEMO_USERS.length,
     profiles: DEMO_USERS.length,

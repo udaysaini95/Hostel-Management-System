@@ -216,7 +216,7 @@ const StudentProfile = () => {
                       {profile.currentAllocation.room.label}
                     </p>
                     <p>
-                      {profile.currentAllocation.block.name}, floor {profile.currentAllocation.room.floor}
+                      Floor {profile.currentAllocation.room.floor}
                       {" · "}Allocated {formatResidentDate(profile.currentAllocation.allocatedAt)}
                     </p>
                   </>

@@ -12,7 +12,6 @@ test("room inventory validation normalizes supported query values", () => {
     page: "2",
     pageSize: "10",
     hostelCode: " h1 ",
-    blockCode: " a ",
     availability: "available",
   });
 
@@ -20,7 +19,6 @@ test("room inventory validation normalizes supported query values", () => {
     page: 2,
     pageSize: 10,
     hostelCode: "H1",
-    blockCode: "A",
     availability: "available",
   });
 });

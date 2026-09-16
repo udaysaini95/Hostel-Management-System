@@ -1,6 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
 import {
-  hostelBlocks,
   hostels,
   roomAllocations,
   rooms,
@@ -39,13 +38,9 @@ const toProfileView = (record) => {
     ? {
         id: record.allocationId,
         allocatedAt: record.allocatedAt,
-        block: {
-          code: record.blockCode,
-          name: record.blockName,
-        },
         room: {
           number: record.roomNumber,
-          label: `${record.blockCode}-${record.roomNumber}`,
+          label: record.roomNumber,
           floor: record.roomFloor,
           capacity: record.roomCapacity,
         },
@@ -94,8 +89,6 @@ export const getOwnStudentProfile = async (database, actorUserId) => {
       hostelName: hostels.name,
       allocationId: roomAllocations.id,
       allocatedAt: roomAllocations.allocatedAt,
-      blockCode: hostelBlocks.code,
-      blockName: hostelBlocks.name,
       roomNumber: rooms.roomNumber,
       roomFloor: rooms.floor,
       roomCapacity: rooms.capacity,
@@ -113,7 +106,6 @@ export const getOwnStudentProfile = async (database, actorUserId) => {
       )
     )
     .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .where(
       and(eq(studentProfiles.userId, userId), eq(users.role, USER_ROLES.STUDENT))
     )

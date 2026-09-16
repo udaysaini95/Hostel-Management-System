@@ -18,11 +18,8 @@ import {
 } from "../Controllers/hostelController.js";
 import {
   getInventory,
-  patchBlock,
-  patchBlockStatus,
   patchRoom,
   patchRoomStatus,
-  postBlock,
   postRoom,
 } from "../Controllers/hostelInventoryController.js";
 import { PERMISSIONS } from "../domain/permissions.js";
@@ -48,9 +45,6 @@ import {
   hostelUpdateRequestSchema,
 } from "../validation/hostelSchemas.js";
 import {
-  blockCreateRequestSchema,
-  blockStatusRequestSchema,
-  blockUpdateRequestSchema,
   hostelInventoryRequestSchema,
   roomCreateRequestSchema,
   roomStatusRequestSchema,
@@ -133,31 +127,7 @@ router.get(
 );
 
 router.post(
-  "/hostels/:id/blocks",
-  protect,
-  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
-  validateRequest(blockCreateRequestSchema),
-  postBlock
-);
-
-router.patch(
-  "/hostels/:id/blocks/:blockId/status",
-  protect,
-  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
-  validateRequest(blockStatusRequestSchema),
-  patchBlockStatus
-);
-
-router.patch(
-  "/hostels/:id/blocks/:blockId",
-  protect,
-  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
-  validateRequest(blockUpdateRequestSchema),
-  patchBlock
-);
-
-router.post(
-  "/hostels/:id/blocks/:blockId/rooms",
+  "/hostels/:id/rooms",
   protect,
   requirePermission(PERMISSIONS.HOSTEL_MANAGE),
   validateRequest(roomCreateRequestSchema),

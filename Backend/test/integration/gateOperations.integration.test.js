@@ -7,7 +7,6 @@ import * as schema from "../../src/db/schema.js";
 import {
   auditEvents,
   gatePasses,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   leaveDecisions,
@@ -153,18 +152,11 @@ before(async () => {
       rollNo: student.rollNo,
     })))
     .returning();
-  const blocks = await database
-    .insert(hostelBlocks)
-    .values([
-      { hostelId: firstHostel.id, code: "A", name: "Block A" },
-      { hostelId: secondHostel.id, code: "B", name: "Block B" },
-    ])
-    .returning();
   const roomRows = await database
     .insert(rooms)
     .values([
-      { blockId: blocks[0].id, roomNumber: "101", floor: 1, capacity: 2 },
-      { blockId: blocks[1].id, roomNumber: "201", floor: 2, capacity: 1 },
+      { hostelId: firstHostel.id, roomNumber: "101", floor: 1, capacity: 2 },
+      { hostelId: secondHostel.id, roomNumber: "201", floor: 2, capacity: 1 },
     ])
     .returning();
   const allocations = await database
@@ -272,7 +264,6 @@ test("outside roster and movement history enforce hostel and override filters", 
   assert.equal(roster.data[0].leaveRequestId, overdueLeave.id);
   assert.equal(roster.data[0].overdue, true);
   assert.deepEqual(roster.data[0].student.room, {
-    blockCode: "A",
     roomNumber: "101",
   });
   assert.equal(history.data.length, 1);

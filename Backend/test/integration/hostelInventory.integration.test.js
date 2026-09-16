@@ -16,10 +16,8 @@ import { ACCOUNT_STATUSES } from "../../src/domain/accountStatuses.js";
 import { AUDIT_ACTIONS } from "../../src/domain/auditEvents.js";
 import { USER_ROLES } from "../../src/domain/roles.js";
 import {
-  createHostelBlock,
   createHostelRoom,
   getHostelInventory,
-  setHostelBlockStatus,
   setHostelRoomStatus,
   updateHostelRoom,
 } from "../../src/services/hostelInventoryService.js";
@@ -59,17 +57,10 @@ after(async () => {
   await pool.end();
 });
 
-test("administrators create nested blocks and rooms with audit history", async () => {
-  const block = await createHostelBlock(
-    database,
-    hostel.id,
-    { code: "A", name: "Alpha Block" },
-    administrator.id
-  );
+test("administrators create hostel rooms with audit history", async () => {
   const room = await createHostelRoom(
     database,
     hostel.id,
-    block.id,
     { roomNumber: "101", floor: 1, capacity: 2 },
     administrator.id
   );
@@ -79,10 +70,8 @@ test("administrators create nested blocks and rooms with audit history", async (
     .from(auditEvents)
     .where(eq(auditEvents.actorUserId, administrator.id));
 
-  assert.equal(inventory.blocks.length, 1);
-  assert.equal(inventory.blocks[0].rooms.length, 1);
-  assert.equal(inventory.blocks[0].rooms[0].availableBeds, 2);
-  assert.ok(events.some((event) => event.action === AUDIT_ACTIONS.HOSTEL_BLOCK_CREATED));
+  assert.equal(inventory.rooms.length, 1);
+  assert.equal(inventory.rooms[0].availableBeds, 2);
   assert.ok(events.some((event) => event.action === AUDIT_ACTIONS.ROOM_CREATED));
 
   const [student] = await database
@@ -130,15 +119,5 @@ test("administrators create nested blocks and rooms with audit history", async (
       administrator.id
     ),
     (error) => error.code === "ROOM_DEACTIVATION_BLOCKED"
-  );
-  await assert.rejects(
-    setHostelBlockStatus(
-      database,
-      hostel.id,
-      block.id,
-      false,
-      administrator.id
-    ),
-    (error) => error.code === "BLOCK_DEACTIVATION_BLOCKED"
   );
 });

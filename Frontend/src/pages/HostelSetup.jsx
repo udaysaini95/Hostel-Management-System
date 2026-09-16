@@ -212,7 +212,7 @@ const HostelSetup = () => {
                     <TableCell>{hostel.address || "Not provided"}</TableCell>
                     <TableCell><StatusBadge status={hostel.isActive ? "active" : "inactive"}>{hostel.isActive ? "Active" : "Inactive"}</StatusBadge></TableCell>
                     <TableCell actions>
-                      <Button variant="quiet" leadingIcon={<Boxes aria-hidden="true" />} onClick={() => setManagedHostel(hostel)}>Blocks & rooms</Button>
+                      <Button variant="quiet" leadingIcon={<Boxes aria-hidden="true" />} onClick={() => setManagedHostel(hostel)}>Rooms</Button>
                       <Button variant="quiet" leadingIcon={<Pencil aria-hidden="true" />} onClick={() => openEditDialog(hostel)}>Edit</Button>
                       <Button variant="quiet" onClick={() => setStatusHostel(hostel)}>{hostel.isActive ? "Deactivate" : "Activate"}</Button>
                     </TableCell>
@@ -226,7 +226,7 @@ const HostelSetup = () => {
                 <article key={hostel.id}>
                   <header><div><strong>{hostel.code}</strong><h2>{hostel.name}</h2></div><StatusBadge status={hostel.isActive ? "active" : "inactive"}>{hostel.isActive ? "Active" : "Inactive"}</StatusBadge></header>
                   <dl><div><dt>Residents</dt><dd>{getResidentTypeLabel(hostel.residentType)}</dd></div><div><dt>Address</dt><dd>{hostel.address || "Not provided"}</dd></div></dl>
-                  <footer><Button onClick={() => setManagedHostel(hostel)}>Blocks & rooms</Button><Button onClick={() => openEditDialog(hostel)}>Edit</Button><Button onClick={() => setStatusHostel(hostel)}>{hostel.isActive ? "Deactivate" : "Activate"}</Button></footer>
+                  <footer><Button onClick={() => setManagedHostel(hostel)}>Rooms</Button><Button onClick={() => openEditDialog(hostel)}>Edit</Button><Button onClick={() => setStatusHostel(hostel)}>{hostel.isActive ? "Deactivate" : "Activate"}</Button></footer>
                 </article>
               ))}
             </div>

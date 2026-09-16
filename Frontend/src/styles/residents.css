@@ -215,7 +215,7 @@
   }
 
   .hm-residents__filters--rooms {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
   }
 
   .hm-residents__filters--rooms > :first-child,

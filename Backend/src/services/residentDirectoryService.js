@@ -10,7 +10,6 @@ import {
   sql,
 } from "drizzle-orm";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -22,7 +21,7 @@ import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import { USER_ROLES } from "../domain/roles.js";
 import { ApiError } from "../utils/apiErrors.js";
 
-const HOSTEL_OR_BLOCK_CODE_PATTERN = /^[A-Z][A-Z0-9-]{0,19}$/;
+const HOSTEL_CODE_PATTERN = /^[A-Z][A-Z0-9-]{0,19}$/;
 const ROOM_NUMBER_PATTERN = /^[A-Z0-9][A-Z0-9-]{0,19}$/;
 const knownAccountStatuses = new Set(Object.values(ACCOUNT_STATUSES));
 const directoryRoles = new Set([USER_ROLES.ADMIN, USER_ROLES.WARDEN]);
@@ -39,7 +38,6 @@ export const normalizeResidentDirectoryFilters = (input = {}) => {
   const pageSize = Number(input.pageSize ?? 20);
   const search = typeof input.search === "string" ? input.search.trim() : "";
   const hostelCode = normalizeCode(input.hostelCode);
-  const blockCode = normalizeCode(input.blockCode);
   const roomNumber = normalizeCode(input.roomNumber);
   const accountStatus =
     typeof input.accountStatus === "string" ? input.accountStatus.trim() : "";
@@ -53,11 +51,8 @@ export const normalizeResidentDirectoryFilters = (input = {}) => {
   if (search.length > 100) {
     fail(400, "INVALID_SEARCH", "Search must contain at most 100 characters");
   }
-  if (hostelCode && !HOSTEL_OR_BLOCK_CODE_PATTERN.test(hostelCode)) {
+  if (hostelCode && !HOSTEL_CODE_PATTERN.test(hostelCode)) {
     fail(400, "INVALID_HOSTEL", "Hostel code is invalid");
-  }
-  if (blockCode && !HOSTEL_OR_BLOCK_CODE_PATTERN.test(blockCode)) {
-    fail(400, "INVALID_BLOCK", "Block code is invalid");
   }
   if (roomNumber && !ROOM_NUMBER_PATTERN.test(roomNumber)) {
     fail(400, "INVALID_ROOM", "Room number is invalid");
@@ -71,7 +66,6 @@ export const normalizeResidentDirectoryFilters = (input = {}) => {
     pageSize,
     search: search || null,
     hostelCode: hostelCode || null,
-    blockCode: blockCode || null,
     roomNumber: roomNumber || null,
     accountStatus: accountStatus || null,
   });
@@ -141,9 +135,6 @@ const buildDirectoryWhereClause = (database, actor, filters) => {
   if (filters.hostelCode) {
     conditions.push(eq(hostels.code, filters.hostelCode));
   }
-  if (filters.blockCode) {
-    conditions.push(eq(hostelBlocks.code, filters.blockCode));
-  }
   if (filters.roomNumber) {
     conditions.push(eq(rooms.roomNumber, filters.roomNumber));
   }
@@ -154,10 +145,7 @@ const buildDirectoryWhereClause = (database, actor, filters) => {
   // Keep this defensive boundary even though the allocation service now rejects
   // cross-hostel assignments transactionally. It protects reads from old data.
   conditions.push(
-    or(
-      isNull(roomAllocations.id),
-      eq(hostelBlocks.hostelId, studentProfiles.hostelId)
-    )
+    or(isNull(roomAllocations.id), eq(rooms.hostelId, studentProfiles.hostelId))
   );
 
   return and(...conditions);
@@ -173,8 +161,7 @@ const addDirectoryJoins = (query) =>
     .innerJoin(users, eq(studentProfiles.userId, users.id))
     .innerJoin(hostels, eq(studentProfiles.hostelId, hostels.id))
     .leftJoin(roomAllocations, currentAllocationJoin)
-    .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id));
+    .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id));
 
 const toResidentListItem = (record) => ({
   userId: record.userId,
@@ -192,14 +179,10 @@ const toResidentListItem = (record) => ({
     ? {
         id: record.allocationId,
         allocatedAt: record.allocatedAt,
-        block: {
-          code: record.blockCode,
-          name: record.blockName,
-        },
         room: {
           id: record.roomId,
           number: record.roomNumber,
-          label: `${record.blockCode}-${record.roomNumber}`,
+          label: record.roomNumber,
           floor: record.roomFloor,
           capacity: record.roomCapacity,
         },
@@ -236,8 +219,6 @@ export const searchResidents = async (database, requestActor, input = {}) => {
         allocationId: roomAllocations.id,
         allocatedAt: roomAllocations.allocatedAt,
         roomId: rooms.id,
-        blockCode: hostelBlocks.code,
-        blockName: hostelBlocks.name,
         roomNumber: rooms.roomNumber,
         roomFloor: rooms.floor,
         roomCapacity: rooms.capacity,

@@ -55,17 +55,11 @@ before(async () => {
     [studentId, wardenId, guardId, hostelId]
   );
 
-  const blockResult = await pool.query(
-    `INSERT INTO hostel_blocks (hostel_id, code, name)
-     VALUES ($1, 'A', 'Leave Test Block')
-     RETURNING id`,
-    [hostelId]
-  );
   const roomResult = await pool.query(
-    `INSERT INTO rooms (block_id, room_number, floor, capacity)
+    `INSERT INTO rooms (hostel_id, room_number, floor, capacity)
      VALUES ($1, '101', 1, 2)
      RETURNING id`,
-    [blockResult.rows[0].id]
+    [hostelId]
   );
   const profileResult = await pool.query(
     `INSERT INTO student_profiles (user_id, hostel_id, roll_no)

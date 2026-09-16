@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { USER_ROLES } from "../src/domain/roles.js";
 import { isHousingCompatible } from "../src/domain/hostels.js";
 import {
-  DEMO_BLOCKS,
   DEMO_HOSTELS,
   DEMO_ROOMS,
   DEMO_USERS,
@@ -50,19 +49,14 @@ test("demo hostel codes and memberships are internally consistent", () => {
 });
 
 test("demo rooms and profile details use the normalized hostel structure", () => {
-  const blockKeys = new Set(
-    DEMO_BLOCKS.map((block) => `${block.hostelCode}:${block.code}`)
-  );
   const roomKeys = DEMO_ROOMS.map(
-    (room) => `${room.hostelCode}:${room.blockCode}:${room.roomNumber}`
+    (room) => `${room.hostelCode}:${room.roomNumber}`
   );
 
   assert.equal(new Set(roomKeys).size, roomKeys.length);
-  assert.ok(
-    DEMO_ROOMS.every((room) =>
-      blockKeys.has(`${room.hostelCode}:${room.blockCode}`)
-    )
-  );
+  assert.ok(DEMO_ROOMS.every((room) => DEMO_HOSTELS.some(
+    (hostel) => hostel.code === room.hostelCode
+  )));
   assert.ok(
     DEMO_ROOMS.every(
       (room) => room.capacity >= 1 && room.capacity <= 20 && room.floor >= 0
@@ -86,7 +80,7 @@ test("demo rooms and profile details use the normalized hostel structure", () =>
       assert.ok(user.room);
       assert.ok(
         roomKeys.includes(
-          `${user.primaryHostelCode}:${user.room.blockCode}:${user.room.roomNumber}`
+          `${user.primaryHostelCode}:${user.room.roomNumber}`
         )
       );
       continue;

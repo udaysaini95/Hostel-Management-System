@@ -33,9 +33,8 @@ const notice = {
   body: "The west wing supply will pause between 2 PM and 4 PM.",
   priority: "important",
   audience: {
-    type: "block",
+    type: "hostel",
     hostel: { id: 1, code: "H1", name: "North Hall" },
-    block: { id: 3, code: "B", name: "West Wing" },
   },
   publisher: { id: 2, name: "Mira Sen" },
   publishedAt: "2026-09-10T08:00:00.000Z",
@@ -55,7 +54,7 @@ describe("notices and notifications", () => {
     noticeApi.listMyNotices.mockResolvedValue({ data: [notice], pagination });
     noticeApi.listManagedNotices.mockResolvedValue({ data: [], pagination: { ...pagination, total: 0, totalPages: 0 } });
     noticeApi.getNoticeAudienceLocations.mockResolvedValue([
-      { id: 1, code: "H1", name: "North Hall", blocks: [{ id: 3, code: "B", name: "West Wing" }] },
+      { id: 1, code: "H1", name: "North Hall" },
     ]);
     noticeApi.markNoticeRead.mockResolvedValue({ noticeId: 21, isRead: true, readAt: "2026-09-10T12:00:00.000Z" });
     notificationApi.getNotificationUnreadCount.mockResolvedValue(1);
@@ -78,7 +77,7 @@ describe("notices and notifications", () => {
     const view = render(<Notices />);
 
     expect(await screen.findByText("Water supply maintenance")).toBeVisible();
-    expect(screen.getByText("H1 · B")).toBeVisible();
+    expect(screen.getByText("North Hall")).toBeVisible();
     expect(within(screen.getByRole("article")).getByText("Unread")).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Mark as read" }));
 
@@ -87,7 +86,7 @@ describe("notices and notifications", () => {
     await expectNoAccessibilityViolations(view.container);
   });
 
-  test("warden publishes a hostel-block notice from real location options", async () => {
+  test("warden publishes a hostel notice from real location options", async () => {
     auth.user = { id: 2, role: "warden", name: "Mira" };
     noticeApi.publishNotice.mockResolvedValue({ ...notice, recipientCount: 14 });
     render(<Notices />);
@@ -96,16 +95,15 @@ describe("notices and notifications", () => {
     await userEvent.click(screen.getByRole("button", { name: "Publish notice" }));
     await userEvent.type(screen.getByLabelText("Title"), "Quiet hours reminder");
     await userEvent.type(screen.getByLabelText("Notice details"), "Please observe quiet hours after 10 PM.");
-    await userEvent.selectOptions(screen.getByLabelText("Audience"), "block");
+    await userEvent.selectOptions(screen.getByLabelText("Audience"), "hostel");
     await waitFor(() => expect(noticeApi.getNoticeAudienceLocations).toHaveBeenCalled());
     await userEvent.selectOptions(screen.getByLabelText("Hostel"), "1");
-    await userEvent.selectOptions(screen.getByLabelText("Block"), "3");
     await userEvent.click(screen.getAllByRole("button", { name: "Publish notice" })[1]);
 
     await waitFor(() => expect(noticeApi.publishNotice).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Quiet hours reminder",
-        audience: { type: "block", hostelId: 1, blockId: 3 },
+        audience: { type: "hostel", hostelId: 1 },
       })
     ));
   });

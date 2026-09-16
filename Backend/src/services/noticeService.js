@@ -11,13 +11,10 @@ import {
   or,
 } from "drizzle-orm";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   noticeRecipients,
   notices,
-  roomAllocations,
-  rooms,
   studentProfiles,
   users,
 } from "../db/schema.js";
@@ -117,11 +114,15 @@ const normalizePublishInput = (input, publishedAt) => {
 };
 
 const resolveAudience = async (database, actor, audience) => {
-  if (actor.role === USER_ROLES.WARDEN && ![
-    NOTICE_AUDIENCE_TYPES.HOSTEL,
-    NOTICE_AUDIENCE_TYPES.BLOCK,
-  ].includes(audience.type)) {
-    fail(403, "NOTICE_AUDIENCE_DENIED", "Wardens can publish only to an assigned hostel or block");
+  if (
+    actor.role === USER_ROLES.WARDEN &&
+    audience.type !== NOTICE_AUDIENCE_TYPES.HOSTEL
+  ) {
+    fail(
+      403,
+      "NOTICE_AUDIENCE_DENIED",
+      "Wardens can publish only to an assigned hostel"
+    );
   }
   if (![USER_ROLES.WARDEN, USER_ROLES.ADMIN].includes(actor.role)) {
     fail(403, "NOTICE_PUBLISH_DENIED", "Only wardens and administrators can publish notices");
@@ -131,10 +132,8 @@ const resolveAudience = async (database, actor, audience) => {
     audienceType: audience.type,
     audienceRole: null,
     hostelId: null,
-    blockId: null,
   };
   let hostel = null;
-  let block = null;
 
   if (audience.type === NOTICE_AUDIENCE_TYPES.ROLE) {
     if (!Object.values(USER_ROLES).includes(audience.role)) {
@@ -143,7 +142,7 @@ const resolveAudience = async (database, actor, audience) => {
     values.audienceRole = audience.role;
   }
 
-  if ([NOTICE_AUDIENCE_TYPES.HOSTEL, NOTICE_AUDIENCE_TYPES.BLOCK].includes(audience.type)) {
+  if (audience.type === NOTICE_AUDIENCE_TYPES.HOSTEL) {
     values.hostelId = positiveInteger(audience.hostelId, "Hostel ID");
     [hostel] = await database
       .select({ id: hostels.id, code: hostels.code, name: hostels.name })
@@ -160,23 +159,7 @@ const resolveAudience = async (database, actor, audience) => {
     }
   }
 
-  if (audience.type === NOTICE_AUDIENCE_TYPES.BLOCK) {
-    values.blockId = positiveInteger(audience.blockId, "Block ID");
-    [block] = await database
-      .select({ id: hostelBlocks.id, code: hostelBlocks.code, name: hostelBlocks.name })
-      .from(hostelBlocks)
-      .where(
-        and(
-          eq(hostelBlocks.id, values.blockId),
-          eq(hostelBlocks.hostelId, values.hostelId),
-          eq(hostelBlocks.isActive, true)
-        )
-      )
-      .limit(1);
-    if (!block) fail(404, "HOSTEL_BLOCK_NOT_FOUND", "Active block not found in this hostel");
-  }
-
-  return { values, hostel, block };
+  return { values, hostel };
 };
 
 const recipientIdsFor = async (database, audience) => {
@@ -195,34 +178,11 @@ const recipientIdsFor = async (database, audience) => {
       .from(users)
       .where(and(activeAccount, eq(users.role, audience.audienceRole)));
   }
-  if (audience.audienceType === NOTICE_AUDIENCE_TYPES.HOSTEL) {
-    return database
-      .selectDistinct({ userId: users.id })
-      .from(users)
-      .innerJoin(hostelMemberships, eq(hostelMemberships.userId, users.id))
-      .where(and(activeAccount, eq(hostelMemberships.hostelId, audience.hostelId)));
-  }
-
   return database
     .selectDistinct({ userId: users.id })
     .from(users)
-    .innerJoin(studentProfiles, eq(studentProfiles.userId, users.id))
-    .innerJoin(
-      roomAllocations,
-      and(
-        eq(roomAllocations.studentProfileId, studentProfiles.id),
-        isNull(roomAllocations.vacatedAt)
-      )
-    )
-    .innerJoin(rooms, eq(rooms.id, roomAllocations.roomId))
-    .where(
-      and(
-        activeAccount,
-        eq(users.role, USER_ROLES.STUDENT),
-        eq(studentProfiles.hostelId, audience.hostelId),
-        eq(rooms.blockId, audience.blockId)
-      )
-    );
+    .innerJoin(hostelMemberships, eq(hostelMemberships.userId, users.id))
+    .where(and(activeAccount, eq(hostelMemberships.hostelId, audience.hostelId)));
 };
 
 const noticeSelection = {
@@ -237,9 +197,6 @@ const noticeSelection = {
   hostelId: notices.hostelId,
   hostelCode: hostels.code,
   hostelName: hostels.name,
-  blockId: notices.blockId,
-  blockCode: hostelBlocks.code,
-  blockName: hostelBlocks.name,
   publishedAt: notices.publishedAt,
   expiresAt: notices.expiresAt,
 };
@@ -248,8 +205,7 @@ const baseNoticeQuery = (database) => database
   .select(noticeSelection)
   .from(notices)
   .innerJoin(users, eq(notices.publishedByUserId, users.id))
-  .leftJoin(hostels, eq(notices.hostelId, hostels.id))
-  .leftJoin(hostelBlocks, eq(notices.blockId, hostelBlocks.id));
+  .leftJoin(hostels, eq(notices.hostelId, hostels.id));
 
 const formatNotice = (notice, now, extra = {}) => ({
   id: notice.id,
@@ -261,9 +217,6 @@ const formatNotice = (notice, now, extra = {}) => ({
     role: notice.audienceRole,
     hostel: notice.hostelId
       ? { id: notice.hostelId, code: notice.hostelCode, name: notice.hostelName }
-      : null,
-    block: notice.blockId
-      ? { id: notice.blockId, code: notice.blockCode, name: notice.blockName }
       : null,
   },
   publisher: { id: notice.publishedByUserId, name: notice.publisherName },
@@ -429,7 +382,6 @@ export const listMyNotices = async (
     .innerJoin(notices, eq(noticeRecipients.noticeId, notices.id))
     .innerJoin(users, eq(notices.publishedByUserId, users.id))
     .leftJoin(hostels, eq(notices.hostelId, hostels.id))
-    .leftJoin(hostelBlocks, eq(notices.blockId, hostelBlocks.id))
     .where(where)
     .orderBy(desc(notices.publishedAt), desc(notices.id))
     .limit(filters.pageSize)

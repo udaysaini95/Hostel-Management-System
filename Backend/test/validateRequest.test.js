@@ -327,7 +327,6 @@ test("resident directory query validation normalizes every supported filter", ()
       pageSize: "10",
       search: "  Kavya  ",
       hostelCode: "h1",
-      blockCode: "a",
       roomNumber: "101",
       accountStatus: "active",
     },
@@ -344,7 +343,6 @@ test("resident directory query validation normalizes every supported filter", ()
     pageSize: 10,
     search: "Kavya",
     hostelCode: "H1",
-    blockCode: "A",
     roomNumber: "101",
     accountStatus: "active",
   });

@@ -4,7 +4,6 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/db/schema.js";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -173,13 +172,9 @@ before(async () => {
       }))
     )
     .returning();
-  const [block] = await database
-    .insert(hostelBlocks)
-    .values({ hostelId: firstHostel.id, code: "A", name: "Decision Block A" })
-    .returning();
   const [room] = await database
     .insert(rooms)
-    .values({ blockId: block.id, roomNumber: "201", floor: 2, capacity: 5 })
+    .values({ hostelId: firstHostel.id, roomNumber: "201", floor: 2, capacity: 5 })
     .returning();
 
   await database.insert(roomAllocations).values(

@@ -35,7 +35,6 @@ import {
   gateMovementEnum,
   gatePasses,
   gateVerificationMethodEnum,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   leaveDecisionOutcomeEnum,
@@ -455,26 +454,15 @@ test("staff profiles support one optional institutional record per account", () 
   );
 });
 
-test("hostel blocks and rooms have scoped identities and bounded capacity", () => {
-  const blockConfig = getTableConfig(hostelBlocks);
+test("rooms have hostel-scoped identities and bounded capacity", () => {
   const roomConfig = getTableConfig(rooms);
-  const blockIdentity = findIndex(
-    hostelBlocks,
-    "hostel_blocks_hostel_code_unique"
-  );
-  const roomIdentity = findIndex(rooms, "rooms_block_number_unique");
+  const roomIdentity = findIndex(rooms, "rooms_hostel_number_unique");
 
-  assert.equal(blockConfig.foreignKeys.length, 1);
-  assert.equal(blockIdentity.config.unique, true);
-  assert.deepEqual(
-    blockIdentity.config.columns.map((column) => column.name),
-    ["hostel_id", "code"]
-  );
   assert.equal(roomConfig.foreignKeys.length, 1);
   assert.equal(roomIdentity.config.unique, true);
   assert.deepEqual(
     roomIdentity.config.columns.map((column) => column.name),
-    ["block_id", "room_number"]
+    ["hostel_id", "room_number"]
   );
   assert.ok(
     roomConfig.checks.some(

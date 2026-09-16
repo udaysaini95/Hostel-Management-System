@@ -1,20 +1,5 @@
 import { z } from "zod";
-import { idParamsSchema, requiredText } from "./commonSchemas.js";
-
-const codeSchema = (label) =>
-  z
-    .string(`${label} must be text`)
-    .trim()
-    .toUpperCase()
-    .regex(
-      /^[A-Z][A-Z0-9-]{0,19}$/,
-      `${label} must start with a letter and contain only letters, numbers, or hyphens`
-    );
-
-const hostelAndBlockParams = z.strictObject({
-  id: z.coerce.number().int().positive(),
-  blockId: z.coerce.number().int().positive(),
-});
+import { idParamsSchema } from "./commonSchemas.js";
 
 const hostelAndRoomParams = z.strictObject({
   id: z.coerce.number().int().positive(),
@@ -34,33 +19,13 @@ export const hostelInventoryRequestSchema = {
   params: idParamsSchema,
 };
 
-export const blockCreateRequestSchema = {
-  params: idParamsSchema,
-  body: z.strictObject({
-    code: codeSchema("Block code"),
-    name: requiredText("Block name", 255),
-  }),
-};
-
-export const blockUpdateRequestSchema = {
-  params: hostelAndBlockParams,
-  body: z.strictObject({
-    name: requiredText("Block name", 255),
-  }),
-};
-
-export const blockStatusRequestSchema = {
-  params: hostelAndBlockParams,
-  body: z.strictObject({ isActive: z.boolean() }),
-};
-
 const roomFields = {
   floor: z.number().int().min(0).max(200),
   capacity: z.number().int().min(1).max(20),
 };
 
 export const roomCreateRequestSchema = {
-  params: hostelAndBlockParams,
+  params: idParamsSchema,
   body: z.strictObject({
     roomNumber: roomNumberSchema,
     ...roomFields,

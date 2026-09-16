@@ -4,7 +4,6 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/db/schema.js";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -145,20 +144,12 @@ before(async () => {
     ])
     .returning();
 
-  const [firstBlock, secondBlock, thirdBlock] = await database
-    .insert(hostelBlocks)
-    .values([
-      { hostelId: firstHostel.id, code: "A", name: "RD1 A Block" },
-      { hostelId: firstHostel.id, code: "B", name: "RD1 B Block" },
-      { hostelId: secondHostel.id, code: "A", name: "RD2 A Block" },
-    ])
-    .returning();
   const [firstRoom, secondRoom, thirdRoom] = await database
     .insert(rooms)
     .values([
-      { blockId: firstBlock.id, roomNumber: "101", floor: 1, capacity: 2 },
-      { blockId: secondBlock.id, roomNumber: "201", floor: 2, capacity: 2 },
-      { blockId: thirdBlock.id, roomNumber: "101", floor: 1, capacity: 3 },
+      { hostelId: firstHostel.id, roomNumber: "101", floor: 1, capacity: 2 },
+      { hostelId: firstHostel.id, roomNumber: "201", floor: 2, capacity: 2 },
+      { hostelId: secondHostel.id, roomNumber: "101", floor: 1, capacity: 3 },
     ])
     .returning();
 
@@ -200,10 +191,6 @@ test("administrators can paginate and filter the complete resident directory", a
   const byHostel = await searchResidents(database, actor, {
     hostelCode: "RD2",
   });
-  const byBlock = await searchResidents(database, actor, {
-    blockCode: "B",
-    search: "resident-directory.integration.test",
-  });
   const byRoom = await searchResidents(database, actor, {
     roomNumber: "101",
     search: "resident-directory.integration.test",
@@ -230,7 +217,6 @@ test("administrators can paginate and filter the complete resident directory", a
   );
   assert.equal(byHostel.pagination.total, 2);
   assert.ok(byHostel.data.every((resident) => resident.hostel.code === "RD2"));
-  assert.deepEqual(byBlock.data.map((resident) => resident.rollNo), ["DIR-002"]);
   assert.equal(byRoom.pagination.total, 2);
   assert.deepEqual(byStatus.data.map((resident) => resident.rollNo), ["DIR-002"]);
   assert.deepEqual(bySearch.data.map((resident) => resident.rollNo), ["DIR-003"]);
@@ -261,7 +247,7 @@ test("directory rows expose operational fields without private guardian data", a
 
   assert.equal(resident.phone, "+91 90000 00001");
   assert.ok(Number.isSafeInteger(resident.currentAllocation.id));
-  assert.equal(resident.currentAllocation.room.label, "A-101");
+  assert.equal(resident.currentAllocation.room.label, "101");
   assert.equal(resident.profileComplete, true);
   assert.equal(Object.hasOwn(resident, "guardian"), false);
   assert.equal(Object.hasOwn(resident, "password"), false);

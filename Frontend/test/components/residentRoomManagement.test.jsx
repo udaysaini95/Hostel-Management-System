@@ -43,8 +43,7 @@ const residents = Object.freeze([
     currentAllocation: {
       id: 31,
       allocatedAt: "2026-09-01T10:00:00.000Z",
-      block: { code: "A", name: "Ashoka Block" },
-      room: { id: 40, number: "101", label: "A-101", floor: 1, capacity: 2 },
+      room: { id: 40, number: "101", label: "101", floor: 1, capacity: 2 },
     },
     profileComplete: true,
   },
@@ -60,7 +59,6 @@ const rooms = Object.freeze([
     occupancy: 1,
     availableBeds: 1,
     isFull: false,
-    block: { id: 4, code: "A", name: "Ashoka Block" },
     hostel: { id: 1, code: "H1", name: "North Residence Hall" },
   },
 ]);

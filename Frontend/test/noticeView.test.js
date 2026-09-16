@@ -14,15 +14,14 @@ const noticeStylesPath = fileURLToPath(
   new URL("../src/styles/notices.css", import.meta.url)
 );
 
-test("notice audience labels preserve hostel and block context", () => {
+test("notice audience labels preserve hostel context", () => {
   assert.equal(getAudienceLabel({ type: NOTICE_AUDIENCES.ALL_RESIDENTS }), "All residents");
   assert.equal(
     getAudienceLabel({
-      type: NOTICE_AUDIENCES.BLOCK,
-      hostel: { code: "H1" },
-      block: { code: "B" },
+      type: NOTICE_AUDIENCES.HOSTEL,
+      hostel: { code: "H1", name: "North Hall" },
     }),
-    "H1 · B"
+    "North Hall"
   );
 });
 
@@ -31,10 +30,9 @@ test("notice payload includes only fields required by the selected audience", ()
     title: "  Water supply  ",
     body: "  Supply resumes at 6 PM.  ",
     priority: "important",
-    audienceType: NOTICE_AUDIENCES.BLOCK,
+    audienceType: NOTICE_AUDIENCES.HOSTEL,
     role: "student",
     hostelId: "2",
-    blockId: "7",
     expiresAt: "",
   });
 
@@ -42,7 +40,7 @@ test("notice payload includes only fields required by the selected audience", ()
     title: "Water supply",
     body: "Supply resumes at 6 PM.",
     priority: "important",
-    audience: { type: "block", hostelId: 2, blockId: 7 },
+    audience: { type: "hostel", hostelId: 2 },
     expiresAt: undefined,
   });
 });
@@ -51,14 +49,12 @@ test("notice validation requires the location selected by its audience", () => {
   const errors = validateNoticeForm({
     title: "Water supply",
     body: "Supply resumes at 6 PM.",
-    audienceType: NOTICE_AUDIENCES.BLOCK,
+    audienceType: NOTICE_AUDIENCES.HOSTEL,
     hostelId: "",
-    blockId: "",
     expiresAt: "",
   });
 
   assert.equal(errors.hostelId, "Select a hostel.");
-  assert.equal(errors.blockId, "Select a block.");
 });
 
 test("notification center groups the last seven days separately", () => {

@@ -36,11 +36,8 @@ permission.
 | `POST` | `/api/admin/hostels` | Create a hostel |
 | `PATCH` | `/api/admin/hostels/:id` | Update name, address, or resident type |
 | `PATCH` | `/api/admin/hostels/:id/status` | Activate or deactivate a hostel |
-| `GET` | `/api/admin/hostels/:id/inventory` | List blocks, rooms, and occupancy |
-| `POST` | `/api/admin/hostels/:id/blocks` | Create a block |
-| `PATCH` | `/api/admin/hostels/:id/blocks/:blockId` | Rename a block |
-| `PATCH` | `/api/admin/hostels/:id/blocks/:blockId/status` | Change block status |
-| `POST` | `/api/admin/hostels/:id/blocks/:blockId/rooms` | Create a room |
+| `GET` | `/api/admin/hostels/:id/inventory` | List rooms and occupancy |
+| `POST` | `/api/admin/hostels/:id/rooms` | Create a room |
 | `PATCH` | `/api/admin/hostels/:id/rooms/:roomId` | Change floor or capacity |
 | `PATCH` | `/api/admin/hostels/:id/rooms/:roomId/status` | Change room status |
 
@@ -64,10 +61,10 @@ Administrators open **Institution → Hostel setup**. The desktop view uses a
 compact table and mobile uses structured records. Creation and editing happen
 in a focused dialog; activation changes require confirmation.
 
-Choosing **Blocks & rooms** opens the inventory editor beneath the hostel list.
-The administrator creates permanent block codes, then permanent room numbers
-inside each block. Room floor and bed capacity remain editable. Capacity cannot
-be reduced below current occupancy, and occupied rooms or blocks cannot be
+Choosing **Rooms** opens the inventory editor beneath the hostel list. The
+administrator creates room numbers directly inside the selected hostel. Room
+floor and bed capacity remain editable. Room numbers are unique within a hostel,
+capacity cannot be reduced below current occupancy, and occupied rooms cannot be
 deactivated. No inventory record is hard-deleted, preserving allocations and
 audit history.
 

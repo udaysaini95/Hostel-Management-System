@@ -43,7 +43,6 @@ const EMPTY_FORM = {
   audienceType: NOTICE_AUDIENCES.ALL_RESIDENTS,
   role: USER_ROLES.STUDENT,
   hostelId: "",
-  blockId: "",
   expiresAt: "",
 };
 const ROLE_OPTIONS = [
@@ -96,7 +95,7 @@ const NoticeEditor = ({ open, onDismiss, onPublished }) => {
     getNoticeAudienceLocations()
       .then(setLocations)
       .catch((error) => setLocationError(
-        getApiErrorMessage(error, "Hostel and block options could not be loaded.")
+        getApiErrorMessage(error, "Hostel options could not be loaded.")
       ));
   }, [open]);
 
@@ -105,16 +104,13 @@ const NoticeEditor = ({ open, onDismiss, onPublished }) => {
       const next = { ...current, [field]: value };
       if (field === "audienceType") {
         next.hostelId = "";
-        next.blockId = "";
       }
-      if (field === "hostelId") next.blockId = "";
       return next;
     });
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  const selectedHostel = locations.find((hostel) => String(hostel.id) === form.hostelId);
-  const needsHostel = [NOTICE_AUDIENCES.HOSTEL, NOTICE_AUDIENCES.BLOCK].includes(form.audienceType);
+  const needsHostel = form.audienceType === NOTICE_AUDIENCES.HOSTEL;
 
   const close = () => {
     if (submitting) return;
@@ -198,7 +194,6 @@ const NoticeEditor = ({ open, onDismiss, onPublished }) => {
             <option value={NOTICE_AUDIENCES.ALL_RESIDENTS}>All residents</option>
             <option value={NOTICE_AUDIENCES.ROLE}>A specific role</option>
             <option value={NOTICE_AUDIENCES.HOSTEL}>A hostel</option>
-            <option value={NOTICE_AUDIENCES.BLOCK}>A hostel block</option>
           </Select>
         </div>
         {form.audienceType === NOTICE_AUDIENCES.ROLE && (
@@ -218,21 +213,6 @@ const NoticeEditor = ({ open, onDismiss, onPublished }) => {
             <option value="">Select hostel</option>
             {locations.map((hostel) => (
               <option key={hostel.id} value={hostel.id}>{hostel.code} · {hostel.name}</option>
-            ))}
-          </Select>
-        )}
-        {form.audienceType === NOTICE_AUDIENCES.BLOCK && (
-          <Select
-            label="Block"
-            required
-            value={form.blockId}
-            error={errors.blockId}
-            disabled={!selectedHostel}
-            onChange={(event) => updateForm("blockId", event.target.value)}
-          >
-            <option value="">Select block</option>
-            {(selectedHostel?.blocks || []).map((block) => (
-              <option key={block.id} value={block.id}>{block.code} · {block.name}</option>
             ))}
           </Select>
         )}
@@ -322,7 +302,7 @@ const Notices = () => {
       <PageHeader
         eyebrow="Hostel communication"
         title="Notices"
-        description="Official announcements for your hostel, block, or role."
+        description="Official announcements for your hostel or role."
         actions={canPublish && (
           <Button variant="primary" leadingIcon={<Plus aria-hidden="true" />} onClick={() => setEditorOpen(true)}>
             Publish notice

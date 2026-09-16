@@ -162,6 +162,13 @@
       "when": 1790103600000,
       "tag": "0022_student_housing_eligibility",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790107200000,
+      "tag": "0023_remove_hostel_blocks",
+      "breakpoints": true
     }
   ]
 }

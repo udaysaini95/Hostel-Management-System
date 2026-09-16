@@ -40,7 +40,6 @@ import {
 const EMPTY_FILTERS = Object.freeze({
   search: "",
   hostelCode: "",
-  blockCode: "",
   roomNumber: "",
   accountStatus: "",
 });
@@ -120,7 +119,6 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
           pageSize: EMPTY_PAGINATION.pageSize,
           search: filters.search || undefined,
           hostelCode: filters.hostelCode || undefined,
-          blockCode: filters.blockCode || undefined,
           roomNumber: filters.roomNumber || undefined,
           accountStatus: filters.accountStatus || undefined,
         },
@@ -205,16 +203,6 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
           placeholder="H1"
           value={draftFilters.hostelCode}
           onChange={(event) => updateDraft("hostelCode", event.target.value)}
-        />
-        <Input
-          label="Block code"
-          name="blockCode"
-          maxLength={20}
-          pattern="[A-Za-z][A-Za-z0-9-]*"
-          title="Start with a letter and use only letters, numbers, or hyphens"
-          placeholder="A"
-          value={draftFilters.blockCode}
-          onChange={(event) => updateDraft("blockCode", event.target.value)}
         />
         <Input
           label="Room number"

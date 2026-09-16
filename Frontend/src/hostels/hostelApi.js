@@ -29,39 +29,8 @@ export const getHostelInventory = async (hostelId) => {
   return response.data;
 };
 
-export const createHostelBlock = async (hostelId, values) => {
-  const response = await api.post(
-    `/api/admin/hostels/${hostelId}/blocks`,
-    values
-  );
-  return response.data;
-};
-
-export const updateHostelBlock = async (hostelId, blockId, values) => {
-  const response = await api.patch(
-    `/api/admin/hostels/${hostelId}/blocks/${blockId}`,
-    values
-  );
-  return response.data;
-};
-
-export const changeHostelBlockStatus = async (
-  hostelId,
-  blockId,
-  isActive
-) => {
-  const response = await api.patch(
-    `/api/admin/hostels/${hostelId}/blocks/${blockId}/status`,
-    { isActive }
-  );
-  return response.data;
-};
-
-export const createHostelRoom = async (hostelId, blockId, values) => {
-  const response = await api.post(
-    `/api/admin/hostels/${hostelId}/blocks/${blockId}/rooms`,
-    values
-  );
+export const createHostelRoom = async (hostelId, values) => {
+  const response = await api.post(`/api/admin/hostels/${hostelId}/rooms`, values);
   return response.data;
 };
 

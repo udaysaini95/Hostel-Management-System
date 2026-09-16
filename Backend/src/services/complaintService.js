@@ -20,7 +20,6 @@ import {
   complaintCategories,
   complaintEvents,
   complaints,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -441,13 +440,11 @@ const resolveRoomId = async (database, context, requestedRoomId) => {
   const [room] = await database
     .select({ id: rooms.id })
     .from(rooms)
-    .innerJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .where(
       and(
         eq(rooms.id, roomId),
         eq(rooms.isActive, true),
-        eq(hostelBlocks.isActive, true),
-        eq(hostelBlocks.hostelId, context.hostelId)
+        eq(rooms.hostelId, context.hostelId)
       )
     )
     .limit(1);
@@ -477,7 +474,6 @@ const complaintSelection = {
   categoryCode: complaintCategories.code,
   categoryName: complaintCategories.name,
   roomId: complaints.roomId,
-  blockCode: hostelBlocks.code,
   roomNumber: rooms.roomNumber,
   location: complaints.location,
   description: complaints.description,
@@ -507,7 +503,6 @@ const addComplaintJoins = (query) =>
       eq(complaints.categoryId, complaintCategories.id)
     )
     .leftJoin(rooms, eq(complaints.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .leftJoin(
       complaintAssignments,
       and(
@@ -543,7 +538,7 @@ const toComplaintView = (record, now) => ({
     ? {
         id: record.roomId,
         number: record.roomNumber,
-        label: `${record.blockCode}-${record.roomNumber}`,
+        label: record.roomNumber,
       }
     : null,
   location: record.location,

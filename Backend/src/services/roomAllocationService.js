@@ -1,6 +1,5 @@
 import { and, asc, count, eq, exists, isNull, sql } from "drizzle-orm";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -50,7 +49,6 @@ export const normalizeRoomInventoryFilters = (input = {}) => {
   const page = Number(input.page ?? 1);
   const pageSize = Number(input.pageSize ?? 20);
   const hostelCode = normalizeCode(input.hostelCode);
-  const blockCode = normalizeCode(input.blockCode);
   const availability =
     typeof input.availability === "string"
       ? input.availability.trim().toLowerCase()
@@ -65,9 +63,6 @@ export const normalizeRoomInventoryFilters = (input = {}) => {
   if (hostelCode && !codePattern.test(hostelCode)) {
     fail(400, "INVALID_HOSTEL", "Hostel code is invalid");
   }
-  if (blockCode && !codePattern.test(blockCode)) {
-    fail(400, "INVALID_BLOCK", "Block code is invalid");
-  }
   if (!availabilityFilters.has(availability)) {
     fail(400, "INVALID_AVAILABILITY", "Availability filter is invalid");
   }
@@ -76,7 +71,6 @@ export const normalizeRoomInventoryFilters = (input = {}) => {
     page,
     pageSize,
     hostelCode: hostelCode || null,
-    blockCode: blockCode || null,
     availability,
   });
 };
@@ -151,7 +145,6 @@ const activeOccupancy = sql`(
 const buildRoomInventoryConditions = (database, actor, filters) => {
   const conditions = [
     eq(hostels.isActive, true),
-    eq(hostelBlocks.isActive, true),
     eq(rooms.isActive, true),
   ];
 
@@ -170,9 +163,6 @@ const buildRoomInventoryConditions = (database, actor, filters) => {
   if (filters.hostelCode) {
     conditions.push(eq(hostels.code, filters.hostelCode));
   }
-  if (filters.blockCode) {
-    conditions.push(eq(hostelBlocks.code, filters.blockCode));
-  }
   if (filters.availability === "available") {
     conditions.push(sql`${activeOccupancy} < ${rooms.capacity}`);
   }
@@ -184,9 +174,7 @@ const buildRoomInventoryConditions = (database, actor, filters) => {
 };
 
 const addRoomLocationJoins = (query) =>
-  query
-    .innerJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
-    .innerJoin(hostels, eq(hostelBlocks.hostelId, hostels.id));
+  query.innerJoin(hostels, eq(rooms.hostelId, hostels.id));
 
 export const listRoomInventory = async (database, requestActor, input = {}) => {
   const filters = normalizeRoomInventoryFilters(input);
@@ -203,9 +191,6 @@ export const listRoomInventory = async (database, requestActor, input = {}) => {
         floor: rooms.floor,
         capacity: rooms.capacity,
         occupancy: activeOccupancy.as("occupancy"),
-        blockId: hostelBlocks.id,
-        blockCode: hostelBlocks.code,
-        blockName: hostelBlocks.name,
         hostelId: hostels.id,
         hostelCode: hostels.code,
         hostelName: hostels.name,
@@ -215,7 +200,6 @@ export const listRoomInventory = async (database, requestActor, input = {}) => {
     .where(whereClause)
     .orderBy(
       asc(hostels.code),
-      asc(hostelBlocks.code),
       asc(rooms.floor),
       asc(rooms.roomNumber)
     )
@@ -230,17 +214,12 @@ export const listRoomInventory = async (database, requestActor, input = {}) => {
       return {
         id: record.id,
         number: record.roomNumber,
-        label: `${record.blockCode}-${record.roomNumber}`,
+        label: record.roomNumber,
         floor: record.floor,
         capacity: record.capacity,
         occupancy,
         availableBeds: Math.max(record.capacity - occupancy, 0),
         isFull: occupancy >= record.capacity,
-        block: {
-          id: record.blockId,
-          code: record.blockCode,
-          name: record.blockName,
-        },
         hostel: {
           id: record.hostelId,
           code: record.hostelCode,
@@ -315,25 +294,19 @@ const lockRoom = async (transaction, roomId) => {
 
   const [location] = await transaction
     .select({
-      blockId: hostelBlocks.id,
-      blockCode: hostelBlocks.code,
-      blockName: hostelBlocks.name,
-      blockIsActive: hostelBlocks.isActive,
       hostelId: hostels.id,
       hostelCode: hostels.code,
       hostelName: hostels.name,
       hostelResidentType: hostels.residentType,
       hostelIsActive: hostels.isActive,
     })
-    .from(hostelBlocks)
-    .innerJoin(hostels, eq(hostelBlocks.hostelId, hostels.id))
-    .where(eq(hostelBlocks.id, room.blockId))
+    .from(hostels)
+    .where(eq(hostels.id, room.hostelId))
     .limit(1);
 
   if (
     !location ||
     !room.isActive ||
-    !location.blockIsActive ||
     !location.hostelIsActive
   ) {
     fail(409, "ROOM_UNAVAILABLE", "This room is not available for allocation");
@@ -362,14 +335,9 @@ const toAllocationResult = ({
   room: {
     id: room.id,
     number: room.roomNumber,
-    label: `${location.blockCode}-${room.roomNumber}`,
+    label: room.roomNumber,
     floor: room.floor,
     capacity: room.capacity,
-  },
-  block: {
-    id: location.blockId,
-    code: location.blockCode,
-    name: location.blockName,
   },
   hostel: {
     id: location.hostelId,
@@ -467,7 +435,7 @@ export const allocateRoom = async (
     await transaction
       .update(users)
       .set({
-        roomNo: `${location.blockCode}-${room.roomNumber}`,
+        roomNo: room.roomNumber,
         updatedAt: now,
       })
       .where(eq(users.id, student.id));
@@ -478,12 +446,11 @@ export const allocateRoom = async (
       action: AUDIT_ACTIONS.ROOM_ALLOCATION_CREATED,
       resourceType: AUDIT_RESOURCE_TYPES.ROOM_ALLOCATION,
       resourceId: allocation.id,
-      description: `Allocated ${profile.rollNo} to ${location.blockCode}-${room.roomNumber}`,
+      description: `Allocated ${profile.rollNo} to room ${room.roomNumber}`,
       metadata: {
         studentUserId: student.id,
         rollNo: profile.rollNo,
         hostelCode: location.hostelCode,
-        blockCode: location.blockCode,
         roomNumber: room.roomNumber,
         capacity: room.capacity,
         occupancyAfter: occupancy + 1,
@@ -579,16 +546,12 @@ export const vacateRoomAllocation = async (
 
     const [location] = await transaction
       .select({
-        blockId: hostelBlocks.id,
-        blockCode: hostelBlocks.code,
-        blockName: hostelBlocks.name,
         hostelId: hostels.id,
         hostelCode: hostels.code,
         hostelName: hostels.name,
       })
-      .from(hostelBlocks)
-      .innerJoin(hostels, eq(hostelBlocks.hostelId, hostels.id))
-      .where(eq(hostelBlocks.id, room.blockId))
+      .from(hostels)
+      .where(eq(hostels.id, room.hostelId))
       .limit(1);
 
     if (!location) {
@@ -621,12 +584,11 @@ export const vacateRoomAllocation = async (
       action: AUDIT_ACTIONS.ROOM_ALLOCATION_VACATED,
       resourceType: AUDIT_RESOURCE_TYPES.ROOM_ALLOCATION,
       resourceId: allocation.id,
-      description: `Vacated ${profile.rollNo} from ${location.blockCode}-${room.roomNumber}`,
+      description: `Vacated ${profile.rollNo} from room ${room.roomNumber}`,
       metadata: {
         studentUserId: student.id,
         rollNo: profile.rollNo,
         hostelCode: location.hostelCode,
-        blockCode: location.blockCode,
         roomNumber: room.roomNumber,
         reason,
       },
@@ -722,15 +684,12 @@ export const transferRoomAllocation = async (
       .select({
         id: rooms.id,
         roomNumber: rooms.roomNumber,
-        blockCode: hostelBlocks.code,
-        blockName: hostelBlocks.name,
         hostelId: hostels.id,
         hostelCode: hostels.code,
         hostelName: hostels.name,
       })
       .from(rooms)
-      .innerJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
-      .innerJoin(hostels, eq(hostelBlocks.hostelId, hostels.id))
+      .innerJoin(hostels, eq(rooms.hostelId, hostels.id))
       .where(eq(rooms.id, currentAllocation.roomId))
       .limit(1);
     const { room: targetRoom, location: targetLocation } = await lockRoom(
@@ -810,7 +769,7 @@ export const transferRoomAllocation = async (
     await transaction
       .update(users)
       .set({
-        roomNo: `${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+        roomNo: targetRoom.roomNumber,
         updatedAt: transferredAt,
       })
       .where(eq(users.id, student.id));
@@ -821,15 +780,15 @@ export const transferRoomAllocation = async (
       action: AUDIT_ACTIONS.ROOM_ALLOCATION_TRANSFERRED,
       resourceType: AUDIT_RESOURCE_TYPES.ROOM_ALLOCATION,
       resourceId: nextAllocation.id,
-      description: `Transferred ${profile.rollNo} from ${sourceRoom.blockCode}-${sourceRoom.roomNumber} to ${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+      description: `Transferred ${profile.rollNo} from room ${sourceRoom.roomNumber} to room ${targetRoom.roomNumber}`,
       metadata: {
         studentUserId: student.id,
         rollNo: profile.rollNo,
         hostelCode: targetLocation.hostelCode,
         previousAllocationId: previousAllocation.id,
         nextAllocationId: nextAllocation.id,
-        fromRoom: `${sourceRoom.blockCode}-${sourceRoom.roomNumber}`,
-        toRoom: `${targetLocation.blockCode}-${targetRoom.roomNumber}`,
+        fromRoom: sourceRoom.roomNumber,
+        toRoom: targetRoom.roomNumber,
         reason,
         occupancyAfter: targetOccupancy + 1,
       },

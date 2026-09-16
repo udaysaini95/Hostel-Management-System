@@ -26,13 +26,7 @@ export const markNoticeRead = async (noticeId) => {
 
 const addLocation = (map, room) => {
   const hostel = room?.hostel;
-  const block = room?.block;
-  if (!hostel?.id || !block?.id) return;
-
-  if (!map.has(hostel.id)) {
-    map.set(hostel.id, { ...hostel, blocks: new Map() });
-  }
-  map.get(hostel.id).blocks.set(block.id, block);
+  if (hostel?.id) map.set(hostel.id, hostel);
 };
 
 export const getNoticeAudienceLocations = async () => {
@@ -50,8 +44,5 @@ export const getNoticeAudienceLocations = async () => {
     page += 1;
   } while (page <= totalPages);
 
-  return [...locations.values()].map(({ blocks, ...hostel }) => ({
-    ...hostel,
-    blocks: [...blocks.values()],
-  }));
+  return [...locations.values()];
 };

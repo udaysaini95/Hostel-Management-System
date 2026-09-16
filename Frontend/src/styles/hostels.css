@@ -25,7 +25,6 @@
   }
 
   .hm-inventory__heading,
-  .hm-inventory__block-heading,
   .hm-inventory__room {
     display: flex;
     align-items: center;
@@ -39,14 +38,11 @@
   }
 
   .hm-inventory__heading h2,
-  .hm-inventory__block-heading h3,
-  .hm-inventory__heading p,
-  .hm-inventory__block-heading p {
+  .hm-inventory__heading p {
     margin: 0;
   }
 
-  .hm-inventory__heading > div:first-child > span,
-  .hm-inventory__block-heading > div:first-child > span {
+  .hm-inventory__heading > div:first-child > span {
     color: var(--color-brand);
     font-family: var(--font-mono);
     font-size: var(--text-caption);
@@ -55,15 +51,12 @@
   }
 
   .hm-inventory__heading p,
-  .hm-inventory__block-heading p,
-  .hm-inventory__room span,
-  .hm-inventory__empty-rooms {
+  .hm-inventory__room span {
     color: var(--color-text-muted);
     font-size: var(--text-caption);
   }
 
   .hm-inventory__heading-actions,
-  .hm-inventory__block-actions,
   .hm-inventory__room-actions {
     display: flex;
     align-items: center;
@@ -71,23 +64,12 @@
     flex-wrap: wrap;
   }
 
-  .hm-inventory__blocks {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .hm-inventory__block {
-    overflow: hidden;
-  }
-
-  .hm-inventory__block-heading {
-    padding: 1rem 1.25rem;
-    background: var(--color-surface-muted);
-    border-bottom: 1px solid var(--color-border);
-  }
-
   .hm-inventory__rooms {
     display: grid;
+    overflow: hidden;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
   }
 
   .hm-inventory__room {
@@ -111,17 +93,6 @@
 
   .hm-inventory__room-name strong {
     font-family: var(--font-mono);
-  }
-
-  .hm-inventory__empty-rooms {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1.25rem;
-  }
-
-  .hm-inventory__empty-rooms svg {
-    width: 1.1rem;
   }
 
   .hm-inventory__notice {
@@ -190,19 +161,16 @@
   }
 
   .hm-inventory__heading,
-  .hm-inventory__block-heading,
   .hm-inventory__room {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .hm-inventory__heading-actions,
-  .hm-inventory__block-actions,
   .hm-inventory__room-actions {
     width: 100%;
   }
 
-  .hm-inventory__block-actions > button,
   .hm-inventory__room-actions > button {
     flex: 1 1 auto;
   }

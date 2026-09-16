@@ -42,23 +42,7 @@ export const validateHostelForm = (form) => {
   return errors;
 };
 
-const INVENTORY_CODE_PATTERN = /^[A-Z][A-Z0-9-]{0,19}$/;
 const ROOM_NUMBER_PATTERN = /^[A-Z0-9][A-Z0-9-]{0,19}$/;
-
-export const validateBlockForm = (form) => {
-  const errors = {};
-  const code = form.code.trim().toUpperCase();
-  const name = form.name.trim();
-
-  if (!INVENTORY_CODE_PATTERN.test(code)) {
-    errors.code = "Start with a letter and use letters, numbers, or hyphens.";
-  }
-  if (name.length < 2 || name.length > 255) {
-    errors.name = "Enter a block name between 2 and 255 characters.";
-  }
-
-  return errors;
-};
 
 export const validateRoomForm = (form) => {
   const errors = {};

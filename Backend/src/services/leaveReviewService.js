@@ -9,7 +9,6 @@ import {
   or,
 } from "drizzle-orm";
 import {
-  hostelBlocks,
   hostelMemberships,
   hostels,
   leaveDecisions,
@@ -201,9 +200,8 @@ const toReviewRecord = (record, activeRequests) => {
     },
     room: record.roomNumber
       ? {
-          blockCode: record.blockCode,
           roomNumber: record.roomNumber,
-          label: `${record.blockCode}-${record.roomNumber}`,
+          label: record.roomNumber,
         }
       : null,
     decision: record.decisionId
@@ -259,7 +257,6 @@ export const listLeaveRequestsForReview = async (
       hostelId: hostels.id,
       hostelCode: hostels.code,
       hostelName: hostels.name,
-      blockCode: hostelBlocks.code,
       roomNumber: rooms.roomNumber,
       decisionId: leaveDecisions.id,
       decisionOutcome: leaveDecisions.outcome,
@@ -280,7 +277,6 @@ export const listLeaveRequestsForReview = async (
       eq(leaveRequests.roomAllocationId, roomAllocations.id)
     )
     .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .leftJoin(
       leaveDecisions,
       eq(leaveDecisions.leaveRequestId, leaveRequests.id)

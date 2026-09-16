@@ -34,13 +34,9 @@ Example response:
     "currentAllocation": {
       "id": 25,
       "allocatedAt": "2026-01-01T00:00:00.000Z",
-      "block": {
-        "code": "A",
-        "name": "Ashoka Block"
-      },
       "room": {
         "number": "101",
-        "label": "A-101",
+        "label": "101",
         "floor": 1,
         "capacity": 2
       }
@@ -81,7 +77,7 @@ The request may contain one or more editable fields:
 Names are trimmed. Phone numbers accept 7–20 digits and common display
 characters: spaces, `+`, parentheses, and hyphens.
 
-Name, email, roll number, hostel, block, and room allocation are read-only.
+Name, email, roll number, hostel, and room allocation are read-only.
 Unknown request fields are rejected. A student cannot select another profile by
 path, query, or request-body ID.
 

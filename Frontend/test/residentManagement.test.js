@@ -60,14 +60,12 @@ test("resident filters normalize identifiers without changing account state", ()
     normalizeResidentFilters({
       search: " kavya ",
       hostelCode: " h1 ",
-      blockCode: " a ",
       roomNumber: " 101a ",
       accountStatus: "active",
     }),
     {
       search: "kavya",
       hostelCode: "H1",
-      blockCode: "A",
       roomNumber: "101A",
       accountStatus: "active",
     }
@@ -75,10 +73,9 @@ test("resident filters normalize identifiers without changing account state", ()
   assert.deepEqual(
     normalizeRoomFilters({
       hostelCode: " h2 ",
-      blockCode: " b ",
       availability: "available",
     }),
-    { hostelCode: "H2", blockCode: "B", availability: "available" }
+    { hostelCode: "H2", availability: "available" }
   );
 });
 

@@ -171,7 +171,7 @@ const MyLeaves = () => {
                         <Badge tone="danger">Emergency</Badge>
                       )}
                       <span>{leave.hostel.code}</span>
-                      <span>{leave.room ? `${leave.room.blockCode}-${leave.room.roomNumber}` : "Room unavailable"}</span>
+                      <span>{leave.room?.roomNumber || "Room unavailable"}</span>
                     </div>
                   </li>
                 );

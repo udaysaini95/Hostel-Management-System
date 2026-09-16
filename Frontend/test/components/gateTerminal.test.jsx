@@ -43,7 +43,7 @@ const outsideRecord = Object.freeze({
     id: 21,
     name: "Kavya Nair",
     rollNo: "DEMO-H1-001",
-    room: { blockCode: "A", roomNumber: "101" },
+    room: { roomNumber: "101" },
   },
   hostel: { id: 1, code: "H1", name: "North Residence Hall" },
 });

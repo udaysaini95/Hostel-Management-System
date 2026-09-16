@@ -110,7 +110,7 @@ export const ActiveGatePass = ({ leave }) => {
               <dt>Hostel and room</dt>
               <dd>
                 {leave.hostel.code} · {leave.room
-                  ? `${leave.room.blockCode}-${leave.room.roomNumber}`
+                  ? leave.room.roomNumber
                   : "Room unavailable"}
               </dd>
             </div>

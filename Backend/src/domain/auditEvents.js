@@ -14,9 +14,6 @@ export const AUDIT_ACTIONS = Object.freeze({
   HOSTEL_CREATED: "hostel.created",
   HOSTEL_UPDATED: "hostel.updated",
   HOSTEL_STATUS_CHANGED: "hostel.status-changed",
-  HOSTEL_BLOCK_CREATED: "hostel-block.created",
-  HOSTEL_BLOCK_UPDATED: "hostel-block.updated",
-  HOSTEL_BLOCK_STATUS_CHANGED: "hostel-block.status-changed",
   STAFF_INVITATION_CREATED: "staff.invitation.created",
   ACCOUNT_STATUS_CHANGED: "account.status.changed",
   STUDENT_APPROVAL_CREATED: "student.approval.created",
@@ -58,7 +55,6 @@ export const AUDIT_ACTIONS = Object.freeze({
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
   HOSTEL: "hostel",
-  HOSTEL_BLOCK: "hostel_block",
   STAFF_INVITATION: "staff_invitation",
   USER_ACCOUNT: "user_account",
   APPROVED_STUDENT: "approved_student",

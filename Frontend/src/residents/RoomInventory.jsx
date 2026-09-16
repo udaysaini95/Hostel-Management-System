@@ -34,7 +34,6 @@ import {
 
 const EMPTY_FILTERS = Object.freeze({
   hostelCode: "",
-  blockCode: "",
   availability: "all",
 });
 
@@ -78,7 +77,6 @@ export const RoomInventory = forwardRef(function RoomInventory(
           page,
           pageSize: EMPTY_PAGINATION.pageSize,
           hostelCode: filters.hostelCode || undefined,
-          blockCode: filters.blockCode || undefined,
           availability: filters.availability,
         },
       });
@@ -150,16 +148,6 @@ export const RoomInventory = forwardRef(function RoomInventory(
           value={draftFilters.hostelCode}
           onChange={(event) => updateDraft("hostelCode", event.target.value)}
         />
-        <Input
-          label="Block code"
-          name="blockCode"
-          maxLength={20}
-          pattern="[A-Za-z][A-Za-z0-9-]*"
-          title="Start with a letter and use only letters, numbers, or hyphens"
-          placeholder="A"
-          value={draftFilters.blockCode}
-          onChange={(event) => updateDraft("blockCode", event.target.value)}
-        />
         <Select
           label="Availability"
           name="availability"
@@ -212,7 +200,7 @@ export const RoomInventory = forwardRef(function RoomInventory(
           title={filtersActive ? "No matching rooms" : "No active rooms"}
           description={
             filtersActive
-              ? "No rooms match the applied hostel, block, and availability filters."
+              ? "No rooms match the applied hostel and availability filters."
               : "Active rooms will appear here after hostel setup is complete."
           }
           action={
@@ -235,7 +223,6 @@ export const RoomInventory = forwardRef(function RoomInventory(
                 <TableRow>
                   <TableHeaderCell>Room</TableHeaderCell>
                   <TableHeaderCell>Hostel</TableHeaderCell>
-                  <TableHeaderCell>Block</TableHeaderCell>
                   <TableHeaderCell className="hm-table__numeric">
                     Floor
                   </TableHeaderCell>
@@ -257,12 +244,6 @@ export const RoomInventory = forwardRef(function RoomInventory(
                       <strong>{room.hostel.code}</strong>
                       <span className="hm-residents__entity-meta">
                         {room.hostel.name}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <strong>{room.block.code}</strong>
-                      <span className="hm-residents__entity-meta">
-                        {room.block.name}
                       </span>
                     </TableCell>
                     <TableCell numeric>{room.floor}</TableCell>
@@ -287,7 +268,7 @@ export const RoomInventory = forwardRef(function RoomInventory(
                 <div className="hm-residents__record-heading">
                   <div>
                     <h3 className="hm-residents__mono">{room.label}</h3>
-                    <p>{room.hostel.code} — {room.block.name}</p>
+                    <p>{room.hostel.name}</p>
                   </div>
                   <Badge tone={room.isFull ? "neutral" : "success"}>
                     {room.isFull ? "Full" : "Available"}

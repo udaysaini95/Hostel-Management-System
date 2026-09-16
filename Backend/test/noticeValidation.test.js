@@ -19,7 +19,7 @@ test("notice publication validates each audience shape", () => {
   assert.throws(() => publishNoticeSchema.body.parse({
     title: "Wrong shape",
     body: "This payload mixes unrelated audience fields.",
-    audience: { type: "block", hostelId: 1 },
+    audience: { type: "hostel", hostelId: 1, role: "student" },
   }));
 });
 

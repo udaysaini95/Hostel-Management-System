@@ -19,7 +19,6 @@ Supported query parameters:
 | `pageSize` | Items per page from 1 through 100; defaults to `20`. |
 | `search` | Case-insensitive partial name, email, or roll-number search. |
 | `hostelCode` | Exact normalized hostel code, such as `H1`. |
-| `blockCode` | Exact normalized block code, such as `A`. |
 | `roomNumber` | Exact normalized room number, such as `101`. |
 | `accountStatus` | `pending`, `active`, or `suspended`. |
 

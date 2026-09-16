@@ -11,7 +11,6 @@ test("notice domain uses fixed audience and priority values", () => {
     "all_residents",
     "role",
     "hostel",
-    "block",
   ]);
   assert.deepEqual(Object.values(NOTICE_PRIORITIES), ["normal", "important", "urgent"]);
 });

@@ -6,7 +6,6 @@ import {
   getResidentTypeLabel,
   getStudentHousingLabel,
   isHousingCompatible,
-  validateBlockForm,
   validateHostelForm,
   validateRoomForm,
 } from "../src/hostels/hostelView.js";
@@ -57,8 +56,7 @@ test("hostel form validates code, name, type, and address", () => {
   ]);
 });
 
-test("block and room forms enforce normalized inventory limits", () => {
-  assert.deepEqual(validateBlockForm({ code: "A", name: "Ashoka Block" }), {});
+test("room forms enforce normalized inventory limits", () => {
   assert.deepEqual(
     validateRoomForm({ roomNumber: "101-A", floor: "1", capacity: "3" }),
     {}

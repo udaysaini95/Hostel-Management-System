@@ -14,7 +14,6 @@ import {
 import {
   gateEvents,
   gatePasses,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   leaveEvents,
@@ -153,8 +152,7 @@ const addGateActivityJoins = (query) =>
       roomAllocations,
       eq(leaveRequests.roomAllocationId, roomAllocations.id)
     )
-    .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id));
+    .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id));
 
 const paginationFor = (filters, total) => ({
   page: filters.page,
@@ -214,7 +212,6 @@ export const getOutsideRoster = async (
         hostelId: hostels.id,
         hostelCode: hostels.code,
         hostelName: hostels.name,
-        blockCode: hostelBlocks.code,
         roomNumber: rooms.roomNumber,
       })
       .from(gateEvents)
@@ -237,7 +234,7 @@ export const getOutsideRoster = async (
         name: record.studentName,
         rollNo: record.rollNo,
         room: record.roomNumber
-          ? { blockCode: record.blockCode, roomNumber: record.roomNumber }
+          ? { roomNumber: record.roomNumber }
           : null,
       },
       hostel: {
@@ -315,7 +312,6 @@ export const getGateMovementHistory = async (
         hostelId: hostels.id,
         hostelCode: hostels.code,
         hostelName: hostels.name,
-        blockCode: hostelBlocks.code,
         roomNumber: rooms.roomNumber,
       })
       .from(gateEvents)
@@ -346,7 +342,7 @@ export const getGateMovementHistory = async (
         name: record.studentName,
         rollNo: record.rollNo,
         room: record.roomNumber
-          ? { blockCode: record.blockCode, roomNumber: record.roomNumber }
+          ? { roomNumber: record.roomNumber }
           : null,
       },
       hostel: {

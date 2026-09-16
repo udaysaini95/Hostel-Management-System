@@ -67,15 +67,10 @@ before(async () => {
     profileResult.rows.map((profile) => [profile.user_id, profile.id])
   );
 
-  const blockResult = await pool.query(
-    `insert into hostel_blocks (hostel_id, code, name)
-     values ($1, 'A', 'Dashboard Block') returning id`,
-    [hostelIds.DASH1]
-  );
   const roomResult = await pool.query(
-    `insert into rooms (block_id, room_number, floor, capacity)
+    `insert into rooms (hostel_id, room_number, floor, capacity)
      values ($1, '101', 1, 4) returning id`,
-    [blockResult.rows[0].id]
+    [hostelIds.DASH1]
   );
   await pool.query(
     `insert into room_allocations

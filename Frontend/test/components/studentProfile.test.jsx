@@ -36,8 +36,7 @@ const profile = Object.freeze({
   currentAllocation: {
     id: 25,
     allocatedAt: "2026-09-01T10:00:00.000Z",
-    block: { code: "A", name: "Ashoka Block" },
-    room: { number: "101", label: "A-101", floor: 1, capacity: 2 },
+    room: { number: "101", label: "101", floor: 1, capacity: 2 },
   },
   profileComplete: true,
   updatedAt: "2026-09-01T10:00:00.000Z",
@@ -59,7 +58,7 @@ describe("student profile", () => {
     ).toBeVisible();
     expect(screen.getByText("2026-CSE-042")).toBeVisible();
     expect(screen.getByText("H1 — North Residence Hall")).toBeVisible();
-    expect(screen.getByText("A-101")).toBeVisible();
+    expect(screen.getByText("101")).toBeVisible();
     expect(screen.getByRole("button", { name: "Save profile" })).toBeDisabled();
     await expectNoAccessibilityViolations(view.container);
   });

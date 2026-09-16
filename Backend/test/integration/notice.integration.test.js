@@ -6,14 +6,11 @@ import { and, eq } from "drizzle-orm";
 import * as schema from "../../src/db/schema.js";
 import {
   auditEvents,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   noticeRecipients,
   notices,
   notifications,
-  roomAllocations,
-  rooms,
   studentProfiles,
   users,
 } from "../../src/db/schema.js";
@@ -45,8 +42,6 @@ const errorCode = (error) => error?.cause?.code ?? error?.code;
 
 let firstHostel;
 let secondHostel;
-let firstBlock;
-let secondBlock;
 let firstStudent;
 let sameHostelStudent;
 let otherStudent;
@@ -62,15 +57,6 @@ before(async () => {
     { code: "NT1", name: "Notice Hostel One" },
     { code: "NT2", name: "Notice Hostel Two" },
   ]).returning();
-  [firstBlock, secondBlock] = await database.insert(hostelBlocks).values([
-    { hostelId: firstHostel.id, code: "A", name: "Block A" },
-    { hostelId: firstHostel.id, code: "B", name: "Block B" },
-  ]).returning();
-  const [firstRoom, secondRoom] = await database.insert(rooms).values([
-    { blockId: firstBlock.id, roomNumber: "101", floor: 1, capacity: 2 },
-    { blockId: secondBlock.id, roomNumber: "201", floor: 2, capacity: 2 },
-  ]).returning();
-
   [firstStudent, sameHostelStudent, otherStudent, warden, otherWarden, administrator, guard] =
     await database.insert(users).values([
       { name: "Notice Student A", email: "student-a@notice.integration.test", password: "hash", role: USER_ROLES.STUDENT, accountStatus: ACCOUNT_STATUSES.ACTIVE },
@@ -90,15 +76,11 @@ before(async () => {
     { userId: otherWarden.id, hostelId: secondHostel.id, isPrimary: true },
     { userId: guard.id, hostelId: firstHostel.id, isPrimary: true },
   ]);
-  const profiles = await database.insert(studentProfiles).values([
+  await database.insert(studentProfiles).values([
     { userId: firstStudent.id, hostelId: firstHostel.id, rollNo: "NOTICE-001" },
     { userId: sameHostelStudent.id, hostelId: firstHostel.id, rollNo: "NOTICE-002" },
     { userId: otherStudent.id, hostelId: secondHostel.id, rollNo: "NOTICE-003" },
   ]).returning();
-  await database.insert(roomAllocations).values([
-    { studentProfileId: profiles[0].id, roomId: firstRoom.id, allocatedByUserId: administrator.id },
-    { studentProfileId: profiles[1].id, roomId: secondRoom.id, allocatedByUserId: administrator.id },
-  ]);
 });
 
 after(async () => {
@@ -141,21 +123,6 @@ test("warden publication materializes only the assigned hostel audience", async 
     );
   assert.equal(importantNotification.eventType, "important_notice");
   assert.equal(importantNotification.linkPath, "/notices");
-});
-
-test("block notices use the resident's current room allocation", async () => {
-  const now = new Date("2026-09-10T10:00:00Z");
-  const blockNotice = await publishNotice(database, actorFor(warden), {
-    title: "Block A inspection",
-    body: "Keep the corridor clear during the scheduled electrical inspection.",
-    audience: { type: "block", hostelId: firstHostel.id, blockId: firstBlock.id },
-  }, { now });
-
-  assert.equal(blockNotice.recipientCount, 1);
-  const firstInbox = await listMyNotices(database, actorFor(firstStudent), {}, { now });
-  const sameHostelInbox = await listMyNotices(database, actorFor(sameHostelStudent), {}, { now });
-  assert.ok(firstInbox.data.some((notice) => notice.id === blockNotice.id));
-  assert.ok(!sameHostelInbox.data.some((notice) => notice.id === blockNotice.id));
 });
 
 test("admins can address all residents while expired notices leave the active inbox", async () => {

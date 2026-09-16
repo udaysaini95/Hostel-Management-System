@@ -1,7 +1,6 @@
 import { and, eq, exists } from "drizzle-orm";
 import {
   gatePasses,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   leaveRequests,
@@ -238,7 +237,6 @@ export const loadScopedPassByHash = async (
       hostelCode: hostels.code,
       hostelName: hostels.name,
       hostelIsActive: hostels.isActive,
-      blockCode: hostelBlocks.code,
       roomNumber: rooms.roomNumber,
     })
     .from(gatePasses)
@@ -254,7 +252,6 @@ export const loadScopedPassByHash = async (
       eq(leaveRequests.roomAllocationId, roomAllocations.id)
     )
     .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .where(and(...conditions));
   const [record] = lock
     ? await query.for("update", { of: leaveRequests }).limit(1)
@@ -279,7 +276,7 @@ export const toPublicGatePassDetails = (record) => {
       room:
         record.roomNumber === null
           ? null
-          : { blockCode: record.blockCode, roomNumber: record.roomNumber },
+          : { roomNumber: record.roomNumber },
     },
     hostel: {
       id: record.hostelId,

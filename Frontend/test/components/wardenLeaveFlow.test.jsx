@@ -31,7 +31,7 @@ const pendingLeave = Object.freeze({
     rollNo: "DEMO-H1-001",
   },
   hostel: { id: 1, code: "H1", name: "North Residence Hall" },
-  room: { blockCode: "A", roomNumber: "101", label: "A-101" },
+  room: { roomNumber: "101", label: "101" },
   decision: null,
   reviewWarnings: { hasOverlap: false, activeRequests: [] },
 });
@@ -58,7 +58,7 @@ describe("warden leave review flow", () => {
     const view = renderPage();
 
     expect(await screen.findAllByText("Kavya Nair")).not.toHaveLength(0);
-    expect(screen.getAllByText("A-101")).not.toHaveLength(0);
+    expect(screen.getAllByText("101")).not.toHaveLength(0);
     expect(screen.getAllByText("Medical consultation with specialist")).not.toHaveLength(0);
     expect(screen.getAllByText("Emergency")).not.toHaveLength(0);
     expect(apiMocks.listLeaveReviewQueue).toHaveBeenCalledWith({

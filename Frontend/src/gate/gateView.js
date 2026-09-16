@@ -30,7 +30,7 @@ export const getMovementLabel = (movement) =>
   movement === "exit" ? "Exit" : "Return";
 
 export const getRoomLabel = (room) =>
-  room ? `${room.blockCode}-${room.roomNumber}` : "Room unavailable";
+  room?.roomNumber || "Room unavailable";
 
 export const getVerificationTitle = (verification) => {
   if (verification?.valid) return "Gate pass verified";

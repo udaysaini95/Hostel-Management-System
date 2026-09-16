@@ -143,7 +143,7 @@ Primary success condition: privileged access is controlled without public staff 
 - Menu suggestions and voting.
 - Room-transfer workflow.
 - Configurable SLA rules by complaint category.
-- Configurable notice audiences by hostel block or floor.
+- Configurable notice audiences by hostel or role.
 
 ### 8.3 P2 — Future possibilities
 
@@ -213,17 +213,17 @@ Priority definitions:
 
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
-| RES-01 | P0 | A student profile stores name, roll number, phone, guardian contact, hostel, block, and room allocation. | Required fields are validated and roll numbers are unique. |
+| RES-01 | P0 | A student profile stores name, roll number, phone, guardian contact, hostel, and room allocation. | Required fields are validated and roll numbers are unique. |
 | RES-02 | P0 | Students may view their profile and current allocation. | A student cannot retrieve another student's full profile. |
-| RES-03 | P0 | Wardens and administrators may search and filter residents. | Results are paginated and filterable by hostel, block, room, and account status. |
+| RES-03 | P0 | Wardens and administrators may search and filter residents. | Results are paginated and filterable by hostel, room, and account status. |
 | RES-04 | P0 | Administrators or wardens may allocate a student to an available room. | Allocation cannot exceed configured room capacity. |
 | RES-05 | P0 | Allocation changes must preserve history. | Current and prior allocation dates can be audited. |
-| RES-06 | P0 | Room data includes hostel, block, floor, room number, and capacity. | Duplicate room identifiers within the same block are rejected. |
+| RES-06 | P0 | Room data includes hostel, floor, room number, and capacity. | Duplicate room numbers within the same hostel are rejected. |
 | RES-07 | P1 | Administrators may import residents from a validated CSV template. | Invalid rows are reported without partially corrupting valid existing data. |
 | RES-08 | P1 | Wardens may transfer students between rooms. | Transfer is transactional and preserves allocation history. |
 | RES-09 | P0 | One institution may manage multiple hostel buildings. | Every hostel has a unique name, short code such as `BH1` or `GH1`, resident type (`boys`, `girls`, or `co_ed`), and explicit user memberships. |
 | RES-10 | P0 | Every newly approved student has boys or girls housing eligibility. | Single approval, CSV import, activation, and room allocation reject a non-matching hostel; a co-ed hostel accepts either eligibility. |
-| RES-11 | P0 | Administrators may configure blocks and rooms for each hostel. | Codes remain stable, capacity cannot fall below occupancy, and occupied areas cannot be deactivated. |
+| RES-11 | P0 | Administrators may configure rooms for each hostel. | Room numbers remain stable, capacity cannot fall below occupancy, and occupied rooms cannot be deactivated. |
 
 ### 10.3 Complaints and maintenance
 
@@ -319,7 +319,7 @@ PENDING ──→ REJECTED
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
 | NOT-01 | P0 | Wardens/admins may publish notices with title, body, audience, priority, and expiry. | Expired notices are not shown as active. |
-| NOT-02 | P0 | Students see notices targeted to their role, hostel, block, or all residents. | A student cannot retrieve notices targeted exclusively to another hostel. |
+| NOT-02 | P0 | Students see notices targeted to their role, hostel, or all residents. | A student cannot retrieve notices targeted exclusively to another hostel. |
 | NOT-03 | P0 | The system records read/unread state per recipient. | Reading a notice updates the unread count. |
 | NOT-04 | P0 | In-app notifications cover complaint, leave, gate, and important notice events. | Notifications link to the relevant authorized record. |
 | NOT-05 | P1 | Selected notifications may also be sent by email. | Email failure does not roll back the underlying operational action. |
@@ -367,7 +367,7 @@ PENDING ──→ REJECTED
 
 - Users and role assignments.
 - Student and staff profiles.
-- Hostels, blocks, rooms, and room allocations.
+- Hostels, rooms, and room allocations.
 - Complaints, assignments, events, and attachments.
 - Leave requests, gate passes, and gate events.
 - Mess menus, menu items, feedback, issues, suggestions, and votes.

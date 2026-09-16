@@ -24,11 +24,6 @@ const audience = z.discriminatedUnion("type", [
     type: z.literal(NOTICE_AUDIENCE_TYPES.HOSTEL),
     hostelId: positiveId,
   }),
-  z.strictObject({
-    type: z.literal(NOTICE_AUDIENCE_TYPES.BLOCK),
-    hostelId: positiveId,
-    blockId: positiveId,
-  }),
 ]);
 
 export const publishNoticeSchema = {

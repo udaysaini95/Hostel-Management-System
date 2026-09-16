@@ -10,7 +10,6 @@ import {
   sql,
 } from "drizzle-orm";
 import {
-  hostelBlocks,
   gatePasses,
   hostels,
   leaveEvents,
@@ -213,18 +212,14 @@ const loadStudentContext = async (transaction, actorId) => {
       roomId: rooms.id,
       roomNumber: rooms.roomNumber,
       floor: rooms.floor,
-      blockId: hostelBlocks.id,
-      blockCode: hostelBlocks.code,
-      blockName: hostelBlocks.name,
     })
     .from(roomAllocations)
     .innerJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .innerJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .where(
       and(
         eq(roomAllocations.studentProfileId, profile.id),
         isNull(roomAllocations.vacatedAt),
-        eq(hostelBlocks.hostelId, profile.hostelId)
+        eq(rooms.hostelId, profile.hostelId)
       )
     )
     .for("update", { of: roomAllocations })
@@ -317,13 +312,8 @@ const toLeaveRequestView = ({ leaveRequest, actor, profile, allocation }) => ({
     room: {
       id: allocation.roomId,
       number: allocation.roomNumber,
-      label: `${allocation.blockCode}-${allocation.roomNumber}`,
+      label: allocation.roomNumber,
       floor: allocation.floor,
-    },
-    block: {
-      id: allocation.blockId,
-      code: allocation.blockCode,
-      name: allocation.blockName,
     },
   },
   createdAt: leaveRequest.createdAt,
@@ -486,7 +476,6 @@ export const listStudentLeaveRequests = async (
       hostelId: hostels.id,
       hostelCode: hostels.code,
       hostelName: hostels.name,
-      blockCode: hostelBlocks.code,
       roomNumber: rooms.roomNumber,
       passId: gatePasses.id,
       passIssuedAt: gatePasses.issuedAt,
@@ -502,7 +491,6 @@ export const listStudentLeaveRequests = async (
       eq(leaveRequests.roomAllocationId, roomAllocations.id)
     )
     .leftJoin(rooms, eq(roomAllocations.roomId, rooms.id))
-    .leftJoin(hostelBlocks, eq(rooms.blockId, hostelBlocks.id))
     .leftJoin(gatePasses, eq(gatePasses.leaveRequestId, leaveRequests.id))
     .where(whereClause)
     .orderBy(desc(leaveRequests.createdAt), desc(leaveRequests.id))
@@ -526,7 +514,7 @@ export const listStudentLeaveRequests = async (
         name: record.hostelName,
       },
       room: record.roomNumber
-        ? { blockCode: record.blockCode, roomNumber: record.roomNumber }
+        ? { roomNumber: record.roomNumber }
         : null,
       pass: record.passId
         ? {

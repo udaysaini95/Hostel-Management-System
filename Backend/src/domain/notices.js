@@ -8,7 +8,6 @@ export const NOTICE_AUDIENCE_TYPES = Object.freeze({
   ALL_RESIDENTS: "all_residents",
   ROLE: "role",
   HOSTEL: "hostel",
-  BLOCK: "block",
 });
 
 export const NOTICE_LIST_STATES = Object.freeze({

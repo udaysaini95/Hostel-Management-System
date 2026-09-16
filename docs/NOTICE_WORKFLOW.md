@@ -10,10 +10,9 @@ A published notice has exactly one audience:
 - `all_residents`: every active account with a student profile. Admin only.
 - `role`: every active account with the selected system role. Admin only.
 - `hostel`: active users assigned to one hostel.
-- `block`: active students whose current room belongs to one hostel block.
 
-Administrators may use every audience. Wardens may use only `hostel` and
-`block`, and the target hostel must be one of their current assignments.
+Administrators may use every audience. Wardens may publish only to a hostel,
+and the target hostel must be one of their current assignments.
 
 Recipients are written in the same transaction as the notice. The audience is
 therefore a publication-time snapshot: moving a student later does not rewrite
@@ -42,5 +41,5 @@ All endpoints require an authenticated active account.
 | `PATCH` | `/api/notices/:id/read` | Mark one received notice as read |
 | `GET` | `/api/notices/managed` | List notices visible to a warden/admin publisher |
 
-Publishing creates an immutable `notice.published` audit event. Hostel and
-block notices also attach a hostel snapshot to that event.
+Publishing creates an immutable `notice.published` audit event. Hostel notices
+also attach a hostel snapshot to that event.

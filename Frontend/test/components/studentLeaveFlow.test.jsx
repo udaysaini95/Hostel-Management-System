@@ -27,7 +27,7 @@ const approvedLeave = Object.freeze({
   isEmergency: false,
   status: "approved",
   hostel: { id: 1, code: "H1", name: "North Hall" },
-  room: { blockCode: "A", roomNumber: "101" },
+  room: { roomNumber: "101" },
   pass: {
     id: 9,
     validFrom: "2099-09-10T08:00:00.000Z",

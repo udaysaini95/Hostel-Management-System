@@ -77,7 +77,6 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
         'hostel_memberships',
         'student_profiles',
         'staff_profiles',
-        'hostel_blocks',
         'rooms',
         'room_allocations',
         'approved_students',
@@ -122,7 +121,6 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "complaints",
       "gate_events",
       "gate_passes",
-      "hostel_blocks",
       "hostel_memberships",
       "hostels",
       "leave_decisions",
@@ -145,7 +143,7 @@ test("all versioned migrations apply to an empty PostgreSQL database", async () 
       "users",
     ]
   );
-  assert.equal(migrationsResult.rows[0].count, 21);
+  assert.equal(migrationsResult.rows[0].count, 24);
 });
 
 test("PostgreSQL enforces hostel and primary-membership constraints", async () => {
@@ -288,64 +286,35 @@ test("PostgreSQL enforces profile, room, and allocation-history constraints", as
       error.message.includes("student account")
   );
 
-  const firstBlockResult = await pool.query(
-    `
-      INSERT INTO hostel_blocks (hostel_id, code, name)
-      VALUES ($1, $2, $3)
-      RETURNING id
-    `,
-    [firstHostel.id, "A", "Hostel One - A Block"]
-  );
-  const secondBlockResult = await pool.query(
-    `
-      INSERT INTO hostel_blocks (hostel_id, code, name)
-      VALUES ($1, $2, $3)
-      RETURNING id
-    `,
-    [secondHostel.id, "A", "Hostel Two - A Block"]
-  );
-  const firstBlockId = firstBlockResult.rows[0].id;
-  const secondBlockId = secondBlockResult.rows[0].id;
-
-  await assert.rejects(
-    pool.query(
-      "INSERT INTO hostel_blocks (hostel_id, code, name) VALUES ($1, $2, $3)",
-      [firstHostel.id, "A", "Duplicate A Block"]
-    ),
-    (error) =>
-      postgresErrorCode(error) === "23505" &&
-      error.constraint === "hostel_blocks_hostel_code_unique"
-  );
-
   const firstRoomResult = await pool.query(
     `
-      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      INSERT INTO rooms (hostel_id, room_number, floor, capacity)
       VALUES ($1, $2, $3, $4)
       RETURNING id
     `,
-    [firstBlockId, "101", 1, 2]
+    [firstHostel.id, "101", 1, 2]
   );
   await pool.query(
     `
-      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      INSERT INTO rooms (hostel_id, room_number, floor, capacity)
       VALUES ($1, $2, $3, $4)
     `,
-    [secondBlockId, "101", 1, 2]
+    [secondHostel.id, "101", 1, 2]
   );
 
   await assert.rejects(
     pool.query(
-      "INSERT INTO rooms (block_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
-      [firstBlockId, "101", 1, 2]
+      "INSERT INTO rooms (hostel_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
+      [firstHostel.id, "101", 1, 2]
     ),
     (error) =>
       postgresErrorCode(error) === "23505" &&
-      error.constraint === "rooms_block_number_unique"
+      error.constraint === "rooms_hostel_number_unique"
   );
   await assert.rejects(
     pool.query(
-      "INSERT INTO rooms (block_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
-      [firstBlockId, "999", 9, 0]
+      "INSERT INTO rooms (hostel_id, room_number, floor, capacity) VALUES ($1, $2, $3, $4)",
+      [firstHostel.id, "999", 9, 0]
     ),
     (error) =>
       postgresErrorCode(error) === "23514" &&
@@ -354,11 +323,11 @@ test("PostgreSQL enforces profile, room, and allocation-history constraints", as
 
   const secondRoomResult = await pool.query(
     `
-      INSERT INTO rooms (block_id, room_number, floor, capacity)
+      INSERT INTO rooms (hostel_id, room_number, floor, capacity)
       VALUES ($1, $2, $3, $4)
       RETURNING id
     `,
-    [firstBlockId, "102", 1, 2]
+    [firstHostel.id, "102", 1, 2]
   );
   const firstRoomId = firstRoomResult.rows[0].id;
   const secondRoomId = secondRoomResult.rows[0].id;

@@ -276,47 +276,13 @@ export const staffProfiles = pgTable(
   ]
 );
 
-export const hostelBlocks = pgTable(
-  "hostel_blocks",
+export const rooms = pgTable(
+  "rooms",
   {
     id: serial("id").primaryKey(),
     hostelId: integer("hostel_id")
       .notNull()
       .references(() => hostels.id, { onDelete: "restrict" }),
-    code: varchar("code", { length: 20 }).notNull(),
-    name: varchar("name", { length: 100 }).notNull(),
-    isActive: boolean("is_active").default(true).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    check(
-      "hostel_blocks_code_format_check",
-      sql`${table.code} ~ '^[A-Z][A-Z0-9-]{0,19}$'`
-    ),
-    check(
-      "hostel_blocks_name_not_blank_check",
-      sql`length(trim(${table.name})) > 0`
-    ),
-    uniqueIndex("hostel_blocks_hostel_code_unique").on(
-      table.hostelId,
-      table.code
-    ),
-    index("hostel_blocks_hostel_id_idx").on(table.hostelId),
-  ]
-);
-
-export const rooms = pgTable(
-  "rooms",
-  {
-    id: serial("id").primaryKey(),
-    blockId: integer("block_id")
-      .notNull()
-      .references(() => hostelBlocks.id, { onDelete: "restrict" }),
     roomNumber: varchar("room_number", { length: 20 }).notNull(),
     floor: integer("floor").notNull(),
     capacity: integer("capacity").notNull(),
@@ -338,11 +304,11 @@ export const rooms = pgTable(
       "rooms_capacity_bounds_check",
       sql`${table.capacity} between 1 and 20`
     ),
-    uniqueIndex("rooms_block_number_unique").on(
-      table.blockId,
+    uniqueIndex("rooms_hostel_number_unique").on(
+      table.hostelId,
       table.roomNumber
     ),
-    index("rooms_block_id_idx").on(table.blockId),
+    index("rooms_hostel_id_idx").on(table.hostelId),
   ]
 );
 
@@ -1445,9 +1411,6 @@ export const notices = pgTable(
     hostelId: integer("hostel_id").references(() => hostels.id, {
       onDelete: "restrict",
     }),
-    blockId: integer("block_id").references(() => hostelBlocks.id, {
-      onDelete: "restrict",
-    }),
     publishedAt: timestamp("published_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1468,10 +1431,9 @@ export const notices = pgTable(
     ),
     check(
       "notices_audience_shape_check",
-      sql`(${table.audienceType} = 'all_residents' and ${table.audienceRole} is null and ${table.hostelId} is null and ${table.blockId} is null)
-        or (${table.audienceType} = 'role' and ${table.audienceRole} is not null and ${table.hostelId} is null and ${table.blockId} is null)
-        or (${table.audienceType} = 'hostel' and ${table.audienceRole} is null and ${table.hostelId} is not null and ${table.blockId} is null)
-        or (${table.audienceType} = 'block' and ${table.audienceRole} is null and ${table.hostelId} is not null and ${table.blockId} is not null)`
+      sql`(${table.audienceType} = 'all_residents' and ${table.audienceRole} is null and ${table.hostelId} is null)
+        or (${table.audienceType} = 'role' and ${table.audienceRole} is not null and ${table.hostelId} is null)
+        or (${table.audienceType} = 'hostel' and ${table.audienceRole} is null and ${table.hostelId} is not null)`
     ),
     index("notices_active_idx").on(table.publishedAt, table.expiresAt),
     index("notices_hostel_idx").on(table.hostelId, table.publishedAt),

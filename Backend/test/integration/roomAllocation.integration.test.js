@@ -6,7 +6,6 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/db/schema.js";
 import {
   auditEvents,
-  hostelBlocks,
   hostelMemberships,
   hostels,
   roomAllocations,
@@ -174,21 +173,13 @@ before(async () => {
     }))
   );
 
-  const [firstBlock, secondBlock] = await database
-    .insert(hostelBlocks)
-    .values([
-      { hostelId: firstHostel.id, code: "A", name: "RA1 Block A" },
-      { hostelId: secondHostel.id, code: "A", name: "RA2 Block A" },
-    ])
-    .returning();
-
   [singleRoom, sharedRoom, raceRoom, secondHostelRoom] = await database
     .insert(rooms)
     .values([
-      { blockId: firstBlock.id, roomNumber: "101", floor: 1, capacity: 1 },
-      { blockId: firstBlock.id, roomNumber: "102", floor: 1, capacity: 2 },
-      { blockId: firstBlock.id, roomNumber: "103", floor: 1, capacity: 1 },
-      { blockId: secondBlock.id, roomNumber: "101", floor: 1, capacity: 1 },
+      { hostelId: firstHostel.id, roomNumber: "101", floor: 1, capacity: 1 },
+      { hostelId: firstHostel.id, roomNumber: "102", floor: 1, capacity: 2 },
+      { hostelId: firstHostel.id, roomNumber: "103", floor: 1, capacity: 1 },
+      { hostelId: secondHostel.id, roomNumber: "101", floor: 1, capacity: 1 },
     ])
     .returning();
 });
@@ -238,7 +229,7 @@ test("allocation enforces student state, hostel scope, and one active room", asy
   firstAllocationId = result.allocation.id;
 
   assert.equal(result.allocation.student.rollNo, "ROOM-001");
-  assert.equal(result.allocation.room.label, "A-101");
+  assert.equal(result.allocation.room.label, "101");
   assert.equal(result.allocation.hostel.code, "RA1");
 
   const [storedStudent] = await database
@@ -255,7 +246,7 @@ test("allocation enforces student state, hostel scope, and one active room", asy
       )
     );
 
-  assert.equal(storedStudent.roomNo, "A-101");
+  assert.equal(storedStudent.roomNo, "101");
   assert.equal(auditEvent.actorUserId, firstWarden.id);
   assert.equal(auditEvent.metadata.occupancyAfter, 1);
 
@@ -488,7 +479,7 @@ test("room transfer atomically closes the old allocation and opens the new one",
     );
 
   assert.equal(result.previousAllocationId, currentAllocation.id);
-  assert.equal(result.allocation.room.label, "A-101");
+  assert.equal(result.allocation.room.label, "101");
   assert.equal(history.length, 3);
   assert.equal(history.filter((allocation) => !allocation.vacatedAt).length, 1);
   assert.equal(
@@ -496,8 +487,8 @@ test("room transfer atomically closes the old allocation and opens the new one",
       .vacateReason,
     "Approved quieter-room request"
   );
-  assert.equal(storedStudent.roomNo, "A-101");
+  assert.equal(storedStudent.roomNo, "101");
   assert.equal(transferAudit.actorUserId, firstWarden.id);
-  assert.equal(transferAudit.metadata.fromRoom, "A-102");
-  assert.equal(transferAudit.metadata.toRoom, "A-101");
+  assert.equal(transferAudit.metadata.fromRoom, "102");
+  assert.equal(transferAudit.metadata.toRoom, "101");
 });
