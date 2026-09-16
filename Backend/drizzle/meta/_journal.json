@@ -148,6 +148,20 @@
       "when": 1789930800000,
       "tag": "0020_in_app_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790017200000,
+      "tag": "0021_hostel_resident_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790103600000,
+      "tag": "0022_student_housing_eligibility",
+      "breakpoints": true
     }
   ]
 }

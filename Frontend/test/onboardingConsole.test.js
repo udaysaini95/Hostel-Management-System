@@ -97,7 +97,7 @@ test("the console has a compact table and structured mobile records", async () =
     readFile(importDialogPath, "utf8"),
   ]);
 
-  for (const field of ["name", "email", "rollNo", "hostelCode"]) {
+  for (const field of ["name", "email", "rollNo", "housingType", "hostelCode"]) {
     assert.match(page, new RegExp(`name="${field}"`));
   }
 

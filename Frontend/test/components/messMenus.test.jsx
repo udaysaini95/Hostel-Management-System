@@ -25,6 +25,9 @@ vi.mock("../../src/mess/messApi.js", () => apiMocks);
 vi.mock("../../src/feedback/toastContext.js", () => ({
   useToast: () => ({ showToast }),
 }));
+vi.mock("../../src/auth/authContext.js", () => ({
+  useAuth: () => ({ user: { id: 7, role: "student" } }),
+}));
 
 const today = getLocalCalendarDate();
 const menu = {

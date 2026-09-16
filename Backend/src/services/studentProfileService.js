@@ -58,6 +58,7 @@ const toProfileView = (record) => {
     email: record.email,
     accountStatus: record.accountStatus,
     rollNo: record.rollNo,
+    housingType: record.housingType,
     phone: record.phone,
     guardian: {
       name: record.guardianName,
@@ -85,6 +86,7 @@ export const getOwnStudentProfile = async (database, actorUserId) => {
       email: users.email,
       accountStatus: users.accountStatus,
       rollNo: studentProfiles.rollNo,
+      housingType: studentProfiles.housingType,
       phone: studentProfiles.phone,
       guardianName: studentProfiles.guardianName,
       guardianPhone: studentProfiles.guardianPhone,

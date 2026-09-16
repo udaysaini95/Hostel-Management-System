@@ -15,6 +15,7 @@ import {
   AUDIT_RESOURCE_TYPES,
 } from "../domain/auditEvents.js";
 import { USER_ROLES } from "../domain/roles.js";
+import { isHousingCompatible } from "../domain/hostels.js";
 import { appendAuditEvent } from "./auditEventService.js";
 import { ApiError } from "../utils/apiErrors.js";
 
@@ -263,6 +264,7 @@ const lockStudent = async (transaction, studentUserId) => {
       userId: studentProfiles.userId,
       hostelId: studentProfiles.hostelId,
       rollNo: studentProfiles.rollNo,
+      housingType: studentProfiles.housingType,
     })
     .from(studentProfiles)
     .where(eq(studentProfiles.userId, studentUserId))
@@ -320,6 +322,7 @@ const lockRoom = async (transaction, roomId) => {
       hostelId: hostels.id,
       hostelCode: hostels.code,
       hostelName: hostels.name,
+      hostelResidentType: hostels.residentType,
       hostelIsActive: hostels.isActive,
     })
     .from(hostelBlocks)
@@ -402,6 +405,17 @@ export const allocateRoom = async (
         409,
         "ROOM_HOSTEL_MISMATCH",
         "A student can only be allocated within their assigned hostel"
+      );
+    }
+
+    if (
+      profile.housingType &&
+      !isHousingCompatible(profile.housingType, location.hostelResidentType)
+    ) {
+      fail(
+        409,
+        "ROOM_HOUSING_MISMATCH",
+        "The student's housing eligibility does not match this hostel"
       );
     }
 

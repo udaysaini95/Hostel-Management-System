@@ -167,6 +167,8 @@ Phase 2 exit gate:
 | RES-04 | Add transactional room allocation and capacity enforcement | RES-04–RES-05 | Concurrent over-capacity allocation tests fail safely | `feat(rooms): enforce room allocation capacity` |
 | RES-05 | Build student profile and warden room-allocation screens | RES-01–RES-06, design page rules | Responsive, permission, loading, empty, error, and form tests pass | `feat(frontend): add resident and room management` |
 | RES-06 | Add validated CSV resident import | RES-07 P1; run only after P0 phase is stable | Dry-run/error reporting and transactional import tests pass | `feat(residents): add validated CSV import` |
+| SETUP-01 | Add administrator hostel setup and boys/girls/co-ed classification | RES-09 | Admin-only CRUD, lifecycle guards, audit, and responsive UI tests pass | `feat(admin): add hostel setup` |
+| SETUP-02 | Add administrator block and room inventory setup | RES-06, RES-11 | Stable identifiers, occupancy guards, audit, and UI interaction tests pass | `feat(rooms): add block and room setup` |
 
 Phase 3 exit gate:
 

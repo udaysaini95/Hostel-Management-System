@@ -4,6 +4,10 @@ import { requireDatabaseUrl } from "../config/runtimeConfig.js";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import { USER_ROLES } from "../domain/roles.js";
 import {
+  HOSTEL_RESIDENT_TYPES,
+  STUDENT_HOUSING_TYPES,
+} from "../domain/hostels.js";
+import {
   hostelBlocks,
   hostelMemberships,
   hostels,
@@ -21,11 +25,13 @@ export const DEMO_HOSTELS = Object.freeze([
     code: "H1",
     name: "North Residence Hall",
     address: "Demo Campus, North Zone",
+    residentType: HOSTEL_RESIDENT_TYPES.BOYS,
   }),
   Object.freeze({
     code: "H2",
     name: "South Residence Hall",
     address: "Demo Campus, South Zone",
+    residentType: HOSTEL_RESIDENT_TYPES.GIRLS,
   }),
 ]);
 
@@ -103,6 +109,7 @@ export const DEMO_USERS = Object.freeze([
     name: "Kavya Nair",
     email: "student.h1@hostelmate.example",
     role: USER_ROLES.STUDENT,
+    housingType: STUDENT_HOUSING_TYPES.BOYS,
     rollNo: "DEMO-H1-001",
     phone: "0000000001",
     guardianName: "Anita Nair",
@@ -116,6 +123,7 @@ export const DEMO_USERS = Object.freeze([
     name: "Dev Patel",
     email: "student.h2@hostelmate.example",
     role: USER_ROLES.STUDENT,
+    housingType: STUDENT_HOUSING_TYPES.GIRLS,
     rollNo: "DEMO-H2-001",
     phone: "0000000002",
     guardianName: "Meera Patel",
@@ -224,6 +232,7 @@ export const seedDemoData = async (database, password) => {
         set: {
           name: hostel.name,
           address: hostel.address,
+          residentType: hostel.residentType,
           isActive: true,
           updatedAt: now,
         },
@@ -360,6 +369,7 @@ export const seedDemoData = async (database, password) => {
           userId: savedUser.id,
           hostelId,
           rollNo: user.rollNo,
+          housingType: user.housingType,
           phone: user.phone,
           guardianName: user.guardianName,
           guardianPhone: user.guardianPhone,
@@ -370,6 +380,7 @@ export const seedDemoData = async (database, password) => {
           set: {
             hostelId,
             rollNo: user.rollNo,
+            housingType: user.housingType,
             phone: user.phone,
             guardianName: user.guardianName,
             guardianPhone: user.guardianPhone,

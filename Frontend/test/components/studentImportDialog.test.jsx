@@ -23,6 +23,7 @@ const validRows = [
       name: "Asha Rao",
       email: "asha@example.edu",
       rollNo: "2026-CSE-001",
+      housingType: "girls",
       hostelCode: "H1",
     },
     errors: [],
@@ -34,6 +35,7 @@ const validRows = [
       name: "Kabir Sen",
       email: "kabir@example.edu",
       rollNo: "2026-CSE-002",
+      housingType: "boys",
       hostelCode: "H2",
     },
     errors: [],
@@ -99,7 +101,7 @@ describe("student CSV import", () => {
       .mockResolvedValueOnce({ data: { report: importReport } });
     const { onImported } = renderDialog();
     const file = new File(
-      ["name,email,roll_no,hostel_code\nAsha Rao,asha@example.edu,2026-CSE-001,H1"],
+      ["name,email,roll_no,housing_type,hostel_code\nAsha Rao,asha@example.edu,2026-CSE-001,girls,H1"],
       "students.csv",
       { type: "text/csv" }
     );

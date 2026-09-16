@@ -95,6 +95,7 @@ const ReportSummary = ({ report }) => {
             <TableHeaderCell>Row</TableHeaderCell>
             <TableHeaderCell>Student</TableHeaderCell>
             <TableHeaderCell>Roll number</TableHeaderCell>
+            <TableHeaderCell>Housing</TableHeaderCell>
             <TableHeaderCell>Hostel</TableHeaderCell>
           </TableRow>
         </TableHead>
@@ -113,6 +114,7 @@ const ReportSummary = ({ report }) => {
               <TableCell className="hm-import__mono">
                 {row.values.rollNo}
               </TableCell>
+              <TableCell>{row.values.housingType}</TableCell>
               <TableCell className="hm-import__mono">
                 {row.values.hostelCode}
               </TableCell>
@@ -279,13 +281,14 @@ export const StudentImportDialog = ({ open, onDismiss, onImported }) => {
       <div className="hm-import__content">
         <div className="hm-import__instructions">
           <p>Use one row per student with these exact headers:</p>
-          <code>name,email,roll_no,hostel_code</code>
+          <code>name,email,roll_no,housing_type,hostel_code</code>
           <a href={STUDENT_IMPORT_TEMPLATE_URL} download>
             <Download aria-hidden="true" />
             Download CSV template
           </a>
           <small>
-            Maximum 500 students and 1 MB. Hostel codes must already be active.
+            Maximum 500 students and 1 MB. Use boys or girls for housing_type;
+            hostel codes must already be active and compatible.
           </small>
         </div>
 

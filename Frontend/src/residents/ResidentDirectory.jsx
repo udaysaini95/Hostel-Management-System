@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "../components/ui/index.js";
 import { PaginationControls } from "./PaginationControls.jsx";
+import { getStudentHousingLabel } from "../hostels/hostelView.js";
 import {
   ACCOUNT_STATUS_OPTIONS,
   EMPTY_PAGINATION,
@@ -312,6 +313,9 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
                       <span className="hm-residents__entity-meta hm-residents__mono">
                         {resident.rollNo}
                       </span>
+                      <span className="hm-residents__entity-meta">
+                        {getStudentHousingLabel(resident.housingType)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <strong>{resident.hostel.code}</strong>
@@ -367,6 +371,10 @@ export const ResidentDirectory = forwardRef(function ResidentDirectory(
                   <div>
                     <dt>Hostel</dt>
                     <dd>{resident.hostel.code} — {resident.hostel.name}</dd>
+                  </div>
+                  <div>
+                    <dt>Housing eligibility</dt>
+                    <dd>{getStudentHousingLabel(resident.housingType)}</dd>
                   </div>
                   <div>
                     <dt>Room</dt>

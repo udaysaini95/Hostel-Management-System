@@ -1,0 +1,213 @@
+@layer components {
+  .hm-hostel-table td:first-child {
+    display: grid;
+    gap: 0.125rem;
+  }
+
+  .hm-hostel-table td:first-child span {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+  }
+
+  .hm-hostel-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-hostel-cards {
+    display: none;
+  }
+
+  .hm-inventory {
+    display: grid;
+    gap: 1rem;
+    scroll-margin-top: 5rem;
+  }
+
+  .hm-inventory__heading,
+  .hm-inventory__block-heading,
+  .hm-inventory__room {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .hm-inventory__heading {
+    padding: 1.25rem 0 0.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .hm-inventory__heading h2,
+  .hm-inventory__block-heading h3,
+  .hm-inventory__heading p,
+  .hm-inventory__block-heading p {
+    margin: 0;
+  }
+
+  .hm-inventory__heading > div:first-child > span,
+  .hm-inventory__block-heading > div:first-child > span {
+    color: var(--color-brand);
+    font-family: var(--font-mono);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .hm-inventory__heading p,
+  .hm-inventory__block-heading p,
+  .hm-inventory__room span,
+  .hm-inventory__empty-rooms {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+  }
+
+  .hm-inventory__heading-actions,
+  .hm-inventory__block-actions,
+  .hm-inventory__room-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hm-inventory__blocks {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .hm-inventory__block {
+    overflow: hidden;
+  }
+
+  .hm-inventory__block-heading {
+    padding: 1rem 1.25rem;
+    background: var(--color-surface-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-inventory__rooms {
+    display: grid;
+  }
+
+  .hm-inventory__room {
+    min-height: 4.5rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-inventory__room:last-child {
+    border-bottom: 0;
+  }
+
+  .hm-inventory__room > div:not(.hm-inventory__room-actions) {
+    display: grid;
+    gap: 0.125rem;
+  }
+
+  .hm-inventory__room-name {
+    min-width: 10rem;
+  }
+
+  .hm-inventory__room-name strong {
+    font-family: var(--font-mono);
+  }
+
+  .hm-inventory__empty-rooms {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.25rem;
+  }
+
+  .hm-inventory__empty-rooms svg {
+    width: 1.1rem;
+  }
+
+  .hm-inventory__notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-danger-soft);
+  }
+
+  .hm-inventory__notice > div {
+    display: grid;
+    gap: 0.2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .hm-hostel-table {
+    display: none;
+  }
+
+  .hm-hostel-cards {
+    display: grid;
+  }
+
+  .hm-hostel-cards article {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hm-hostel-cards article:last-child {
+    border-bottom: 0;
+  }
+
+  .hm-hostel-cards header,
+  .hm-hostel-cards footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .hm-hostel-cards h2 {
+    margin: 0.125rem 0 0;
+    font-size: var(--text-card-title);
+  }
+
+  .hm-hostel-cards dl {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .hm-hostel-cards dt {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+  }
+
+  .hm-hostel-cards dd {
+    margin: 0.125rem 0 0;
+  }
+
+  .hm-inventory__heading,
+  .hm-inventory__block-heading,
+  .hm-inventory__room {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hm-inventory__heading-actions,
+  .hm-inventory__block-actions,
+  .hm-inventory__room-actions {
+    width: 100%;
+  }
+
+  .hm-inventory__block-actions > button,
+  .hm-inventory__room-actions > button {
+    flex: 1 1 auto;
+  }
+
+  .hm-inventory__room {
+    padding: 1rem;
+  }
+}

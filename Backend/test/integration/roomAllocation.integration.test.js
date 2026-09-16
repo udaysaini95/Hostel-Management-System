@@ -16,6 +16,10 @@ import {
 } from "../../src/db/schema.js";
 import { ACCOUNT_STATUSES } from "../../src/domain/accountStatuses.js";
 import { AUDIT_ACTIONS } from "../../src/domain/auditEvents.js";
+import {
+  HOSTEL_RESIDENT_TYPES,
+  STUDENT_HOUSING_TYPES,
+} from "../../src/domain/hostels.js";
 import { USER_ROLES } from "../../src/domain/roles.js";
 import {
   allocateRoom,
@@ -53,8 +57,16 @@ before(async () => {
   [firstHostel, secondHostel] = await database
     .insert(hostels)
     .values([
-      { code: "RA1", name: "Room Allocation Hostel One" },
-      { code: "RA2", name: "Room Allocation Hostel Two" },
+      {
+        code: "RA1",
+        name: "Room Allocation Hostel One",
+        residentType: HOSTEL_RESIDENT_TYPES.GIRLS,
+      },
+      {
+        code: "RA2",
+        name: "Room Allocation Hostel Two",
+        residentType: HOSTEL_RESIDENT_TYPES.BOYS,
+      },
     ])
     .returning();
 
@@ -128,6 +140,14 @@ before(async () => {
         accountStatus: ACCOUNT_STATUSES.SUSPENDED,
         rollNo: "ROOM-005",
       },
+      {
+        name: "Ineligible Allocation Student",
+        email: "student-six@room-allocation.integration.test",
+        password: "not-a-real-password-hash",
+        role: USER_ROLES.STUDENT,
+        accountStatus: ACCOUNT_STATUSES.ACTIVE,
+        rollNo: "ROOM-006",
+      },
     ])
     .returning();
 
@@ -146,6 +166,10 @@ before(async () => {
       userId: student.id,
       hostelId: index === 3 ? secondHostel.id : firstHostel.id,
       rollNo: student.rollNo,
+      housingType:
+        index === 3 || index === 5
+          ? STUDENT_HOUSING_TYPES.BOYS
+          : STUDENT_HOUSING_TYPES.GIRLS,
     }))
   );
 
@@ -265,6 +289,14 @@ test("allocation enforces student state, hostel scope, and one active room", asy
       { studentUserId: students[4].id, roomId: sharedRoom.id }
     ),
     (error) => error.code === "STUDENT_ACCOUNT_INACTIVE"
+  );
+  await assert.rejects(
+    allocateRoom(
+      database,
+      { id: administrator.id, role: USER_ROLES.ADMIN },
+      { studentUserId: students[5].id, roomId: sharedRoom.id }
+    ),
+    (error) => error.code === "ROOM_HOUSING_MISMATCH"
   );
 });
 

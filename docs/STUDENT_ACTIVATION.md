@@ -18,6 +18,12 @@ HostelMate does not create Gmail or institutional mailboxes. It links an existin
 
 `POST /api/admin/students/approvals`
 
+The request includes `housingType` (`boys` or `girls`) together with the
+student's name, institutional email, roll number, and hostel code. Boys and
+girls hostels accept only matching students; a co-ed hostel accepts either.
+The same compatibility rule is checked again when an activation link is issued
+and when the student completes activation.
+
 Requires an administrator access token with the `student:approve` permission.
 
 ```json

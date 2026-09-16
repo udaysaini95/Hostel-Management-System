@@ -221,7 +221,9 @@ Priority definitions:
 | RES-06 | P0 | Room data includes hostel, block, floor, room number, and capacity. | Duplicate room identifiers within the same block are rejected. |
 | RES-07 | P1 | Administrators may import residents from a validated CSV template. | Invalid rows are reported without partially corrupting valid existing data. |
 | RES-08 | P1 | Wardens may transfer students between rooms. | Transfer is transactional and preserves allocation history. |
-| RES-09 | P0 | One institution may manage multiple hostel buildings. | Every hostel has a unique name and short code such as `H1` or `H2`; users receive explicit hostel memberships. |
+| RES-09 | P0 | One institution may manage multiple hostel buildings. | Every hostel has a unique name, short code such as `BH1` or `GH1`, resident type (`boys`, `girls`, or `co_ed`), and explicit user memberships. |
+| RES-10 | P0 | Every newly approved student has boys or girls housing eligibility. | Single approval, CSV import, activation, and room allocation reject a non-matching hostel; a co-ed hostel accepts either eligibility. |
+| RES-11 | P0 | Administrators may configure blocks and rooms for each hostel. | Codes remain stable, capacity cannot fall below occupancy, and occupied areas cannot be deactivated. |
 
 ### 10.3 Complaints and maintenance
 

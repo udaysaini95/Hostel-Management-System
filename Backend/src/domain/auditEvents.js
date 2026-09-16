@@ -1,5 +1,6 @@
 export const AUDIT_CATEGORIES = Object.freeze({
   ACCOUNT: "account",
+  HOSTEL: "hostel",
   STUDENT: "student",
   ROOM: "room",
   COMPLAINT: "complaint",
@@ -10,6 +11,12 @@ export const AUDIT_CATEGORIES = Object.freeze({
 });
 
 export const AUDIT_ACTIONS = Object.freeze({
+  HOSTEL_CREATED: "hostel.created",
+  HOSTEL_UPDATED: "hostel.updated",
+  HOSTEL_STATUS_CHANGED: "hostel.status-changed",
+  HOSTEL_BLOCK_CREATED: "hostel-block.created",
+  HOSTEL_BLOCK_UPDATED: "hostel-block.updated",
+  HOSTEL_BLOCK_STATUS_CHANGED: "hostel-block.status-changed",
   STAFF_INVITATION_CREATED: "staff.invitation.created",
   ACCOUNT_STATUS_CHANGED: "account.status.changed",
   STUDENT_APPROVAL_CREATED: "student.approval.created",
@@ -19,6 +26,9 @@ export const AUDIT_ACTIONS = Object.freeze({
   STUDENT_ACTIVATION_REISSUED: "student.activation.reissued",
   ROOM_ALLOCATION_CREATED: "room.allocation.created",
   ROOM_ALLOCATION_VACATED: "room.allocation.vacated",
+  ROOM_CREATED: "room.created",
+  ROOM_UPDATED: "room.updated",
+  ROOM_STATUS_CHANGED: "room.status-changed",
   COMPLAINT_CREATED: "complaint.created",
   COMPLAINT_ASSIGNED: "complaint.assigned",
   COMPLAINT_REASSIGNED: "complaint.reassigned",
@@ -46,11 +56,14 @@ export const AUDIT_ACTIONS = Object.freeze({
 });
 
 export const AUDIT_RESOURCE_TYPES = Object.freeze({
+  HOSTEL: "hostel",
+  HOSTEL_BLOCK: "hostel_block",
   STAFF_INVITATION: "staff_invitation",
   USER_ACCOUNT: "user_account",
   APPROVED_STUDENT: "approved_student",
   STUDENT_IMPORT: "student_import",
   ROOM_ALLOCATION: "room_allocation",
+  ROOM: "room",
   COMPLAINT: "complaint",
   COMPLAINT_ASSIGNMENT: "complaint_assignment",
   COMPLAINT_ATTACHMENT: "complaint_attachment",

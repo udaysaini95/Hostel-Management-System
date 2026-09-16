@@ -7,6 +7,7 @@ import {
   approvedStudentSearchRequestSchema,
   loginRequestSchema,
   staffInvitationRequestSchema,
+  studentApprovalRequestSchema,
 } from "../src/validation/authSchemas.js";
 import {
   leaveApplicationSchema,
@@ -227,6 +228,29 @@ test("student-approval revocation validates both ID and reason", () => {
     response.body.fieldErrors["body.reason"],
     "Revocation reason must contain at least 5 characters"
   );
+});
+
+test("student approvals require boys or girls housing eligibility", () => {
+  const validRequest = {
+    body: {
+      name: "Asha Rao",
+      email: "asha@example.edu",
+      rollNo: "2026-CSE-042",
+      housingType: "girls",
+      hostelCode: "GH1",
+    },
+  };
+  const validResult = runValidation(
+    studentApprovalRequestSchema,
+    validRequest
+  );
+  const invalidResult = runValidation(studentApprovalRequestSchema, {
+    body: { ...validRequest.body, housingType: "co_ed" },
+  });
+
+  assert.equal(validResult.nextCalled, true);
+  assert.equal(invalidResult.nextCalled, false);
+  assert.ok(invalidResult.response.body.fieldErrors["body.housingType"]);
 });
 
 test("student profile updates normalize editable contact fields", () => {

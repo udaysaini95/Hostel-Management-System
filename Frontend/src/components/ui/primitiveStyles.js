@@ -45,6 +45,7 @@ export const TOAST_TONES = Object.freeze({
 
 const STATUS_TONES = Object.freeze({
   approved: "success",
+  active: "success",
   valid: "success",
   resolved: "success",
   returned: "success",

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { USER_ROLES } from "../src/domain/roles.js";
+import { isHousingCompatible } from "../src/domain/hostels.js";
 import {
   DEMO_BLOCKS,
   DEMO_HOSTELS,
@@ -70,7 +71,16 @@ test("demo rooms and profile details use the normalized hostel structure", () =>
 
   for (const user of DEMO_USERS) {
     if (user.role === USER_ROLES.STUDENT) {
+      const hostel = DEMO_HOSTELS.find(
+        (entry) => entry.code === user.primaryHostelCode
+      );
+
       assert.ok(user.rollNo);
+      assert.ok(user.housingType);
+      assert.equal(
+        isHousingCompatible(user.housingType, hostel?.residentType),
+        true
+      );
       assert.ok(user.guardianName);
       assert.ok(user.guardianPhone);
       assert.ok(user.room);

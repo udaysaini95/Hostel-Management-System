@@ -1,4 +1,5 @@
 import {
+  Building2,
   ClipboardList,
   FileCheck2,
   LayoutDashboard,
@@ -68,6 +69,9 @@ const roleNavigationGroups = Object.freeze({
   ]),
   [USER_ROLES.ADMIN]: Object.freeze([
     group("Workspace", [overview.operations]),
+    group("Institution", [
+      item("Hostel setup", "/admin/hostels", Building2),
+    ]),
     group("Resident management", [
       operations.onboarding,
       operations.residents,
@@ -90,7 +94,6 @@ const roleNavigationGroups = Object.freeze({
     group("Maintenance", [
       item("Work orders", "/maintenance/work-orders", Wrench),
     ]),
-    group("Hostel services", [studentMess]),
     group("Communication", [notices]),
   ]),
 });
@@ -134,11 +137,13 @@ const routeTitles = Object.freeze({
   "/student/complaints/raise": "Raise complaint",
   "/student/leaves": "Leave and gate pass",
   "/student/leaves/apply": "Apply for leave",
+  "/mess": "Mess menu",
   "/student/mess": "Mess",
   "/student/profile": "My profile",
   "/maintenance/work-orders": "Assigned work",
   "/maintenance/dashboard": "Overview",
   "/admin/dashboard": "Operations overview",
+  "/admin/hostels": "Hostel setup",
   "/admin/residents": "Residents and rooms",
   "/admin/student-approvals": "Student onboarding",
   "/admin/complaints": "Complaint queue",

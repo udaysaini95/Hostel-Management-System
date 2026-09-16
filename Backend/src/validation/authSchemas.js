@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ACCOUNT_STATUSES } from "../domain/accountStatuses.js";
 import { APPROVED_STUDENT_STATUSES } from "../domain/approvedStudentStatuses.js";
 import { USER_ROLES } from "../domain/roles.js";
+import { STUDENT_HOUSING_TYPES } from "../domain/hostels.js";
 import {
   emailSchema,
   hostelCodeSchema,
@@ -56,6 +57,7 @@ export const studentApprovalRequestSchema = {
     email: emailSchema,
     rollNo: rollNoSchema,
     hostelCode: hostelCodeSchema,
+    housingType: z.enum(Object.values(STUDENT_HOUSING_TYPES)),
   }),
 };
 

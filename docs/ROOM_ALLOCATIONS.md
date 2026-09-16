@@ -34,8 +34,9 @@ Content-Type: application/json
 
 A successful allocation returns `201`. The service requires an active student
 with a normalized profile, an active room in the student's assigned hostel, and
-at least one free bed. A student with a current allocation must be vacated before
-another room can be assigned.
+compatible boys/girls housing eligibility, plus at least one free bed. A co-ed
+hostel accepts either eligibility. A student with a current allocation must be
+vacated before another room can be assigned.
 
 Allocation is transactional. It locks the student profile and then the target
 room before checking current allocation and occupancy. This consistent order
@@ -68,6 +69,7 @@ kept synchronized for screens that have not yet moved to the normalized model.
 - `STUDENT_ACCOUNT_INACTIVE`: the resident account is not active.
 - `STUDENT_ALREADY_ALLOCATED`: the resident already has a current room.
 - `ROOM_HOSTEL_MISMATCH`: the room is outside the resident's assigned hostel.
+- `ROOM_HOUSING_MISMATCH`: the resident is not eligible for that hostel type.
 - `ROOM_CAPACITY_REACHED`: all configured beds are occupied.
 - `ROOM_ALREADY_VACATED`: the history row was already closed.
 - `HOSTEL_SCOPE_DENIED`: the warden is not assigned to the target hostel.

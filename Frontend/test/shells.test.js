@@ -45,6 +45,7 @@ test("navigation exposes only the currently implemented destinations per role", 
   ]);
   assert.deepEqual(pathsForRole("admin"), [
     "/admin/dashboard",
+    "/admin/hostels",
     "/admin/student-approvals",
     "/admin/residents",
     "/admin/complaints",
@@ -61,7 +62,6 @@ test("navigation exposes only the currently implemented destinations per role", 
   assert.deepEqual(pathsForRole("maintenance"), [
     "/maintenance/dashboard",
     "/maintenance/work-orders",
-    "/student/mess",
     "/notices",
   ]);
   assert.deepEqual(pathsForRole("unknown"), []);
@@ -79,6 +79,7 @@ test("navigation groups reflect each role's working context", () => {
   ]);
   assert.deepEqual(groupLabels("admin"), [
     "Workspace",
+    "Institution",
     "Resident management",
     "Hostel operations",
     "Communication",
@@ -123,6 +124,7 @@ test("utility-bar titles describe every implemented authenticated route", () => 
   assert.equal(getRouteTitle("/student/complaints/raise"), "Raise complaint");
   assert.equal(getRouteTitle("/student/profile"), "My profile");
   assert.equal(getRouteTitle("/admin/residents"), "Residents and rooms");
+  assert.equal(getRouteTitle("/admin/hostels"), "Hostel setup");
   assert.equal(getRouteTitle("/admin/complaints"), "Complaint queue");
   assert.equal(getRouteTitle("/maintenance/work-orders"), "Assigned work");
   assert.equal(getRouteTitle("/maintenance/dashboard"), "Overview");

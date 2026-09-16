@@ -32,6 +32,7 @@ export const getStudentImportFieldLabel = (field) => {
     name: "Name",
     email: "Email",
     roll_no: "Roll number",
+    housing_type: "Housing eligibility",
     hostel_code: "Hostel code",
   };
 

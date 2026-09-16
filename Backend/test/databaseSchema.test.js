@@ -68,6 +68,7 @@ import {
   staffInvitations,
   staffProfiles,
   studentActivationTokens,
+  studentHousingTypeEnum,
   studentProfiles,
   userRoleEnum,
   users,
@@ -424,6 +425,9 @@ test("resident profiles keep institutional identity separate from login accounts
   assert.equal(studentProfiles.hostelId.notNull, true);
   assert.equal(studentProfiles.rollNo.notNull, true);
   assert.equal(studentProfiles.rollNo.isUnique, true);
+  assert.equal(studentProfiles.housingType.notNull, false);
+  assert.equal(approvedStudents.housingType.notNull, false);
+  assert.deepEqual(studentHousingTypeEnum.enumValues, ["boys", "girls"]);
   assert.equal(config.foreignKeys.length, 3);
   assert.ok(
     config.foreignKeys.some(

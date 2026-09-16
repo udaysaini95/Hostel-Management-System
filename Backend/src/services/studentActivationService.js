@@ -19,6 +19,10 @@ import {
   PASSWORD_POLICY_MESSAGE,
 } from "../domain/passwordPolicy.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
+import {
+  isHousingCompatible,
+  STUDENT_HOUSING_TYPES,
+} from "../domain/hostels.js";
 import { ApiError } from "../utils/apiErrors.js";
 import {
   appendAuditEvent,
@@ -81,6 +85,10 @@ export const normalizeStudentApprovalInput = (input = {}) => {
     typeof input.hostelCode === "string"
       ? input.hostelCode.trim().toUpperCase()
       : "";
+  const housingType =
+    typeof input.housingType === "string"
+      ? input.housingType.trim().toLowerCase()
+      : "";
 
   if (name.length < 2 || name.length > 255) {
     fail(400, "INVALID_NAME", "Name must contain between 2 and 255 characters");
@@ -92,7 +100,11 @@ export const normalizeStudentApprovalInput = (input = {}) => {
     fail(400, "INVALID_HOSTEL", "A valid hostel code is required");
   }
 
-  return { name, email, rollNo, hostelCode };
+  if (!Object.values(STUDENT_HOUSING_TYPES).includes(housingType)) {
+    fail(400, "INVALID_HOUSING_TYPE", "Student housing eligibility is required");
+  }
+
+  return { name, email, rollNo, hostelCode, housingType };
 };
 
 export const normalizeStudentActivationRequest = (input = {}) => {
@@ -149,7 +161,12 @@ export const approveStudent = async (
 
   return database.transaction(async (transaction) => {
     const [hostel] = await transaction
-      .select({ id: hostels.id, code: hostels.code, name: hostels.name })
+      .select({
+        id: hostels.id,
+        code: hostels.code,
+        name: hostels.name,
+        residentType: hostels.residentType,
+      })
       .from(hostels)
       .where(and(eq(hostels.code, values.hostelCode), eq(hostels.isActive, true)))
       .for("share")
@@ -157,6 +174,14 @@ export const approveStudent = async (
 
     if (!hostel) {
       fail(400, "HOSTEL_NOT_FOUND", "The selected hostel is not active");
+    }
+
+    if (!isHousingCompatible(values.housingType, hostel.residentType)) {
+      fail(
+        409,
+        "HOSTEL_HOUSING_MISMATCH",
+        "The selected hostel does not match the student's housing eligibility"
+      );
     }
 
     const [existingUser] = await transaction
@@ -198,6 +223,7 @@ export const approveStudent = async (
         name: values.name,
         email: values.email,
         rollNo: values.rollNo,
+        housingType: values.housingType,
         hostelId: hostel.id,
         approvedByUserId,
         approvedAt: now,
@@ -209,6 +235,7 @@ export const approveStudent = async (
         name: approvedStudents.name,
         email: approvedStudents.email,
         rollNo: approvedStudents.rollNo,
+        housingType: approvedStudents.housingType,
         approvedAt: approvedStudents.approvedAt,
       });
 
@@ -224,6 +251,7 @@ export const approveStudent = async (
         studentName: approval.name,
         studentEmail: approval.email,
         rollNo: approval.rollNo,
+        housingType: approval.housingType,
         hostelCode: hostel.code,
       },
       assignedHostels: [hostel],
@@ -390,7 +418,12 @@ export const completeStudentActivation = async (
     }
 
     const [hostel] = await transaction
-      .select({ id: hostels.id, code: hostels.code, name: hostels.name })
+      .select({
+        id: hostels.id,
+        code: hostels.code,
+        name: hostels.name,
+        residentType: hostels.residentType,
+      })
       .from(hostels)
       .where(and(eq(hostels.id, approval.hostelId), eq(hostels.isActive, true)))
       .for("share")
@@ -398,6 +431,17 @@ export const completeStudentActivation = async (
 
     if (!hostel) {
       fail(409, "HOSTEL_UNAVAILABLE", "The approved hostel is not active");
+    }
+
+    if (
+      approval.housingType &&
+      !isHousingCompatible(approval.housingType, hostel.residentType)
+    ) {
+      fail(
+        409,
+        "HOSTEL_HOUSING_MISMATCH",
+        "The approved hostel no longer matches this student's housing eligibility"
+      );
     }
 
     const [existingUser] = await transaction
@@ -450,6 +494,7 @@ export const completeStudentActivation = async (
       userId: user.id,
       hostelId: hostel.id,
       rollNo: approval.rollNo,
+      housingType: approval.housingType,
       createdAt: now,
       updatedAt: now,
     });

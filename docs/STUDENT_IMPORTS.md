@@ -13,24 +13,26 @@ single-use activation flow after the import.
 ## Template
 
 The frontend provides `student-approval-import-template.csv` from the student
-onboarding page. It contains these four required headers:
+onboarding page. It contains these five required headers:
 
 ```csv
-name,email,roll_no,hostel_code
+name,email,roll_no,housing_type,hostel_code
 ```
 
-The columns may be reordered, but all four must appear exactly once and no
+The columns may be reordered, but all five must appear exactly once and no
 additional columns are accepted. Values follow the same normalization rules as
 the single approval form:
 
 - email addresses are trimmed and lowercased;
 - roll numbers are trimmed, uppercased, and repeated spaces are collapsed;
+- housing type must be `boys` or `girls`;
 - hostel codes are trimmed and uppercased;
 - quoted commas, escaped quotes, UTF-8 BOM markers, CRLF, and quoted line breaks
   are supported.
 
 One file may contain at most 500 student rows and must be no larger than 1 MB.
-Only active, already-configured hostel codes are valid.
+Only active, already-configured hostel codes are valid. A boys or girls student
+must match the hostel's resident type; either may use a co-ed hostel.
 
 ## API
 
@@ -49,6 +51,7 @@ The dry run parses the complete file and checks:
 - existing approved-student conflicts;
 - existing account conflicts; and
 - active hostel codes.
+- compatibility between the student's housing eligibility and hostel type.
 
 It never writes approval or audit records. A successful review returns `200`:
 

@@ -4,13 +4,27 @@ import {
   updateAccountStatus,
 } from "../Controllers/staffAccountController.js";
 import {
-  listApprovalHostels,
   listApprovedStudents,
   importApprovedStudents,
   reinstateStudentApproval,
   reissueStudentActivationEmail,
   revokeStudentApproval,
 } from "../Controllers/approvedStudentController.js";
+import {
+  getHostels,
+  patchHostel,
+  patchHostelStatus,
+  postHostel,
+} from "../Controllers/hostelController.js";
+import {
+  getInventory,
+  patchBlock,
+  patchBlockStatus,
+  patchRoom,
+  patchRoomStatus,
+  postBlock,
+  postRoom,
+} from "../Controllers/hostelInventoryController.js";
 import { PERMISSIONS } from "../domain/permissions.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { requirePermission } from "../middlewares/authorizationMiddleware.js";
@@ -27,6 +41,21 @@ import {
   studentApprovalRequestSchema,
   studentApprovalImportRequestSchema,
 } from "../validation/authSchemas.js";
+import {
+  hostelCreateRequestSchema,
+  hostelListRequestSchema,
+  hostelStatusRequestSchema,
+  hostelUpdateRequestSchema,
+} from "../validation/hostelSchemas.js";
+import {
+  blockCreateRequestSchema,
+  blockStatusRequestSchema,
+  blockUpdateRequestSchema,
+  hostelInventoryRequestSchema,
+  roomCreateRequestSchema,
+  roomStatusRequestSchema,
+  roomUpdateRequestSchema,
+} from "../validation/hostelInventorySchemas.js";
 
 const router = express.Router();
 
@@ -66,8 +95,89 @@ router.post(
 router.get(
   "/hostels",
   protect,
-  requirePermission(PERMISSIONS.STUDENT_APPROVE),
-  listApprovalHostels
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(hostelListRequestSchema),
+  getHostels
+);
+
+router.post(
+  "/hostels",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(hostelCreateRequestSchema),
+  postHostel
+);
+
+router.patch(
+  "/hostels/:id/status",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(hostelStatusRequestSchema),
+  patchHostelStatus
+);
+
+router.patch(
+  "/hostels/:id",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(hostelUpdateRequestSchema),
+  patchHostel
+);
+
+router.get(
+  "/hostels/:id/inventory",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(hostelInventoryRequestSchema),
+  getInventory
+);
+
+router.post(
+  "/hostels/:id/blocks",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(blockCreateRequestSchema),
+  postBlock
+);
+
+router.patch(
+  "/hostels/:id/blocks/:blockId/status",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(blockStatusRequestSchema),
+  patchBlockStatus
+);
+
+router.patch(
+  "/hostels/:id/blocks/:blockId",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(blockUpdateRequestSchema),
+  patchBlock
+);
+
+router.post(
+  "/hostels/:id/blocks/:blockId/rooms",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(roomCreateRequestSchema),
+  postRoom
+);
+
+router.patch(
+  "/hostels/:id/rooms/:roomId/status",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(roomStatusRequestSchema),
+  patchRoomStatus
+);
+
+router.patch(
+  "/hostels/:id/rooms/:roomId",
+  protect,
+  requirePermission(PERMISSIONS.HOSTEL_MANAGE),
+  validateRequest(roomUpdateRequestSchema),
+  patchRoom
 );
 
 router.get(

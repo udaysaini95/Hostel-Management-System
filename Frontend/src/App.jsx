@@ -16,6 +16,7 @@ import ApplyLeave from "./pages/ApplyLeave";
 import ComplaintDetail from "./pages/ComplaintDetail.jsx";
 import GuardDashboard from "./pages/GuardDashboard.jsx";
 import GuardTerminal from "./pages/GuardTerminal";
+import HostelSetup from "./pages/HostelSetup.jsx";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import MessAdmin from "./pages/MessAdmin";
@@ -81,6 +82,7 @@ function App() {
           </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.MESS_READER} />}>
+            <Route path="/mess" element={<MessPage />} />
             <Route path="/student/mess" element={<MessPage />} />
           </Route>
 
@@ -107,6 +109,7 @@ function App() {
           </Route>
 
           <Route element={<RequireRole allowedRoles={ROLE_GROUPS.ADMIN} />}>
+            <Route path="/admin/hostels" element={<HostelSetup />} />
             <Route
               path="/admin/student-approvals"
               element={<ApprovedStudents />}

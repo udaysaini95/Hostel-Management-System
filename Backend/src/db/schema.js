@@ -23,6 +23,10 @@ import {
   COMPLAINT_STATUSES,
 } from "../domain/complaintWorkflow.js";
 import { USER_ROLES } from "../domain/roles.js";
+import {
+  HOSTEL_RESIDENT_TYPES,
+  STUDENT_HOUSING_TYPES,
+} from "../domain/hostels.js";
 import { MEAL_TYPE_ORDER } from "../domain/mess.js";
 import {
   MESS_ISSUE_STATUSES,
@@ -45,6 +49,14 @@ export const userRoleEnum = pgEnum("user_role", Object.values(USER_ROLES));
 export const accountStatusEnum = pgEnum(
   "account_status",
   Object.values(ACCOUNT_STATUSES)
+);
+export const hostelResidentTypeEnum = pgEnum(
+  "hostel_resident_type",
+  Object.values(HOSTEL_RESIDENT_TYPES)
+);
+export const studentHousingTypeEnum = pgEnum(
+  "student_housing_type",
+  Object.values(STUDENT_HOUSING_TYPES)
 );
 export const complaintStatusEnum = pgEnum(
   "complaint_status",
@@ -111,6 +123,9 @@ export const hostels = pgTable(
     id: serial("id").primaryKey(),
     code: varchar("code", { length: 20 }).notNull().unique(),
     name: varchar("name", { length: 255 }).notNull().unique(),
+    residentType: hostelResidentTypeEnum("resident_type")
+      .default(HOSTEL_RESIDENT_TYPES.CO_ED)
+      .notNull(),
     address: text("address"),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -190,6 +205,7 @@ export const studentProfiles = pgTable(
       .notNull()
       .references(() => hostels.id, { onDelete: "restrict" }),
     rollNo: varchar("roll_no", { length: 50 }).notNull().unique(),
+    housingType: studentHousingTypeEnum("housing_type"),
     phone: varchar("phone", { length: 20 }),
     guardianName: varchar("guardian_name", { length: 255 }),
     guardianPhone: varchar("guardian_phone", { length: 20 }),
@@ -453,6 +469,7 @@ export const approvedStudents = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     email: varchar("email", { length: 255 }).notNull().unique(),
     rollNo: varchar("roll_no", { length: 50 }).notNull().unique(),
+    housingType: studentHousingTypeEnum("housing_type"),
     hostelId: integer("hostel_id")
       .notNull()
       .references(() => hostels.id, { onDelete: "restrict" }),

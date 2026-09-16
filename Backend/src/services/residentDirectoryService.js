@@ -181,6 +181,7 @@ const toResidentListItem = (record) => ({
   name: record.name,
   email: record.email,
   rollNo: record.rollNo,
+  housingType: record.housingType,
   phone: record.phone,
   accountStatus: record.accountStatus,
   hostel: {
@@ -222,6 +223,7 @@ export const searchResidents = async (database, requestActor, input = {}) => {
         email: users.email,
         accountStatus: users.accountStatus,
         rollNo: studentProfiles.rollNo,
+        housingType: studentProfiles.housingType,
         phone: studentProfiles.phone,
         profileComplete: sql`
           ${studentProfiles.phone} is not null

@@ -12,6 +12,7 @@ import {
   Panel,
 } from "../components/ui/index.js";
 import { useToast } from "../feedback/toastContext.js";
+import { getStudentHousingLabel } from "../hostels/hostelView.js";
 import {
   formatResidentDate,
   getAccountStatusLabel,
@@ -185,6 +186,10 @@ const StudentProfile = () => {
                     {profile.hostel.code} — {profile.hostel.name}
                   </span>
                 </dd>
+              </div>
+              <div>
+                <dt>Housing eligibility</dt>
+                <dd>{getStudentHousingLabel(profile.housingType)}</dd>
               </div>
               <div>
                 <dt>Profile details</dt>

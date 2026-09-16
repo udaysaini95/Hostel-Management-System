@@ -11,6 +11,7 @@ test("student approval normalizes institutional identity and hostel code", () =>
     name: "  Asha Rao  ",
     email: "  ASHA.RAO@COLLEGE.EDU ",
     rollNo: "  2026 cse 042  ",
+    housingType: " GIRLS ",
     hostelCode: " h2 ",
   });
 
@@ -18,6 +19,7 @@ test("student approval normalizes institutional identity and hostel code", () =>
     name: "Asha Rao",
     email: "asha.rao@college.edu",
     rollNo: "2026 CSE 042",
+    housingType: "girls",
     hostelCode: "H2",
   });
 });
@@ -42,6 +44,7 @@ test("student identity validation rejects incomplete and malformed records", () 
         name: "Asha Rao",
         email: "not-an-email",
         rollNo: "2026-CSE-042",
+        housingType: "girls",
         hostelCode: "H1",
       }),
     (error) => error.code === "INVALID_EMAIL"
@@ -53,6 +56,7 @@ test("student identity validation rejects incomplete and malformed records", () 
         name: "Asha Rao",
         email: "asha@college.edu",
         rollNo: "?",
+        housingType: "girls",
         hostelCode: "H1",
       }),
     (error) => error.code === "INVALID_ROLL_NO"
@@ -64,9 +68,22 @@ test("student identity validation rejects incomplete and malformed records", () 
         name: "Asha Rao",
         email: "asha@college.edu",
         rollNo: "2026-CSE-042",
+        housingType: "girls",
         hostelCode: "hostel one",
       }),
     (error) => error.code === "INVALID_HOSTEL"
+  );
+
+  assert.throws(
+    () =>
+      normalizeStudentApprovalInput({
+        name: "Asha Rao",
+        email: "asha@college.edu",
+        rollNo: "2026-CSE-042",
+        housingType: "co_ed",
+        hostelCode: "H1",
+      }),
+    (error) => error.code === "INVALID_HOUSING_TYPE"
   );
 });
 

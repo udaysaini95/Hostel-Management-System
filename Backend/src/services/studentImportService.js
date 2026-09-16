@@ -12,6 +12,10 @@ import {
   AUDIT_RESOURCE_TYPES,
 } from "../domain/auditEvents.js";
 import { normalizeEmail, USER_ROLES } from "../domain/roles.js";
+import {
+  isHousingCompatible,
+  STUDENT_HOUSING_TYPES,
+} from "../domain/hostels.js";
 import { ApiError } from "../utils/apiErrors.js";
 import {
   appendAuditEvent,
@@ -22,6 +26,7 @@ export const STUDENT_IMPORT_COLUMNS = Object.freeze([
   "name",
   "email",
   "roll_no",
+  "housing_type",
   "hostel_code",
 ]);
 export const STUDENT_IMPORT_MAX_ROWS = 500;
@@ -195,6 +200,7 @@ export const parseStudentImportCsv = (source) => {
       name: record.values[columnIndexes.name] ?? "",
       email: record.values[columnIndexes.email] ?? "",
       rollNo: record.values[columnIndexes.roll_no] ?? "",
+      housingType: record.values[columnIndexes.housing_type] ?? "",
       hostelCode: record.values[columnIndexes.hostel_code] ?? "",
     },
   }));
@@ -204,6 +210,7 @@ const normalizeRowValues = (values) => ({
   name: values.name.trim(),
   email: normalizeEmail(values.email),
   rollNo: values.rollNo.trim().replace(/\s+/g, " ").toUpperCase(),
+  housingType: values.housingType.trim().toLowerCase(),
   hostelCode: values.hostelCode.trim().toUpperCase(),
 });
 
@@ -217,14 +224,14 @@ const hasFieldError = (row, field) =>
   row.errors.some((error) => error.field === field);
 
 const addFormatErrors = (row) => {
-  const { name, email, rollNo, hostelCode } = row.values;
+  const { name, email, rollNo, housingType, hostelCode } = row.values;
 
   if (!row.hasExpectedColumnCount) {
     addRowError(
       row,
       "row",
       "COLUMN_COUNT_MISMATCH",
-      "This row does not contain exactly four columns"
+      "This row does not contain exactly five columns"
     );
   }
   if (name.length < 2 || name.length > 255) {
@@ -249,6 +256,14 @@ const addFormatErrors = (row) => {
       "roll_no",
       "INVALID_ROLL_NO",
       "Enter a valid student roll number"
+    );
+  }
+  if (!Object.values(STUDENT_HOUSING_TYPES).includes(housingType)) {
+    addRowError(
+      row,
+      "housing_type",
+      "INVALID_HOUSING_TYPE",
+      "Housing type must be boys or girls"
     );
   }
   if (!HOSTEL_CODE_PATTERN.test(hostelCode)) {
@@ -320,7 +335,12 @@ const buildReport = (rows, { dryRun, importedRows = 0 }) => {
 
 const loadImportContext = async (database, rows) => {
   const activeHostels = await database
-    .select({ id: hostels.id, code: hostels.code, name: hostels.name })
+    .select({
+      id: hostels.id,
+      code: hostels.code,
+      name: hostels.name,
+      residentType: hostels.residentType,
+    })
     .from(hostels)
     .where(
       and(
@@ -407,6 +427,19 @@ const addDatabaseErrors = (rows, context) => {
         "hostel_code",
         "HOSTEL_NOT_FOUND",
         "No active hostel uses this code"
+      );
+    }
+    const hostel = context.hostelsByCode.get(hostelCode);
+    if (
+      hostel &&
+      !hasFieldError(row, "housing_type") &&
+      !isHousingCompatible(row.values.housingType, hostel.residentType)
+    ) {
+      addRowError(
+        row,
+        "hostel_code",
+        "HOSTEL_HOUSING_MISMATCH",
+        "Hostel does not match the student's housing eligibility"
       );
     }
     if (!hasFieldError(row, "email") && context.approvedEmails.has(email)) {
@@ -524,6 +557,7 @@ export const importStudentApprovals = async (
           name: row.values.name,
           email: row.values.email,
           rollNo: row.values.rollNo,
+          housingType: row.values.housingType,
           hostelId: context.hostelsByCode.get(row.values.hostelCode).id,
           approvedByUserId,
           approvedAt: now,

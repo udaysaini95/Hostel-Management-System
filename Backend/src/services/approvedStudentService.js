@@ -26,6 +26,7 @@ import {
   APPROVED_STUDENT_STATUSES,
   isApprovedStudentStatus,
 } from "../domain/approvedStudentStatuses.js";
+import { isHousingCompatible } from "../domain/hostels.js";
 import { ApiError } from "../utils/apiErrors.js";
 import {
   appendAuditEvent,
@@ -236,6 +237,7 @@ const approvedStudentSelection = {
   name: approvedStudents.name,
   email: approvedStudents.email,
   rollNo: approvedStudents.rollNo,
+  housingType: approvedStudents.housingType,
   approvedByUserId: approvedStudents.approvedByUserId,
   activatedUserId: approvedStudents.activatedUserId,
   approvedAt: approvedStudents.approvedAt,
@@ -247,6 +249,7 @@ const approvedStudentSelection = {
   hostelCode: hostels.code,
   hostelName: hostels.name,
   hostelIsActive: hostels.isActive,
+  hostelResidentType: hostels.residentType,
 };
 
 const toApprovedStudentView = (record, now) => ({
@@ -254,12 +257,14 @@ const toApprovedStudentView = (record, now) => ({
   name: record.name,
   email: record.email,
   rollNo: record.rollNo,
+  housingType: record.housingType,
   status: getApprovedStudentLifecycleStatus(record, now),
   hostel: {
     id: record.hostelId,
     code: record.hostelCode,
     name: record.hostelName,
     isActive: record.hostelIsActive,
+    residentType: record.hostelResidentType,
   },
   approvedByUserId: record.approvedByUserId,
   activatedUserId: record.activatedUserId,
@@ -277,6 +282,7 @@ export const listStudentApprovalHostels = async (database) => {
       id: hostels.id,
       code: hostels.code,
       name: hostels.name,
+      residentType: hostels.residentType,
     })
     .from(hostels)
     .where(eq(hostels.isActive, true))
@@ -370,6 +376,17 @@ const ensureApprovalCanBeActivated = (approval) => {
 
   if (!approval.hostelIsActive) {
     fail(409, "HOSTEL_UNAVAILABLE", "The approved hostel is not active");
+  }
+
+  if (
+    approval.housingType &&
+    !isHousingCompatible(approval.housingType, approval.hostelResidentType)
+  ) {
+    fail(
+      409,
+      "HOSTEL_HOUSING_MISMATCH",
+      "The approved hostel no longer matches this student's housing eligibility"
+    );
   }
 };
 
@@ -497,6 +514,17 @@ export const reinstateApprovedStudent = async (
 
     if (!approval.hostelIsActive) {
       fail(409, "HOSTEL_UNAVAILABLE", "The approved hostel is not active");
+    }
+
+    if (
+      approval.housingType &&
+      !isHousingCompatible(approval.housingType, approval.hostelResidentType)
+    ) {
+      fail(
+        409,
+        "HOSTEL_HOUSING_MISMATCH",
+        "The approved hostel no longer matches this student's housing eligibility"
+      );
     }
 
     const [existingUser] = await transaction

@@ -42,11 +42,18 @@ import {
   getApprovalStatusTone,
 } from "../onboarding/approvedStudentView.js";
 import { StudentImportDialog } from "../onboarding/StudentImportDialog.jsx";
+import {
+  getResidentTypeLabel,
+  getStudentHousingLabel,
+  isHousingCompatible,
+  STUDENT_HOUSING_TYPES,
+} from "../hostels/hostelView.js";
 
 const EMPTY_FORM = Object.freeze({
   name: "",
   email: "",
   rollNo: "",
+  housingType: "",
   hostelCode: "",
 });
 
@@ -60,7 +67,7 @@ const EMPTY_PAGINATION = Object.freeze({
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLL_NO_PATTERN = /^[A-Z0-9][A-Z0-9 /-]{1,49}$/;
 
-const validateApprovalForm = (form, hostelCodes) => {
+const validateApprovalForm = (form, hostels) => {
   const errors = {};
   const name = form.name.trim();
   const email = form.email.trim();
@@ -75,8 +82,18 @@ const validateApprovalForm = (form, hostelCodes) => {
   if (!ROLL_NO_PATTERN.test(rollNo)) {
     errors.rollNo = "Enter a valid institutional roll number.";
   }
-  if (!hostelCodes.has(form.hostelCode)) {
+  if (!STUDENT_HOUSING_TYPES.some((type) => type.value === form.housingType)) {
+    errors.housingType = "Select the student's housing eligibility.";
+  }
+  const selectedHostel = hostels.find(
+    (hostel) => hostel.code === form.hostelCode
+  );
+  if (!selectedHostel) {
     errors.hostelCode = "Select the student's assigned hostel.";
+  } else if (
+    !isHousingCompatible(form.housingType, selectedHostel.residentType)
+  ) {
+    errors.hostelCode = "Choose a hostel compatible with this student.";
   }
 
   return errors;
@@ -84,7 +101,7 @@ const validateApprovalForm = (form, hostelCodes) => {
 
 const getServerFieldErrors = (error) => {
   const serverErrors = error?.response?.data?.fieldErrors ?? {};
-  const fields = ["name", "email", "rollNo", "hostelCode"];
+  const fields = ["name", "email", "rollNo", "housingType", "hostelCode"];
 
   return Object.fromEntries(
     fields
@@ -238,6 +255,7 @@ const ApprovedStudents = () => {
   const nameRef = useRef(null);
   const emailRef = useRef(null);
   const rollNoRef = useRef(null);
+  const housingTypeRef = useRef(null);
   const hostelRef = useRef(null);
   const { showToast } = useToast();
 
@@ -246,7 +264,7 @@ const ApprovedStudents = () => {
       setHostelsLoading(true);
       setHostelsError("");
       const response = await api.get("/api/admin/hostels");
-      setHostels(Array.isArray(response.data?.data) ? response.data.data : []);
+      setHostels(Array.isArray(response.data?.hostels) ? response.data.hostels : []);
     } catch (error) {
       setHostelsError(
         getApiErrorMessage(error, "Hostel choices could not be loaded.")
@@ -327,9 +345,10 @@ const ApprovedStudents = () => {
       name: nameRef,
       email: emailRef,
       rollNo: rollNoRef,
+      housingType: housingTypeRef,
       hostelCode: hostelRef,
     };
-    const firstField = ["name", "email", "rollNo", "hostelCode"].find(
+    const firstField = ["name", "email", "rollNo", "housingType", "hostelCode"].find(
       (field) => errors[field]
     );
 
@@ -357,8 +376,7 @@ const ApprovedStudents = () => {
 
   const createStudentApproval = async (event) => {
     event.preventDefault();
-    const hostelCodes = new Set(hostels.map((hostel) => hostel.code));
-    const clientErrors = validateApprovalForm(approvalForm, hostelCodes);
+    const clientErrors = validateApprovalForm(approvalForm, hostels);
 
     if (Object.keys(clientErrors).length > 0) {
       setApprovalErrors(clientErrors);
@@ -373,6 +391,7 @@ const ApprovedStudents = () => {
         name: approvalForm.name.trim(),
         email: approvalForm.email.trim(),
         rollNo: approvalForm.rollNo.trim().replace(/\s+/g, " ").toUpperCase(),
+        housingType: approvalForm.housingType,
         hostelCode: approvalForm.hostelCode,
       });
       setApprovalDialogOpen(false);
@@ -690,6 +709,9 @@ const ApprovedStudents = () => {
                       <span className="hm-approvals__student-meta hm-approvals__mono">
                         {student.rollNo}
                       </span>
+                      <span className="hm-approvals__student-meta">
+                        {getStudentHousingLabel(student.housingType)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span className="hm-approvals__hostel">
@@ -744,6 +766,10 @@ const ApprovedStudents = () => {
                   <div>
                     <dt>Hostel</dt>
                     <dd>{student.hostel.code} — {student.hostel.name}</dd>
+                  </div>
+                  <div>
+                    <dt>Housing eligibility</dt>
+                    <dd>{getStudentHousingLabel(student.housingType)}</dd>
                   </div>
                   <div>
                     <dt>Activation</dt>
@@ -866,6 +892,43 @@ const ApprovedStudents = () => {
             onChange={(event) => updateApprovalField("rollNo", event.target.value)}
           />
           <Select
+            ref={housingTypeRef}
+            label="Housing eligibility"
+            name="housingType"
+            required
+            value={approvalForm.housingType}
+            error={approvalErrors.housingType}
+            hint="This controls which boys, girls, or co-ed hostel can be assigned."
+            onChange={(event) => {
+              const housingType = event.target.value;
+              const selectedHostel = hostels.find(
+                (hostel) => hostel.code === approvalForm.hostelCode
+              );
+
+              setApprovalForm((current) => ({
+                ...current,
+                housingType,
+                hostelCode:
+                  selectedHostel &&
+                  !isHousingCompatible(housingType, selectedHostel.residentType)
+                    ? ""
+                    : current.hostelCode,
+              }));
+              setApprovalErrors((current) => ({
+                ...current,
+                housingType: "",
+                hostelCode: "",
+              }));
+            }}
+          >
+            <option value="">Select housing eligibility</option>
+            {STUDENT_HOUSING_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </Select>
+          <Select
             ref={hostelRef}
             label="Assigned hostel"
             name="hostelCode"
@@ -877,11 +940,22 @@ const ApprovedStudents = () => {
             }
           >
             <option value="">Select a hostel</option>
-            {hostels.map((hostel) => (
-              <option key={hostel.id} value={hostel.code}>
-                {hostel.code} — {hostel.name}
-              </option>
-            ))}
+            {hostels
+              .filter(
+                (hostel) =>
+                  !approvalForm.housingType ||
+                  isHousingCompatible(
+                    approvalForm.housingType,
+                    hostel.residentType
+                  )
+              )
+              .map((hostel) => (
+                <option key={hostel.id} value={hostel.code}>
+                  {`${hostel.code} — ${hostel.name} (${getResidentTypeLabel(
+                    hostel.residentType
+                  )})`}
+                </option>
+              ))}
           </Select>
         </form>
       </Dialog>
